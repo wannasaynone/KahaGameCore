@@ -37,6 +37,7 @@ namespace KahaGameCore
 
         private static Dictionary<Type, IGameData[]> m_gameData = new Dictionary<Type, IGameData[]>();
         private static Dictionary<Type, ScriptableObject> m_typeToSO = new Dictionary<Type, ScriptableObject>();
+        private static List<ScriptableObject> m_loadedSObjects = new List<ScriptableObject>();
         private static GameObject[] m_allPrefabResources = null;
 
         private static State m_state = State.Default;
@@ -106,13 +107,11 @@ namespace KahaGameCore
             }
 
             UnityEngine.Object[] _loadedObjects = _loadStaticDataObjectRequest.allAssets;
-            ScriptableObject[] _allSO = new ScriptableObject[_loadedObjects.Length];
+            m_loadedSObjects.Clear();
 
             for (int i = 0; i < _loadedObjects.Length; i++)
             {
-                _allSO[i] = _loadedObjects[i] as ScriptableObject;
-                //TryLoadSO<CombineData>(_allSO[i]);
-                //TryLoadSO<FurnaceData>(_allSO[i]);
+                m_loadedSObjects.Add(_loadedObjects[i] as ScriptableObject);
             }
 
             AssetBundle _gameObjectBundle = m_nameToBundle[BUNDLE_NAME_PREFAB];
@@ -202,7 +201,24 @@ namespace KahaGameCore
                 Debug.LogError("Bundle not inited");
             }
 
-            return m_typeToSO[typeof(T)] as T;
+            if(m_typeToSO.ContainsKey(typeof(T)))
+            {
+                return m_typeToSO[typeof(T)] as T;
+            }
+            else
+            {
+                for(int i = 0; i < m_loadedSObjects.Count; i++)
+                {
+                    if(TryRegisterSO<T>(m_loadedSObjects[i]))
+                    {
+                        return m_typeToSO[typeof(T)] as T;
+                    }
+                }
+
+                Debug.LogErrorFormat("Can't get ScriptableObject:{0}", typeof(T).Name);
+
+                return null;
+            }
         }
 
         public static T GetPrefabClone<T>(string name) where T : UnityEngine.Object
@@ -230,7 +246,7 @@ namespace KahaGameCore
             return null;
         }
 
-        private static void TryLoadSO<T>(ScriptableObject obj) where T : ScriptableObject
+        private static bool TryRegisterSO<T>(ScriptableObject obj) where T : ScriptableObject
         {
             if (obj is T)
             {
@@ -242,8 +258,13 @@ namespace KahaGameCore
                 {
                     m_typeToSO.Add(typeof(T), obj);
                 }
+
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
-
     }
 }

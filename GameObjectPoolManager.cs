@@ -38,7 +38,13 @@ namespace KahaGameCore
         {
             if (!m_fileNameToOrgainPrefab.ContainsKey(fileName))
             {
-                m_fileNameToOrgainPrefab.Add(fileName, Resources.Load<T>("Prefabs/" + fileName));
+                T _resource = Resources.Load<T>("Prefabs/" + fileName);
+                if(_resource == null)
+                {
+                    Debug.LogErrorFormat("Can't get resources {0}, resource MUST put in \"Resources/Prefabs/\" folder", fileName);
+                    return null;
+                }
+                m_fileNameToOrgainPrefab.Add(fileName, _resource);
             }
 
             return UnityEngine.Object.Instantiate(m_fileNameToOrgainPrefab[fileName]) as T;        
