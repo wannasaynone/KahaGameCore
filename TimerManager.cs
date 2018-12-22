@@ -17,6 +17,7 @@ namespace KahaGameCore
         private static Dictionary<long, Timer> m_timers = new Dictionary<long, Timer>();
         private static List<long> m_waitForRemoveTimers = new List<long>();
         private static long m_currentID = 0;
+        private static List<long> m_allTimerIds = new List<long>();
 
         public static long Schedule(float time, Action action)
         {
@@ -35,6 +36,7 @@ namespace KahaGameCore
             }
 
             m_timers.Add(m_currentID, new Timer() { Time = time, Action = action });
+            m_allTimerIds = new List<long>(m_timers.Keys);
 
             return m_currentID;
         }
@@ -60,17 +62,16 @@ namespace KahaGameCore
 
         private void Update()
         {
-            List<long> _ids = new List<long>(m_timers.Keys);
-            for (int i = 0; i < _ids.Count; i++)
+            for (int i = 0; i < m_allTimerIds.Count; i++)
             {
-                m_timers[_ids[i]].Time -= Time.deltaTime;
-                if (m_timers[_ids[i]].Time <= 0)
+                m_timers[m_allTimerIds[i]].Time -= Time.deltaTime;
+                if (m_timers[m_allTimerIds[i]].Time <= 0)
                 {
-                    if (m_timers[_ids[i]].Action != null)
+                    if (m_timers[m_allTimerIds[i]].Action != null)
                     {
-                        m_timers[_ids[i]].Action();
+                        m_timers[m_allTimerIds[i]].Action();
                     }
-                    m_waitForRemoveTimers.Add(_ids[i]);
+                    m_waitForRemoveTimers.Add(m_allTimerIds[i]);
                 }
             }
 
