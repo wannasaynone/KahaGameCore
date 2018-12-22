@@ -7,7 +7,6 @@ namespace KahaGameCore
 {
     public class InputDetecter2D
     {
-
         public struct InputInfo
         {
             public Vector3 InputPosition;
@@ -50,15 +49,15 @@ namespace KahaGameCore
 
         private static InputInfo DetectComputerInput()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (UnityEngine.Input.GetMouseButtonDown(0))
             {
                 m_state = State.Down;
             }
-            else if (Input.GetMouseButton(0))
+            else if (UnityEngine.Input.GetMouseButton(0))
             {
                 m_state = State.Pressing;
             }
-            else if (Input.GetMouseButtonUp(0))
+            else if (UnityEngine.Input.GetMouseButtonUp(0))
             {
                 m_state = State.Up;
             }
@@ -74,27 +73,27 @@ namespace KahaGameCore
 
         private static InputInfo DetectMobileInput()
         {
-            if (Input.touchCount > 0)
+            if (UnityEngine.Input.touchCount > 0)
             {
                 if (StartFingerID == -1)
                 {
-                    if (Input.GetTouch(0).phase == TouchPhase.Began)
+                    if (UnityEngine.Input.GetTouch(0).phase == TouchPhase.Began)
                     {
                         m_state = State.Down;
-                        StartFingerID = Input.GetTouch(0).fingerId;
+                        StartFingerID = UnityEngine.Input.GetTouch(0).fingerId;
                     }
                 }
                 else
                 {
-                    for (int i = 0; i < Input.touches.Length; i++)
+                    for (int i = 0; i < UnityEngine.Input.touches.Length; i++)
                     {
-                        if (Input.touches[i].fingerId == StartFingerID)
+                        if (UnityEngine.Input.touches[i].fingerId == StartFingerID)
                         {
-                            if (Input.touches[i].phase == TouchPhase.Stationary || Input.touches[i].phase == TouchPhase.Moved)
+                            if (UnityEngine.Input.touches[i].phase == TouchPhase.Stationary || UnityEngine.Input.touches[i].phase == TouchPhase.Moved)
                             {
                                 m_state = State.Pressing;
                             }
-                            else if (Input.touches[i].phase == TouchPhase.Ended)
+                            else if (UnityEngine.Input.touches[i].phase == TouchPhase.Ended)
                             {
                                 m_state = State.Up;
                             }
@@ -119,7 +118,7 @@ namespace KahaGameCore
             RaycastHit2D rayHit = new RaycastHit2D();
             InputInfo info = new InputInfo();
 #if UNITY_EDITOR || UNITY_STANDALONE || UNITY_WEBGL
-            Vector2 mousePos = m_camera.ScreenToWorldPoint(new Vector2(Input.mousePosition.x, Input.mousePosition.y));
+            Vector2 mousePos = m_camera.ScreenToWorldPoint(new Vector2(UnityEngine.Input.mousePosition.x, UnityEngine.Input.mousePosition.y));
             rayHit = Physics2D.Raycast(mousePos, Vector2.zero);
 
             if (EventSystem.current == null)
@@ -136,11 +135,11 @@ namespace KahaGameCore
             }
             info.InputPosition = mousePos;
 #elif UNITY_ANDROID
-        for (int i = 0; i < Input.touches.Length; i++)
+        for (int i = 0; i < UnityEngine.Input.touches.Length; i++)
         {
-            if (Input.touches[i].fingerId == StartFingerID)
+            if (UnityEngine.Input.touches[i].fingerId == StartFingerID)
             {
-                Vector2 touchPos = m_camera.ScreenToWorldPoint(new Vector2(Input.touches[i].position.x, Input.touches[i].position.y));
+                Vector2 touchPos = m_camera.ScreenToWorldPoint(new Vector2(UnityEngine.Input.touches[i].position.x, UnityEngine.Input.touches[i].position.y));
                 rayHit = Physics2D.Raycast(touchPos, Vector2.zero);
         
                  if(EventSystem.current.IsPointerOverGameObject(StartFingerID))
