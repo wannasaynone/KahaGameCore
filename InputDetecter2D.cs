@@ -41,9 +41,11 @@ namespace KahaGameCore
             }
 
 #if UNITY_STANDALON || UNITY_EDITOR || UNITY_WEBGL
-            return DetectComputerInput();
+           return DetectComputerInput();
 #elif UNITY_ANDROID
-        return DetectMobileInput();
+           return DetectMobileInput();
+#else
+           return DetectComputerInput();
 #endif
         }
 
