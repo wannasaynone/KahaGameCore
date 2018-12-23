@@ -39,9 +39,10 @@ namespace KahaGameCore
             if (!m_fileNameToOrgainPrefab.ContainsKey(fileName))
             {
                 T _resource = GameResourcesManager.LoadResource<T>("Prefabs/" + fileName);
-                Debug.LogFormat("Can't find {0} in \"Resources/Prefabs\", try to load it from assetbundle", fileName);
+
                 if (_resource == null)
                 {
+                    Debug.LogFormat("Can't find {0} in {1}, try to load it from assetbundle", fileName, "Resources/Prefabs");
                     _resource = GameResourcesManager.LoadBundleAsset<T>(fileName);
                     if(_resource == null)
                     {
