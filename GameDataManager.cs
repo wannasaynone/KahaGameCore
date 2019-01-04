@@ -34,6 +34,22 @@ namespace KahaGameCore
             }
         }
 
+        // TODO: 只有一個obj也要輸出成json array
+        public static void SaveData(object saveObj)
+        {
+            string _jsonData = JsonWriter.Serialize(saveObj);
+            if(!System.IO.Directory.Exists(Application.dataPath + "/Resources/Datas/"))
+            {
+                System.IO.Directory.CreateDirectory(Application.dataPath + "/Resources/Datas/");
+            }
+            string[] _fullName = saveObj.ToString().Split('.');
+            string[] _fullClassName = _fullName[_fullName.Length - 1].Split('+');
+            System.IO.File.WriteAllText(Application.dataPath + "/Resources/Datas/" + _fullClassName[_fullClassName.Length-1] + ".txt", _jsonData);
+#if UNITY_EDITOR
+            UnityEditor.AssetDatabase.Refresh();
+#endif
+        }
+
         public static T GetGameData<T>(int id) where T : IGameData
         {
             if (m_gameData.ContainsKey(typeof(T)))
@@ -63,6 +79,23 @@ namespace KahaGameCore
             }
 
             return default(T[]);
+        }
+
+        public static void LoadScriptableObjectData<T>(string path) where T : ScriptableObject
+        {
+            T _obj = GameResourcesManager.LoadResource<T>(path);
+            if(_obj != null)
+            {
+                if(m_typeToSO.ContainsKey(typeof(T)))
+                {
+                    Debug.LogFormat("{0} is existed, but is trying to load it, check it");
+                    return;
+                }
+                else
+                {
+                    m_typeToSO.Add(typeof(T), _obj);
+                }
+            }
         }
 
         public static T GetScriptableObjectData<T>() where T : ScriptableObject
@@ -95,18 +128,23 @@ namespace KahaGameCore
 
         private static bool TryRegisterSO<T>(ScriptableObject obj) where T : ScriptableObject
         {
+            if(obj == null)
+            {
+                return false;
+            }
+
             if (obj is T)
             {
                 if (m_typeToSO.ContainsKey(typeof(T)))
                 {
-                    Debug.LogErrorFormat("{0} existed but is trying to load it, Check it", typeof(T).Name);
+                    Debug.LogFormat("{0} is existed, but is trying to load it, check it");
+                    return false;
                 }
                 else
                 {
                     m_typeToSO.Add(typeof(T), obj);
+                    return true;
                 }
-
-                return true;
             }
             else
             {

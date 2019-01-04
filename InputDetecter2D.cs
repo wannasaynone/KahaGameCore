@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace KahaGameCore
@@ -68,9 +66,9 @@ namespace KahaGameCore
                 m_state = State.None;
             }
 
-            InputInfo info = CheckRaycast();
+            InputInfo _info = CheckRaycast();
 
-            return info;
+            return _info;
         }
 
         private static InputInfo DetectMobileInput()
@@ -110,18 +108,18 @@ namespace KahaGameCore
                 StartFingerID = -1;
             }
 
-            InputInfo info = CheckRaycast();
+            InputInfo _info = CheckRaycast();
 
-            return info;
+            return _info;
         }
 
         private static InputInfo CheckRaycast()
         {
-            RaycastHit2D rayHit = new RaycastHit2D();
-            InputInfo info = new InputInfo();
+            RaycastHit2D _rayHit = new RaycastHit2D();
+            InputInfo _info = new InputInfo();
 #if UNITY_EDITOR || UNITY_STANDALONE || UNITY_WEBGL
             Vector2 mousePos = m_camera.ScreenToWorldPoint(new Vector2(UnityEngine.Input.mousePosition.x, UnityEngine.Input.mousePosition.y));
-            rayHit = Physics2D.Raycast(mousePos, Vector2.zero);
+            _rayHit = Physics2D.Raycast(mousePos, Vector2.zero);
 
             if (EventSystem.current == null)
             {
@@ -129,37 +127,37 @@ namespace KahaGameCore
             }
             else if (EventSystem.current.IsPointerOverGameObject())
             {
-                info.isOnUGUI = true;
+                _info.isOnUGUI = true;
             }
             else
             {
-                info.isOnUGUI = false;
+                _info.isOnUGUI = false;
             }
-            info.InputPosition = mousePos;
+            _info.InputPosition = mousePos;
 #elif UNITY_ANDROID
         for (int i = 0; i < UnityEngine.Input.touches.Length; i++)
         {
             if (UnityEngine.Input.touches[i].fingerId == StartFingerID)
             {
                 Vector2 touchPos = m_camera.ScreenToWorldPoint(new Vector2(UnityEngine.Input.touches[i].position.x, UnityEngine.Input.touches[i].position.y));
-                rayHit = Physics2D.Raycast(touchPos, Vector2.zero);
+                _rayHit = Physics2D.Raycast(touchPos, Vector2.zero);
         
                  if(EventSystem.current.IsPointerOverGameObject(StartFingerID))
                  {
-                    info.isOnUGUI = true;
+                    _info.isOnUGUI = true;
                  }
                   else
                  {
-                     info.isOnUGUI = false;
+                    _info.isOnUGUI = false;
                  }
-                info.InputPosition = touchPos;
+                _info.InputPosition = touchPos;
             }
         }
 #endif
-            info.InputState = m_state;
-            info.RayCastTranform = rayHit.transform;
-            info.RayCastCollider = rayHit.collider;
-            return info;
+            _info.InputState = m_state;
+            _info.RayCastTranform = _rayHit.transform;
+            _info.RayCastCollider = _rayHit.collider;
+            return _info;
         }
     }
 }

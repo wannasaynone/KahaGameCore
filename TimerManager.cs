@@ -78,6 +78,7 @@ namespace KahaGameCore
             for (int i = 0; i < m_waitForRemoveTimers.Count; i++)
             {
                 m_timers.Remove(m_waitForRemoveTimers[i]);
+                m_allTimerIds.Remove(m_waitForRemoveTimers[i]);
             }
 
             if (m_waitForRemoveTimers.Count > 0)
