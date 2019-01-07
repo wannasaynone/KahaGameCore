@@ -19,6 +19,12 @@ namespace KahaGameCore
         private static long m_currentID = 0;
         private static List<long> m_allTimerIds = new List<long>();
 
+        /// <summary>
+        /// Schedule a method which will be excuted when time is up.
+        /// </summary>
+        /// <param name="time">wait for</param>
+        /// <param name="action">method</param>
+        /// <returns>timer id</returns>
         public static long Schedule(float time, Action action)
         {
             if (m_currentID + 1 > long.MaxValue)
@@ -39,6 +45,12 @@ namespace KahaGameCore
             m_allTimerIds = new List<long>(m_timers.Keys);
 
             return m_currentID;
+        }
+
+        public static void Cancel(long id)
+        {
+            m_timers.Remove(id);
+            m_allTimerIds.Remove(id);
         }
 
         public static void AddTime(long id, float time)

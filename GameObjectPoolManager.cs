@@ -10,7 +10,7 @@ namespace KahaGameCore
         private static Dictionary<string, MonoBehaviour> m_fileNameToOrgainPrefab = new Dictionary<string, MonoBehaviour>();
         private static Dictionary<Type, List<MonoBehaviour>> m_typeToMonoBehaviour = new Dictionary<Type, List<MonoBehaviour>>();
 
-        public static T GetUseableObject<T>(string fileName) where T : MonoBehaviour
+        public static T GetUseableObject<T>(string path) where T : MonoBehaviour
         {
             if (m_typeToMonoBehaviour.ContainsKey(typeof(T)))
             {
@@ -24,36 +24,36 @@ namespace KahaGameCore
                     }
                 }
 
-                m_typeToMonoBehaviour[typeof(T)].Add(CreateClone<T>(fileName));
+                m_typeToMonoBehaviour[typeof(T)].Add(CreateClone<T>(path));
                 return m_typeToMonoBehaviour[typeof(T)][m_typeToMonoBehaviour[typeof(T)].Count - 1] as T;
             }
             else
             {
-                m_typeToMonoBehaviour.Add(typeof(T), new List<MonoBehaviour>() { CreateClone<T>(fileName) });
+                m_typeToMonoBehaviour.Add(typeof(T), new List<MonoBehaviour>() { CreateClone<T>(path) });
                 return m_typeToMonoBehaviour[typeof(T)][0] as T;
             }
         }
 
-        private static T CreateClone<T>(string fileName) where T : MonoBehaviour
+        private static T CreateClone<T>(string path) where T : MonoBehaviour
         {
-            if (!m_fileNameToOrgainPrefab.ContainsKey(fileName))
+            if (!m_fileNameToOrgainPrefab.ContainsKey(path))
             {
-                T _resource = GameResourcesManager.LoadResource<T>("Prefabs/" + fileName);
+                T _resource = GameResourcesManager.LoadResource<T>(path);
 
                 if (_resource == null)
                 {
-                    Debug.LogFormat("Can't find {0} in {1}, try to load it from assetbundle", fileName, "Resources/Prefabs");
-                    _resource = GameResourcesManager.LoadBundleAsset<T>(fileName);
+                    Debug.LogFormat("Can't find {0} in {1}, try to load it from assetbundle", typeof(T), path);
+                    _resource = GameResourcesManager.LoadBundleAsset<T>(path);
                     if(_resource == null)
                     {
-                        Debug.LogErrorFormat("Can't find {0} in anywhere, will return null", fileName);
+                        Debug.LogErrorFormat("Can't find {0} in anywhere, will return null", typeof(T));
                         return null;
                     }
                 }
-                m_fileNameToOrgainPrefab.Add(fileName, _resource);
+                m_fileNameToOrgainPrefab.Add(path, _resource);
             }
 
-            return UnityEngine.Object.Instantiate(m_fileNameToOrgainPrefab[fileName]) as T;        
+            return UnityEngine.Object.Instantiate(m_fileNameToOrgainPrefab[path]) as T;        
         }
     }
 }

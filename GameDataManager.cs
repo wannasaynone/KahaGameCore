@@ -34,8 +34,7 @@ namespace KahaGameCore
             }
         }
 
-        // TODO: 只有一個obj也要輸出成json array
-        public static void SaveData(object saveObj)
+        public static void SaveData(object[] saveObj)
         {
             string _jsonData = JsonWriter.Serialize(saveObj);
             if(!System.IO.Directory.Exists(Application.dataPath + "/Resources/Datas/"))
@@ -44,7 +43,7 @@ namespace KahaGameCore
             }
             string[] _fullName = saveObj.ToString().Split('.');
             string[] _fullClassName = _fullName[_fullName.Length - 1].Split('+');
-            System.IO.File.WriteAllText(Application.dataPath + "/Resources/Datas/" + _fullClassName[_fullClassName.Length-1] + ".txt", _jsonData);
+            System.IO.File.WriteAllText(Application.dataPath + "/Resources/Datas/" + _fullClassName[_fullClassName.Length-1].Replace("[]","") + ".txt", _jsonData);
 #if UNITY_EDITOR
             UnityEditor.AssetDatabase.Refresh();
 #endif
