@@ -241,7 +241,7 @@ namespace KahaGameCore
 
                 if (_obj == null)
                 {
-                    Debug.LogErrorFormat("Can't find {0} in {1}, will return null", typeof(T), path);
+                    Debug.LogWarningFormat("Can't find {0} in {1}, will return null", typeof(T), path);
                     return null;
                 }
                 else

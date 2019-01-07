@@ -80,6 +80,9 @@ namespace KahaGameCore
             return default(T[]);
         }
 
+        /// <summary>
+        /// Load ScriptableObject-Form-Data from path. Only can be used when ScriptableObject is one and only.
+        /// </summary>
         public static void LoadScriptableObjectData<T>(string path) where T : ScriptableObject
         {
             T _obj = GameResourcesManager.LoadResource<T>(path);
@@ -97,6 +100,9 @@ namespace KahaGameCore
             }
         }
 
+        /// <summary>
+        /// Get ScriptableObject-Form-Data which is one and only.
+        /// </summary>
         public static T GetScriptableObjectData<T>() where T : ScriptableObject
         {
             if (GameResourcesManager.CurrentState != GameResourcesManager.State.Inited)
