@@ -119,11 +119,11 @@ namespace KahaGameCore
                 }
             }
 
-            Debug.Log("All Asset Bundle Assets Loaded");
+            // Debug.Log("All Asset Bundle Assets Loaded");
 
             m_state = State.Inited;
 
-            Debug.Log("Asset Bundle Inited");
+            // Debug.Log("Asset Bundle Inited");
 
             if (OnAssetBundleInited != null)
             {

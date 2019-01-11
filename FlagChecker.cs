@@ -21,7 +21,7 @@ namespace ycs.baccarat
                 }
             }
 
-            UnityEngine.Debug.Log("Invalid BitFlag:" + bitFlag);
+            UnityEngine.Debug.LogErrorFormat("Invalid BitFlag:{0}, will return -1", bitFlag);
             return -1;
         }
 

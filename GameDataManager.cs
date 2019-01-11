@@ -12,23 +12,29 @@ namespace KahaGameCore
         private static Dictionary<Type, IGameData[]> m_gameData = new Dictionary<Type, IGameData[]>();
         private static Dictionary<Type, ScriptableObject> m_typeToSO = new Dictionary<Type, ScriptableObject>();
 
-        public static void LoadGameData<T>(string path) where T : IGameData
+        public static void LoadGameData<T>(string path, bool isForceUpdate = false) where T : IGameData
         {
-            T[] data = JsonReader.Deserialize<T[]>(Resources.Load<TextAsset>(path).text);
             if (m_gameData.ContainsKey(typeof(T)))
             {
-                m_gameData[typeof(T)] = new IGameData[data.Length];
-                for (int i = 0; i < data.Length; i++)
+                if(!isForceUpdate)
                 {
-                    m_gameData[typeof(T)][i] = data[i];
+                    return;
+                }
+
+                T[] _data = JsonReader.Deserialize<T[]>(Resources.Load<TextAsset>(path).text);
+                m_gameData[typeof(T)] = new IGameData[_data.Length];
+                for (int i = 0; i < _data.Length; i++)
+                {
+                    m_gameData[typeof(T)][i] = _data[i];
                 }
             }
             else
             {
-                IGameData[] _gameData = new IGameData[data.Length];
-                for (int i = 0; i < data.Length; i++)
+                T[] _data = JsonReader.Deserialize<T[]>(Resources.Load<TextAsset>(path).text);
+                IGameData[] _gameData = new IGameData[_data.Length];
+                for (int i = 0; i < _data.Length; i++)
                 {
-                    _gameData[i] = data[i];
+                    _gameData[i] = _data[i];
                 }
                 m_gameData.Add(typeof(T), _gameData);
             }
@@ -61,6 +67,10 @@ namespace KahaGameCore
                     }
                 }
             }
+            else
+            {
+                Debug.LogErrorFormat("{0} can't be found, use LoadGameData first", typeof(T).Name);
+            }
 
             return default(T);
         }
@@ -90,7 +100,7 @@ namespace KahaGameCore
             {
                 if(m_typeToSO.ContainsKey(typeof(T)))
                 {
-                    Debug.LogFormat("{0} is existed, but is trying to load it, check it");
+                    Debug.LogErrorFormat("{0} is existed, but is trying to load it, check it", typeof(T).Name);
                     return;
                 }
                 else
