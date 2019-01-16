@@ -21,7 +21,7 @@ namespace KahaGameCore
                     return;
                 }
 
-                T[] _data = JsonReader.Deserialize<T[]>(Resources.Load<TextAsset>(path).text);
+                T[] _data = JsonReader.Deserialize<T[]>(GetJsonString(path));
                 m_gameData[typeof(T)] = new IGameData[_data.Length];
                 for (int i = 0; i < _data.Length; i++)
                 {
@@ -30,7 +30,7 @@ namespace KahaGameCore
             }
             else
             {
-                T[] _data = JsonReader.Deserialize<T[]>(Resources.Load<TextAsset>(path).text);
+                T[] _data = JsonReader.Deserialize<T[]>(GetJsonString(path));
                 IGameData[] _gameData = new IGameData[_data.Length];
                 for (int i = 0; i < _data.Length; i++)
                 {
@@ -40,16 +40,43 @@ namespace KahaGameCore
             }
         }
 
-        public static void SaveData(object[] saveObj)
+        private static string GetJsonString(string path)
         {
-            string _jsonData = JsonWriter.Serialize(saveObj);
-            if(!System.IO.Directory.Exists(Application.dataPath + "/Resources/Datas/"))
+            TextAsset _dataTextAsset = Resources.Load<TextAsset>(path);
+            if (_dataTextAsset == null)
             {
-                System.IO.Directory.CreateDirectory(Application.dataPath + "/Resources/Datas/");
+                Debug.LogErrorFormat("Can't find text asset at {0} while getting json string.", path);
+                return null;
+            }
+            return _dataTextAsset.text;
+        }
+
+        public static T LoadGameData<T>(string path, int id, bool isForceUpdate = false) where T : IGameData
+        {
+            LoadGameData<T>(path, isForceUpdate);
+            return GetGameData<T>(id);
+        }
+
+        public static void SaveData(object[] saveObj, string path = null)
+        {
+            if(string.IsNullOrEmpty(path))
+            {
+                path = Application.dataPath + "/Resources/Datas/";
+            }
+
+            if(path[path.Length - 1] != '/')
+            {
+                path += "/";
+            }
+
+            string _jsonData = JsonWriter.Serialize(saveObj);
+            if(!System.IO.Directory.Exists(path))
+            {
+                System.IO.Directory.CreateDirectory(path);
             }
             string[] _fullName = saveObj.ToString().Split('.');
             string[] _fullClassName = _fullName[_fullName.Length - 1].Split('+');
-            System.IO.File.WriteAllText(Application.dataPath + "/Resources/Datas/" + _fullClassName[_fullClassName.Length-1].Replace("[]","") + ".txt", _jsonData);
+            System.IO.File.WriteAllText(path + _fullClassName[_fullClassName.Length-1].Replace("[]","") + ".txt", _jsonData);
 #if UNITY_EDITOR
             UnityEditor.AssetDatabase.Refresh();
 #endif
@@ -118,6 +145,7 @@ namespace KahaGameCore
             if (GameResourcesManager.CurrentState != GameResourcesManager.State.Inited)
             {
                 Debug.LogError("Bundle not inited");
+                return null;
             }
 
             if(m_typeToSO.ContainsKey(typeof(T)))

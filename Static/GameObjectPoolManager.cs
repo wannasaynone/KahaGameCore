@@ -8,29 +8,30 @@ namespace KahaGameCore
     public static class GameObjectPoolManager
     {
         private static Dictionary<string, MonoBehaviour> m_fileNameToOrgainPrefab = new Dictionary<string, MonoBehaviour>();
-        private static Dictionary<Type, List<MonoBehaviour>> m_typeToMonoBehaviour = new Dictionary<Type, List<MonoBehaviour>>();
+        private static Dictionary<string, List<MonoBehaviour>> m_fileNameToMonoBehaviour = new Dictionary<string, List<MonoBehaviour>>();
 
         public static T GetUseableObject<T>(string path) where T : MonoBehaviour
         {
-            if (m_typeToMonoBehaviour.ContainsKey(typeof(T)))
+            if (m_fileNameToMonoBehaviour.ContainsKey(path))
             {
-                List<MonoBehaviour> _allObject = m_typeToMonoBehaviour[typeof(T)];
+                List<MonoBehaviour> _allObject = m_fileNameToMonoBehaviour[path];
 
                 for (int i = 0; i < _allObject.Count; i++)
                 {
                     if (!_allObject[i].gameObject.activeSelf)
                     {
+                        _allObject[i].gameObject.SetActive(true);
                         return _allObject[i] as T;
                     }
                 }
 
-                m_typeToMonoBehaviour[typeof(T)].Add(CreateClone<T>(path));
-                return m_typeToMonoBehaviour[typeof(T)][m_typeToMonoBehaviour[typeof(T)].Count - 1] as T;
+                m_fileNameToMonoBehaviour[path].Add(CreateClone<T>(path));
+                return m_fileNameToMonoBehaviour[path][m_fileNameToMonoBehaviour[path].Count - 1] as T;
             }
             else
             {
-                m_typeToMonoBehaviour.Add(typeof(T), new List<MonoBehaviour>() { CreateClone<T>(path) });
-                return m_typeToMonoBehaviour[typeof(T)][0] as T;
+                m_fileNameToMonoBehaviour.Add(path, new List<MonoBehaviour>() { CreateClone<T>(path) });
+                return m_fileNameToMonoBehaviour[path][0] as T;
             }
         }
 
@@ -42,18 +43,20 @@ namespace KahaGameCore
 
                 if (_resource == null)
                 {
-                    Debug.LogFormat("Can't find {0} in {1}, try to load it from assetbundle", typeof(T), path);
                     _resource = GameResourcesManager.LoadBundleAsset<T>(path);
                     if(_resource == null)
                     {
-                        Debug.LogErrorFormat("Can't find {0} in anywhere, will return null", typeof(T));
+                        Debug.LogErrorFormat("Can't find {0} in {1}, will return null.", typeof(T), path);
                         return null;
                     }
                 }
                 m_fileNameToOrgainPrefab.Add(path, _resource);
             }
 
-            return UnityEngine.Object.Instantiate(m_fileNameToOrgainPrefab[path]) as T;        
+            T _clone = UnityEngine.Object.Instantiate(m_fileNameToOrgainPrefab[path]) as T;
+            _clone.name = _clone.name + ":" + _clone.GetInstanceID();
+
+            return _clone;        
         }
     }
 }
