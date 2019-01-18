@@ -8,14 +8,16 @@ namespace KahaGameCore.Manager.State
 
         private StateTicker m_ticker = null;
 
-        public virtual void Start()
+        public void Start()
         {
+            OnStart();
             m_ticker = GameObjectPoolManager.GetUseableObject<StateTicker>("[State Ticker]");
             m_ticker.StartTick(this);
         }
 
-        public virtual void Stop()
+        public void Stop()
         {
+            OnStop();
             m_ticker.gameObject.SetActive(false);
             if(nextState != null)
             {
@@ -30,10 +32,12 @@ namespace KahaGameCore.Manager.State
                 return;
             }
 
-            Do();
+            OnTick();
         }
 
-        protected abstract void Do();
+        protected abstract void OnStart();
+        protected abstract void OnTick();
+        protected abstract void OnStop();
     }
 }
 

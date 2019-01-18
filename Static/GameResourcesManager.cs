@@ -90,6 +90,10 @@ namespace KahaGameCore
                 m_nameToBundle.Add(_allBundleName[i], _otherBundleCreateRequest.assetBundle);
             }
 
+            // TODO: rewrite this part: only load asset from bundle while needed
+            // TODO: add release asset flow
+
+            /*
             List<string> _allBundleNames = new List<string>(m_nameToBundle.Keys);
             m_loadedObjects.Clear();
             for (int _bundleIndex = 0; _bundleIndex < _allBundleNames.Count; _bundleIndex++)
@@ -118,6 +122,7 @@ namespace KahaGameCore
                     // Debug.LogFormat("assets {0} loaded", _loadedObjects[_objectIndex].name);
                 }
             }
+            */
 
             // Debug.Log("All Asset Bundle Assets Loaded");
 
