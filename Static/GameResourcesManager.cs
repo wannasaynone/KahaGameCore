@@ -24,6 +24,7 @@ namespace KahaGameCore
         private static event Action OnAssetBundleInited = null;
         public static State CurrentState { get { return m_state; } }
         private static Dictionary<string, UnityEngine.Object> m_resourcePathToObject = new Dictionary<string, UnityEngine.Object>();
+        private static Dictionary<string, UnityEngine.Sprite[]> m_resourcePathToMultipleSprite = new Dictionary<string, Sprite[]>();
         private static Dictionary<Type, List<UnityEngine.Object>> m_typeToObjects = new Dictionary<Type, List<UnityEngine.Object>>();
         private static List<UnityEngine.Object> m_loadedObjects = new List<UnityEngine.Object>();
 
@@ -137,6 +138,7 @@ namespace KahaGameCore
             }
         }
 
+        // TODO: rewrite this part: only load asset from bundle while needed
         public static List<T> LoadAllBundleAssets<T>() where T : UnityEngine.Object
         {
             if (CurrentState != State.Inited)
@@ -158,6 +160,7 @@ namespace KahaGameCore
             return _results;
         }
 
+        // TODO: rewrite this part: only load asset from bundle while needed
         public static T LoadBundleAsset<T>(string name) where T : UnityEngine.Object
         {
             if (CurrentState != State.Inited)
@@ -168,40 +171,7 @@ namespace KahaGameCore
 
             if(m_typeToObjects.ContainsKey(typeof(T)))
             {
-                T _obj = m_typeToObjects[typeof(T)].Find(x => x.name == name) as T;
-
-                if (_obj == null)
-                {
-                    for (int i = 0; i < m_loadedObjects.Count; i++)
-                    {
-                        if (m_loadedObjects[i].name == name)
-                        {
-                            if(m_loadedObjects[i] is T)
-                            {
-                                m_typeToObjects[typeof(T)].Add(m_loadedObjects[i]);
-                                return m_loadedObjects[i] as T;
-                            }
-                            else
-                            {
-                                if(m_loadedObjects[i] is GameObject)
-                                {
-                                    T _check = ((GameObject)m_loadedObjects[i]).GetComponent<T>();
-                                    if(_check != null)
-                                    {
-                                        m_typeToObjects[typeof(T)].Add(_check);
-                                        return _check;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Debug.LogWarningFormat("Can't find bundle asset: type={0}, name={1}", typeof(T).Name, name);
-                    return null;
-                }
-                else
-                {
-                    return _obj;
-                }
+                return m_typeToObjects[typeof(T)].Find(x => x.name == name) as T;
             }
             else
             {
@@ -209,29 +179,41 @@ namespace KahaGameCore
                 {
                     if (m_loadedObjects[i].name == name)
                     {
-                        if (m_loadedObjects[i] is T)
-                        {
-                            m_typeToObjects.Add(typeof(T), new List<UnityEngine.Object>() { m_loadedObjects[i] });
-                            return m_loadedObjects[i] as T;
-                        }
-                        else
-                        {
-                            if (m_loadedObjects[i] is GameObject)
-                            {
-                                T _check = ((GameObject)m_loadedObjects[i]).GetComponent<T>();
-                                if (_check != null)
-                                {
-                                    m_typeToObjects.Add(typeof(T), new List<UnityEngine.Object>() { _check });
-                                    return _check;
-                                }
-                            }
-                        }
+                        return TryGetComponent<T>(m_loadedObjects[i]);
                     }
                 }
 
                 Debug.LogWarningFormat("Can't find bundle asset: type={0}, name={1}", typeof(T).Name, name);
                 return null;
             }
+        }
+
+        private static T TryGetComponent<T>(UnityEngine.Object obj) where T : UnityEngine.Object
+        {
+            if (m_typeToObjects.ContainsKey(typeof(T)))
+            {
+                return m_typeToObjects[typeof(T)].Find(x => x == obj) as T;
+            }
+
+            if (obj is T)
+            {
+                m_typeToObjects.Add(typeof(T), new List<UnityEngine.Object>() { obj });
+                return obj as T;
+            }
+            else
+            {
+                if (obj is GameObject)
+                {
+                    T _check = ((GameObject)obj).GetComponent<T>();
+                    if (_check != null)
+                    {
+                        m_typeToObjects.Add(typeof(T), new List<UnityEngine.Object>() { _check });
+                        return _check;
+                    }
+                }
+            }
+
+            return null;
         }
 
         public static T LoadResource<T>(string path) where T : UnityEngine.Object
@@ -253,6 +235,29 @@ namespace KahaGameCore
                 {
                     m_resourcePathToObject.Add(path, _obj);
                     return _obj;
+                }
+            }
+        }
+
+        public static Sprite LoadMultipleModeSprite(string path, int index)
+        {
+            if (m_resourcePathToMultipleSprite.ContainsKey(path))
+            {
+                return m_resourcePathToMultipleSprite[path][index];
+            }
+            else
+            {
+                Sprite[] _sprites = Resources.LoadAll<Sprite>(path);
+
+                if (_sprites == null || _sprites.Length == 0)
+                {
+                    Debug.LogWarningFormat("Can't find Sprite in {0}, will return null", path);
+                    return null;
+                }
+                else
+                {
+                    m_resourcePathToMultipleSprite.Add(path, _sprites);
+                    return _sprites[index];
                 }
             }
         }
