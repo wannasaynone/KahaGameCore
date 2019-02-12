@@ -10,11 +10,11 @@ namespace KahaGameCore
         private static Dictionary<string, MonoBehaviour> m_fileNameToOrgainPrefab = new Dictionary<string, MonoBehaviour>();
         private static Dictionary<string, List<MonoBehaviour>> m_fileNameToMonoBehaviour = new Dictionary<string, List<MonoBehaviour>>();
 
-        public static T GetUseableObject<T>(string path) where T : MonoBehaviour
+        public static T GetUseableObject<T>(string resourcePath) where T : MonoBehaviour
         {
-            if (m_fileNameToMonoBehaviour.ContainsKey(path))
+            if (m_fileNameToMonoBehaviour.ContainsKey(resourcePath))
             {
-                List<MonoBehaviour> _allObject = m_fileNameToMonoBehaviour[path];
+                List<MonoBehaviour> _allObject = m_fileNameToMonoBehaviour[resourcePath];
 
                 for (int i = 0; i < _allObject.Count; i++)
                 {
@@ -25,13 +25,13 @@ namespace KahaGameCore
                     }
                 }
 
-                m_fileNameToMonoBehaviour[path].Add(CreateClone<T>(path));
-                return m_fileNameToMonoBehaviour[path][m_fileNameToMonoBehaviour[path].Count - 1] as T;
+                m_fileNameToMonoBehaviour[resourcePath].Add(CreateClone<T>(resourcePath));
+                return m_fileNameToMonoBehaviour[resourcePath][m_fileNameToMonoBehaviour[resourcePath].Count - 1] as T;
             }
             else
             {
-                m_fileNameToMonoBehaviour.Add(path, new List<MonoBehaviour>() { CreateClone<T>(path) });
-                return m_fileNameToMonoBehaviour[path][0] as T;
+                m_fileNameToMonoBehaviour.Add(resourcePath, new List<MonoBehaviour>() { CreateClone<T>(resourcePath) });
+                return m_fileNameToMonoBehaviour[resourcePath][0] as T;
             }
         }
 
