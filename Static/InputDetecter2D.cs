@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
+using System.Collections.Generic;
 
 namespace KahaGameCore
 {
@@ -22,16 +23,14 @@ namespace KahaGameCore
             Up
         }
 
-        private static Camera m_camera = null;
-        private static State m_state = State.None;
-        public static int StartFingerID { get; private set; }
+        public List<int> TouchIds { get { return new List<int>(m_touchFingerIDs); } }
 
-        public InputDetecter2D()
-        {
-            StartFingerID = -1;
-        }
+        private Camera m_camera = null;
+        private State m_state = State.None;
+        private Touch[] m_touchs = null;
+        private List<int> m_touchFingerIDs = new List<int>();
 
-        public static InputInfo DetectInput()
+        public InputInfo DetectInput()
         {
             if (m_camera == null)
             {
@@ -47,7 +46,7 @@ namespace KahaGameCore
 #endif
         }
 
-        private static InputInfo DetectComputerInput()
+        private InputInfo DetectComputerInput()
         {
             if (UnityEngine.Input.GetMouseButtonDown(0))
             {
@@ -71,45 +70,56 @@ namespace KahaGameCore
             return _info;
         }
 
-        private static bool m_tempRecordIsOnUGUIState = false;
-        private static InputInfo DetectMobileInput()
+        private bool m_tempRecordIsOnUGUIState = false;
+        private InputInfo DetectMobileInput()
         {
-            if (UnityEngine.Input.touchCount > 0)
+            m_touchs = UnityEngine.Input.touches;
+            if (m_touchs.Length > 0)
             {
-                if (StartFingerID == -1)
+                for (int i = 0; i < m_touchs.Length; i++)
                 {
-                    if (UnityEngine.Input.GetTouch(0).phase == TouchPhase.Began)
+                    switch(m_touchs[i].phase)
                     {
-                        m_state = State.Down;
-                        StartFingerID = UnityEngine.Input.GetTouch(0).fingerId;
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < UnityEngine.Input.touches.Length; i++)
-                    {
-                        if (UnityEngine.Input.touches[i].fingerId == StartFingerID)
-                        {
-                            if (UnityEngine.Input.touches[i].phase == TouchPhase.Stationary || UnityEngine.Input.touches[i].phase == TouchPhase.Moved)
+                        case TouchPhase.Began:
                             {
-                                m_state = State.Pressing;
+                                if (m_touchFingerIDs.Count <= 0)
+                                {
+                                    m_state = State.Down;
+                                    m_touchFingerIDs.Add(m_touchs[i].fingerId);
+                                }
+                                else if (!m_touchFingerIDs.Contains(m_touchs[i].fingerId))
+                                {
+                                    m_touchFingerIDs.Add(m_touchs[i].fingerId);
+                                }
+                                break;
                             }
-                            else if (UnityEngine.Input.touches[i].phase == TouchPhase.Ended)
+                        case TouchPhase.Ended:
                             {
-                                m_state = State.Up;
+                                Debug.Log("TouchPhase.Ended, m_touchFingerIDs.Count=" + m_touchFingerIDs.Count);
+                                if (m_touchFingerIDs[0] == m_touchs[i].fingerId)
+                                {
+                                    m_state = State.Up;
+                                }
+                                break;
                             }
-                        }
+                        default:
+                            {
+                                if (m_touchFingerIDs[0] == m_touchs[i].fingerId)
+                                {
+                                    m_state = State.Pressing;
+                                }
+                                break;
+                            }
                     }
-
                 }
             }
             else
             {
                 m_state = State.None;
-                StartFingerID = -1;
             }
 
             InputInfo _info = CheckRaycast();
+
             if(m_state != State.Up)
             {
                 m_tempRecordIsOnUGUIState = _info.isOnUGUI;
@@ -117,15 +127,19 @@ namespace KahaGameCore
             else
             {
                 _info.isOnUGUI = m_tempRecordIsOnUGUIState;
+                m_touchFingerIDs.RemoveAt(0); // remove after check Raycast
+                Debug.Log(m_touchFingerIDs.Count);
+                Debug.Log(_info.InputState);
             }
 
             return _info;
         }
 
-        private static InputInfo CheckRaycast()
+        private InputInfo CheckRaycast()
         {
             RaycastHit2D _rayHit = new RaycastHit2D();
             InputInfo _info = new InputInfo();
+
 #if UNITY_EDITOR || UNITY_STANDALONE || UNITY_WEBGL
             Vector2 mousePos = m_camera.ScreenToWorldPoint(new Vector2(UnityEngine.Input.mousePosition.x, UnityEngine.Input.mousePosition.y));
             _rayHit = Physics2D.Raycast(mousePos, Vector2.zero);
@@ -144,19 +158,20 @@ namespace KahaGameCore
             }
 
             _info.InputPosition = mousePos;
+
 #elif UNITY_ANDROID
-            for (int i = 0; i < UnityEngine.Input.touches.Length; i++)
+            for (int i = 0; i < m_touchs.Length; i++)
             {
-                if (UnityEngine.Input.touches[i].fingerId == StartFingerID)
+                if (m_touchs[i].fingerId == m_touchFingerIDs[0])
                 {
-                    Vector2 touchPos = m_camera.ScreenToWorldPoint(new Vector2(UnityEngine.Input.touches[i].position.x, UnityEngine.Input.touches[i].position.y));
-                    _rayHit = Physics2D.Raycast(touchPos, Vector2.zero);
+                    Vector2 _touchPos = m_camera.ScreenToWorldPoint(new Vector2(m_touchs[i].position.x, m_touchs[i].position.y));
+                    _rayHit = Physics2D.Raycast(_touchPos, Vector2.zero);
 
                     if (EventSystem.current == null)
                     {
                         Debug.LogWarning("Unity EventSystem is not exist");
                     }
-                    else if (EventSystem.current.IsPointerOverGameObject(StartFingerID))
+                    else if (EventSystem.current.IsPointerOverGameObject(m_touchFingerIDs[0]))
                     {
                         _info.isOnUGUI = true;
                     }
@@ -165,10 +180,11 @@ namespace KahaGameCore
                         _info.isOnUGUI = false;
                     }
 
-                    _info.InputPosition = touchPos;
+                    _info.InputPosition = _touchPos;
                 }
             }
 #endif
+
             _info.InputState = m_state;
             _info.RayCastTranform = _rayHit.transform;
             _info.RayCastCollider = _rayHit.collider;
