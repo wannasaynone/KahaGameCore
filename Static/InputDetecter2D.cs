@@ -3,7 +3,7 @@ using UnityEngine.EventSystems;
 
 namespace KahaGameCore
 {
-    public class InputDetecter2D
+    public static class InputDetecter2D
     {
         public struct InputInfo
         {
@@ -24,12 +24,8 @@ namespace KahaGameCore
 
         private static Camera m_camera = null;
         private static State m_state = State.None;
-        public static int StartFingerID { get; private set; }
-
-        public InputDetecter2D()
-        {
-            StartFingerID = -1;
-        }
+        public static int StartFingerID { get { return m_startFingerID; } }
+        private static int m_startFingerID = -1;
 
         public static InputInfo DetectInput()
         {
@@ -81,7 +77,7 @@ namespace KahaGameCore
                     if (UnityEngine.Input.GetTouch(0).phase == TouchPhase.Began)
                     {
                         m_state = State.Down;
-                        StartFingerID = UnityEngine.Input.GetTouch(0).fingerId;
+                        m_startFingerID = UnityEngine.Input.GetTouch(0).fingerId;
                     }
                 }
                 else
@@ -106,7 +102,7 @@ namespace KahaGameCore
             else
             {
                 m_state = State.None;
-                StartFingerID = -1;
+                m_startFingerID = -1;
             }
 
             InputInfo _info = CheckRaycast();
