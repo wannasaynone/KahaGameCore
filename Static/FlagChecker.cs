@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ycs.baccarat
+namespace KahaGameCore
 {
     public static class FlagChecker
     {

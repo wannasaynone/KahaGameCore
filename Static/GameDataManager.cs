@@ -45,6 +45,7 @@ namespace KahaGameCore
             TextAsset _dataTextAsset = Resources.Load<TextAsset>(path);
             if (_dataTextAsset == null)
             {
+                // TODO: add Application.persistentDataPath checking flow here
                 Debug.LogErrorFormat("Can't find text asset at {0} while getting json string.", path);
                 return null;
             }
@@ -61,7 +62,7 @@ namespace KahaGameCore
         {
             if(string.IsNullOrEmpty(path))
             {
-                path = Application.dataPath + "/Resources/Datas/";
+                path = Application.persistentDataPath + "/Resources/Datas/";
             }
 
             if(path[path.Length - 1] != '/')
