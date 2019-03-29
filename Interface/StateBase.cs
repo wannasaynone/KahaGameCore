@@ -3,7 +3,6 @@ namespace KahaGameCore.Manager.State
 {
     public abstract class StateBase : Manager
     {
-        public StateBase nextState = null;
         public bool pause = false;
 
         private StateTicker m_ticker = null;
@@ -15,7 +14,7 @@ namespace KahaGameCore.Manager.State
             m_ticker.StartTick(this);
         }
 
-        public void Stop()
+        public void Stop(StateBase nextState = null)
         {
             OnStop();
             m_ticker.gameObject.SetActive(false);
