@@ -62,7 +62,7 @@ output = 3.14159
 ### GameObjectPoolManager
 物件池管理器，支援所有MonoBehaviour，有使用於範例專案。
 ```C#
-Bump _clone = GameObjectPoolManager.GetUseableObject<Bump>("Bump");
+SomeMonoClass _clone = GameObjectPoolManager.GetUseableObject<SomeMonoClass>("resource path here");
 ```
 ### InputDetecter2D
 令觸控可以與場景的Collider2D互動撰寫的觸控偵測器，通常用於按鈕互動，因此只支援單點操作。
@@ -78,7 +78,7 @@ private void Update()
 }
 ```
 ### TimerManager
-基於Unity Lifecircle，可以延時觸發方法的功能。
+基於Unity Life Cycle，可以延時觸發方法的功能。
 ```C#
 TimerManager.Schedule(1f, delegate{ Debug.Log("1 sec later") });
 ```
