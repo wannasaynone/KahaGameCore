@@ -17,7 +17,6 @@ namespace KahaGameCore
         private static Dictionary<long, Timer> m_timers = new Dictionary<long, Timer>();
         private static List<long> m_waitForRemoveTimers = new List<long>();
         private static long m_currentID = 0;
-        private static List<long> m_allTimerIds = new List<long>();
 
         /// <summary>
         /// Schedule a method which will be excuted when time is up.
@@ -42,7 +41,6 @@ namespace KahaGameCore
             }
 
             m_timers.Add(m_currentID, new Timer() { Time = time, Action = action });
-            m_allTimerIds = new List<long>(m_timers.Keys);
 
             return m_currentID;
         }
@@ -50,7 +48,6 @@ namespace KahaGameCore
         public static void Cancel(long id)
         {
             m_timers.Remove(id);
-            m_allTimerIds.Remove(id);
         }
 
         public static void AddTime(long id, float time)
@@ -74,23 +71,27 @@ namespace KahaGameCore
 
         private void Update()
         {
-            for (int i = 0; i < m_allTimerIds.Count; i++)
+            float _deltaTime = Time.deltaTime;
+            List<long> _allTimerIds = new List<long>(m_timers.Keys);
+            for (int i = 0; i < _allTimerIds.Count; i++)
             {
-                m_timers[m_allTimerIds[i]].Time -= Time.deltaTime;
-                if (m_timers[m_allTimerIds[i]].Time <= 0)
+                if (m_timers[_allTimerIds[i]].Time > 0f)
                 {
-                    if (m_timers[m_allTimerIds[i]].Action != null)
+                    m_timers[_allTimerIds[i]].Time -= _deltaTime;
+                    if (m_timers[_allTimerIds[i]].Time <= 0)
                     {
-                        m_timers[m_allTimerIds[i]].Action();
+                        if (m_timers[_allTimerIds[i]].Action != null)
+                        {
+                            m_timers[_allTimerIds[i]].Action();
+                        }
+                        m_waitForRemoveTimers.Add(_allTimerIds[i]);
                     }
-                    m_waitForRemoveTimers.Add(m_allTimerIds[i]);
                 }
             }
 
             for (int i = 0; i < m_waitForRemoveTimers.Count; i++)
             {
                 m_timers.Remove(m_waitForRemoveTimers[i]);
-                m_allTimerIds.Remove(m_waitForRemoveTimers[i]);
             }
 
             if (m_waitForRemoveTimers.Count > 0)
