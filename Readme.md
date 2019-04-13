@@ -31,7 +31,8 @@ git submodule add https://github.com/wannasaynone/KahaGameCore
 - 每吃掉一個黃色團塊，獲得一分，並在隨機位置產生新的素材
 - 遊戲結束後結算玩家分數，並顯示出來
 ```  
-範例專案：https://github.com/wannasaynone/KahaGameCoreExample
+範例專案（含step by setp教學）：  
+https://github.com/wannasaynone/KahaGameCoreExample
 ## 常用開發工具
 ### FlagChecker
 結合enum與Bitflag使用的檢查工具，支援Int64格式。
