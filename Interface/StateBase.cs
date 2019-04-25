@@ -1,8 +1,12 @@
-﻿
+﻿using System;
+
 namespace KahaGameCore.Manager.State
 {
     public abstract class StateBase : Manager
     {
+        public event Action OnStarted = null;
+        public event Action OnEnded = null;
+
         public bool pause = false;
 
         private StateTicker m_ticker = null;
@@ -11,6 +15,12 @@ namespace KahaGameCore.Manager.State
         {
             OnStart();
             m_ticker = GameObjectPoolManager.GetUseableObject<StateTicker>("[State Ticker]");
+
+            if(OnStarted != null)
+            {
+                OnStarted();
+            }
+
             m_ticker.StartTick(this);
         }
 
@@ -18,7 +28,13 @@ namespace KahaGameCore.Manager.State
         {
             OnStop();
             m_ticker.gameObject.SetActive(false);
-            if(nextState != null)
+
+            if (OnEnded != null)
+            {
+                OnEnded();
+            }
+
+            if (nextState != null)
             {
                 nextState.Start();
             }
