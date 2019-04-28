@@ -12,13 +12,13 @@ namespace KahaGameCore
         private static Dictionary<Type, IGameData[]> m_gameData = new Dictionary<Type, IGameData[]>();
         private static Dictionary<Type, ScriptableObject> m_typeToSO = new Dictionary<Type, ScriptableObject>();
 
-        public static void LoadGameData<T>(string path, bool isForceUpdate = false) where T : IGameData
+        public static T[] LoadGameData<T>(string path, bool isForceUpdate = false) where T : IGameData
         {
             if (m_gameData.ContainsKey(typeof(T)))
             {
                 if(!isForceUpdate)
                 {
-                    return;
+                    return GetAllGameData<T>();
                 }
 
                 T[] _data = JsonReader.Deserialize<T[]>(GetJsonString(path));
@@ -27,6 +27,8 @@ namespace KahaGameCore
                 {
                     m_gameData[typeof(T)][i] = _data[i];
                 }
+
+                return GetAllGameData<T>();
             }
             else
             {
@@ -37,6 +39,8 @@ namespace KahaGameCore
                     _gameData[i] = _data[i];
                 }
                 m_gameData.Add(typeof(T), _gameData);
+
+                return GetAllGameData<T>();
             }
         }
 
