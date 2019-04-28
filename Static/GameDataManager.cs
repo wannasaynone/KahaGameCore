@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections;
+using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using JsonFx.Json;
@@ -49,8 +49,15 @@ namespace KahaGameCore
             TextAsset _dataTextAsset = Resources.Load<TextAsset>(path);
             if (_dataTextAsset == null)
             {
-                // TODO: add Application.persistentDataPath checking flow here
-                Debug.LogErrorFormat("Can't find text asset at {0} while getting json string.", path);
+                string _allPath = Application.persistentDataPath + "/Resources/Datas/" + path + ".txt";
+                if (!string.IsNullOrEmpty(path))
+                {
+                    if (File.Exists(_allPath))
+                    {
+                        return File.ReadAllText(_allPath);
+                    }
+                }
+                Debug.LogErrorFormat("Can't find json file at {0} or {1} while getting json string.", path, _allPath);
                 return null;
             }
             return _dataTextAsset.text;
