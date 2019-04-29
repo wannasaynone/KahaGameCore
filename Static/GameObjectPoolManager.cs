@@ -14,10 +14,16 @@ namespace KahaGameCore
         {
             if (m_fileNameToMonoBehaviour.ContainsKey(resourcePath))
             {
-                List<MonoBehaviour> _allObject = m_fileNameToMonoBehaviour[resourcePath];
+                List<MonoBehaviour> _allObject = new List<MonoBehaviour>(m_fileNameToMonoBehaviour[resourcePath]);
 
                 for (int i = 0; i < _allObject.Count; i++)
                 {
+                    if(_allObject[i] == null)
+                    {
+                        m_fileNameToMonoBehaviour[resourcePath].Remove(_allObject[i]);
+                        continue;
+                    }
+
                     if (!_allObject[i].gameObject.activeSelf)
                     {
                         _allObject[i].gameObject.SetActive(true);
