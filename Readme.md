@@ -9,11 +9,11 @@
 關於Unity3D引擎，可以至他們的官網查看：https://unity.com/
 ## 關於Manager-View開發框架
 ### 如何使用
-1. 下載後放置至Unity專案的Assets資料夾內，或是利用git submodule指令複製這個repo到專案內。
-```
-cd UnityProjectPath/Assets/
-git submodule add https://github.com/wannasaynone/KahaGameCore
-```
+1. 下載package後import到遊戲內  
+https://github.com/wannasaynone/KahaGameCore/tree/master/Release  
+其後可以利用上方工具列Tools/Update KahaGameCore功能檢查版本，自動更新相關程式。  
+<b>注意：第一次使用Update KahaGameCore功能時會強制更新一次，目的在於同步版本文件資料</b>
+
 2. 透過繼承對應的Class製作自訂的遊戲物件、遊戲邏輯
 - KahaGameCore.Manager.Manager  
 通常用來撰寫遊戲邏輯，可以同時操作View、UIView。
