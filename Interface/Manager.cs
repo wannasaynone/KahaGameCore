@@ -64,9 +64,9 @@ namespace KahaGameCore.Manager
         }
 #endif
 
-        protected UIView GetPage<T>() where T : UIView
+        protected T GetPage<T>() where T : UIView
         {
-            return m_gameObjectNameToUIViews[typeof(T)];
+            return m_gameObjectNameToUIViews[typeof(T)] as T;
         }
 
         protected List<T> GetViews<T>() where T : View

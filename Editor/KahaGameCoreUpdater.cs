@@ -23,9 +23,9 @@ namespace KahaGameCore.Editor
 
         private const string m_packageJsonPath = "https://raw.githubusercontent.com/wannasaynone/KahaGameCore/master/package.json";
         private const string m_packageUri = "https://github.com/wannasaynone/KahaGameCore/blob/master/Release/KahaGameCore-{0}.unitypackage?raw=true";
+        private const string m_packageFileName = "KahaGameCore-{0}.unitypackage";
 
         private static bool m_isChecking = false;
-        private static string m_packageFileName = "KahaGameCore-{0}.unitypackage";
         private static string m_versionText = "";
         private static string m_path = "";
 
