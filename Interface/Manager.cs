@@ -66,6 +66,11 @@ namespace KahaGameCore.Manager
 
         protected T GetPage<T>() where T : UIView
         {
+            if(!m_gameObjectNameToUIViews.ContainsKey(typeof(T)))
+            {
+                return null;
+            }
+
             return m_gameObjectNameToUIViews[typeof(T)] as T;
         }
 
