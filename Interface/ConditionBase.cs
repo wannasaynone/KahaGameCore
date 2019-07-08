@@ -1,7 +1,6 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace KahaGameCore.Data
+namespace KahaGameCore.Interface
 {
     public abstract class ConditionBase : MonoBehaviour
     {

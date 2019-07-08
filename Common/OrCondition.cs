@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
+using KahaGameCore.Interface;
 
-namespace KahaGameCore.Data
+namespace KahaGameCore.Common
 {
     public class OrCondition : ConditionBase
     {

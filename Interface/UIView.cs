@@ -1,12 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-namespace KahaGameCore.View.UI
+﻿namespace KahaGameCore.Interface
 {
     public abstract class UIView : View
     {
         public abstract bool IsEnabled { get; }
-        public abstract void EnablePage(Manager.Manager manager, bool enable);
+        public abstract void EnablePage(Manager manager, bool enable);
     }
 }

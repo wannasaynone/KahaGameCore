@@ -1,4 +1,4 @@
-﻿namespace KahaGameCore.Data
+﻿namespace KahaGameCore.Interface
 {
     public interface IGameData
     {

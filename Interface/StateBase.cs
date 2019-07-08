@@ -1,6 +1,7 @@
 ﻿using System;
+using KahaGameCore.Static;
 
-namespace KahaGameCore.Manager.State
+namespace KahaGameCore.Interface
 {
     public abstract class StateBase : Manager
     {
@@ -17,7 +18,6 @@ namespace KahaGameCore.Manager.State
             m_skipTicker = false;
 
             OnStart();
-            m_ticker = GameObjectPoolManager.GetUseableObject<StateTicker>("[State Ticker]");
 
             if(OnStarted != null)
             {
@@ -26,6 +26,7 @@ namespace KahaGameCore.Manager.State
 
             if(!m_skipTicker)
             {
+                m_ticker = StateTicker.GetUseableTicker();
                 m_ticker.StartTick(this);
             }
         }

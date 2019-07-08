@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-namespace KahaGameCore
+namespace KahaGameCore.Static
 {
     public static class GameResourcesManager
     {

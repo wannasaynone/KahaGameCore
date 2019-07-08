@@ -11,17 +11,15 @@
 ### 如何使用
 1. 下載package後import到遊戲內  
 https://github.com/wannasaynone/KahaGameCore/tree/master/Release  
-其後可以利用上方工具列Tools/Update KahaGameCore功能檢查版本，自動更新相關程式。  
-<b>注意：第一次使用Update KahaGameCore功能時會強制更新一次，目的在於同步版本文件資料</b>
 
 2. 透過繼承對應的Class製作自訂的遊戲物件、遊戲邏輯
-- KahaGameCore.Manager.Manager  
+- KahaGameCore.Interface.Manager  
 通常用來撰寫遊戲邏輯，可以同時操作View、UIView。
-- KahaGameCore.View.View  
+- KahaGameCore.Interface.View  
 只要是場景上運作的Component就可以繼承他，遊戲開始時就會自動註冊起來供Manager使用。
-- KahaGameCore.View.UI.UIView  
-與View類似，唯一不同的是同一個UIView，在同個場景上只能存在一個。
-- KahaGameCore.Manager.State.StateBase  
+- KahaGameCore.Interface.UIView  
+與View類似，唯一不同的是同個類別只能存在一個。
+- KahaGameCore.Interface.StateBase  
 用來撰寫有限狀態機FSM，可以用於遊戲流程、AI等任何須要使用FSM的情形。  
 ### 使用範例
 接下來，利用官方的2D UFO Tutorial相關素材製作一個簡易的小遊戲，藉此介紹這個開發框架該如何應用。  

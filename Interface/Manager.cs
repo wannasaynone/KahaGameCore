@@ -1,10 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using KahaGameCore.View.UI;
 
-namespace KahaGameCore.Manager
+namespace KahaGameCore.Interface
 {
-    using View = View.View;
     public abstract class Manager
     {
         private static List<View> m_views = new List<View>();

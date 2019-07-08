@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace KahaGameCore
+namespace KahaGameCore.Static
 {
     public class GeneralAnimationEvent : MonoBehaviour
     {

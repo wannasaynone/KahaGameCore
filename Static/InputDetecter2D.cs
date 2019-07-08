@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace KahaGameCore
+namespace KahaGameCore.Static
 {
     public static class InputDetecter2D
     {

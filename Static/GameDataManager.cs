@@ -3,9 +3,9 @@ using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using JsonFx.Json;
-using KahaGameCore.Data;
+using KahaGameCore.Interface;
 
-namespace KahaGameCore
+namespace KahaGameCore.Static
 {
     public static class GameDataManager
     {

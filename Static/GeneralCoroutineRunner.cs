@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace KahaGameCore
+namespace KahaGameCore.Static
 {
     public class GeneralCoroutineRunner : MonoBehaviour
     {
