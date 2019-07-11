@@ -8,6 +8,8 @@ namespace KahaGameCore.Common
 
         public Vector3 DirectionMotion { get { return m_inputDirectionMotion; } }
 
+        [SerializeField] private Transform m_directionBase = null;
+        [SerializeField] private Transform m_actorRoot = null;
         [Header("Input Key")]
         [SerializeField] private string m_forwardKey = "w";
         [SerializeField] private string m_backwardKey = "s";
@@ -23,7 +25,12 @@ namespace KahaGameCore.Common
         [Header("Physics Properties")]
         [SerializeField] private string[] m_layerMaskName = new string[] { "Default" };
         [SerializeField] private float m_rayLength = 1.05f;
+        [SerializeField] private float m_boxHeight = 1f;
+        [SerializeField] private float m_boxWidth = 0.5f;
+        [SerializeField] private float m_boxDensity = 0.1f;
         [SerializeField] private float m_gravity = 1f;
+        [Header("Test Tools")]
+        [SerializeField] private bool m_showPhysicsRays = false;
 
         private Vector3 m_inputDirectionMotion = Vector3.zero;
         private IGeneralMoverState m_state = null;
@@ -41,6 +48,7 @@ namespace KahaGameCore.Common
             }
 
             transform.position += GetPositionChangeValue() * Time.deltaTime;
+            m_actorRoot.rotation = m_directionBase.rotation;
         }
 
         private void GetInput(string addKey, string minusKey, ref float setTo)
@@ -86,11 +94,18 @@ namespace KahaGameCore.Common
             AdjustFloat(ref m_inputDirectionMotion.y);
             AdjustFloat(ref m_inputDirectionMotion.z);
 
-            Vector3 _rightVector = transform.right * m_inputDirectionMotion.x;
-            Vector3 _forwardVector = transform.forward * m_inputDirectionMotion.z;
-            Vector3 _upVector = transform.up * m_inputDirectionMotion.y;
+            Vector3 _rightVector = m_directionBase.right * m_inputDirectionMotion.x;
+            Vector3 _forwardVector = m_directionBase.forward * m_inputDirectionMotion.z;
+            Vector3 _upVector = m_directionBase.up * m_inputDirectionMotion.y;
 
-            return _forwardVector + _rightVector + _upVector;
+            Vector3 _direction = _forwardVector + _rightVector + _upVector;
+
+            if(IsHitWall(_direction.normalized))
+            {
+                _direction.x = _direction.z = 0f;
+            }
+
+            return _direction;
         }
 
         private void AdjustFloat(ref float value)
@@ -101,10 +116,30 @@ namespace KahaGameCore.Common
             }
         }
 
-        private bool IsGrounded()
+        private bool IsHitWall(Vector3 direction)
         {
-            Ray _downRay = new Ray(transform.position, -transform.up);
-            return Physics.Raycast(_downRay, m_rayLength, LayerMask.GetMask(m_layerMaskName));
+            Vector3 _startPoint = transform.position - (transform.right * m_boxWidth / 2f);
+
+            float _each_height = m_boxDensity / m_boxHeight;
+            float _each_width = m_boxDensity / m_boxWidth;
+
+            for(float _currentHeight = 0f; _currentHeight < m_boxHeight; _currentHeight += _each_height)
+            {
+                for(float _currentWidth = 0f; _currentWidth < m_boxWidth; _currentWidth += _each_width)
+                {
+                    Ray _ray = new Ray(_startPoint + new Vector3(_currentWidth, _currentHeight, 0f), direction);
+                    if(m_showPhysicsRays)
+                    {
+                        Debug.DrawRay(_startPoint + new Vector3(_currentWidth, _currentHeight, 0f), direction, Color.red);
+                    }
+                    if (Physics.Raycast(_ray, m_rayLength, LayerMask.GetMask(m_layerMaskName)))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         ////////////////////////////////////////////
@@ -127,7 +162,7 @@ namespace KahaGameCore.Common
 
             public void Update()
             {
-                if(!m_generalMover.IsGrounded())
+                if (!m_generalMover.IsHitWall(-m_generalMover.transform.up))
                 {
                     m_generalMover.m_state = new FlyState(m_generalMover);
                     return;
@@ -191,17 +226,20 @@ namespace KahaGameCore.Common
                     m_generalMover.GetInput(m_generalMover.m_rightKey, m_generalMover.m_leftKey, ref m_generalMover.m_inputDirectionMotion.x);
                 }
 
+                if(m_generalMover.IsHitWall(m_generalMover.transform.up) && m_generalMover.m_inputDirectionMotion.y > 0f)
+                {
+                    m_generalMover.m_inputDirectionMotion.y = 0f;
+                }
+
                 m_generalMover.m_inputDirectionMotion.y -= m_generalMover.m_gravity * Time.deltaTime;
                 m_generalMover.m_inputDirectionMotion.y -= m_generalMover.m_gravity * m_generalMover.m_fallingAddWeight * Time.deltaTime;
 
-                if (m_generalMover.IsGrounded())
+                if (m_generalMover.IsHitWall(-m_generalMover.transform.up))
                 {
                     m_generalMover.m_inputDirectionMotion.y = 0f;
                     m_generalMover.m_state = new IdleState(m_generalMover);
                 }
             }
-
-
         }
-    } 
+    }
 }
