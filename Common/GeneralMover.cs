@@ -8,6 +8,11 @@ namespace KahaGameCore.Common
 
         public Vector3 DirectionMotion { get { return m_inputDirectionMotion; } }
 
+        [Header("Input Key")]
+        [SerializeField] private string m_forwardKey = "w";
+        [SerializeField] private string m_backwardKey = "s";
+        [SerializeField] private string m_rightKey = "d";
+        [SerializeField] private string m_leftKey = "a";
         [Header("Mover Properties")]
         [SerializeField] private float m_maxSpeed = 3f;
         [SerializeField] private float m_speedUpTime = 0.5f;
@@ -38,7 +43,7 @@ namespace KahaGameCore.Common
             transform.position += GetPositionChangeValue() * Time.deltaTime;
         }
 
-        private void GetInput(KeyCode addKey, KeyCode minusKey, ref float setTo)
+        private void GetInput(string addKey, string minusKey, ref float setTo)
         {
             if (Input.GetKey(addKey))
             {
@@ -127,8 +132,8 @@ namespace KahaGameCore.Common
                     m_generalMover.m_state = new FlyState(m_generalMover);
                     return;
                 }
-                m_generalMover.GetInput(KeyCode.W, KeyCode.S, ref m_generalMover.m_inputDirectionMotion.z);
-                m_generalMover.GetInput(KeyCode.D, KeyCode.A, ref m_generalMover.m_inputDirectionMotion.x);
+                m_generalMover.GetInput(m_generalMover.m_forwardKey, m_generalMover.m_backwardKey, ref m_generalMover.m_inputDirectionMotion.z);
+                m_generalMover.GetInput(m_generalMover.m_rightKey, m_generalMover.m_leftKey, ref m_generalMover.m_inputDirectionMotion.x);
                 GetJumpInput();
             }
 
@@ -154,8 +159,8 @@ namespace KahaGameCore.Common
             {
                 if (!m_generalMover.m_blockMoveInAir)
                 {
-                    m_generalMover.GetInput(KeyCode.W, KeyCode.S, ref m_generalMover.m_inputDirectionMotion.z);
-                    m_generalMover.GetInput(KeyCode.D, KeyCode.A, ref m_generalMover.m_inputDirectionMotion.x);
+                    m_generalMover.GetInput(m_generalMover.m_forwardKey, m_generalMover.m_backwardKey, ref m_generalMover.m_inputDirectionMotion.z);
+                    m_generalMover.GetInput(m_generalMover.m_rightKey, m_generalMover.m_leftKey, ref m_generalMover.m_inputDirectionMotion.x);
                 }
 
                 if (Input.GetKey(KeyCode.Space) && m_generalMover.m_inputDirectionMotion.y < m_generalMover.m_jumpUpSpeed)
@@ -182,8 +187,8 @@ namespace KahaGameCore.Common
             {
                 if (!m_generalMover.m_blockMoveInAir)
                 {
-                    m_generalMover.GetInput(KeyCode.W, KeyCode.S, ref m_generalMover.m_inputDirectionMotion.z);
-                    m_generalMover.GetInput(KeyCode.D, KeyCode.A, ref m_generalMover.m_inputDirectionMotion.x);
+                    m_generalMover.GetInput(m_generalMover.m_forwardKey, m_generalMover.m_backwardKey, ref m_generalMover.m_inputDirectionMotion.z);
+                    m_generalMover.GetInput(m_generalMover.m_rightKey, m_generalMover.m_leftKey, ref m_generalMover.m_inputDirectionMotion.x);
                 }
 
                 m_generalMover.m_inputDirectionMotion.y -= m_generalMover.m_gravity * Time.deltaTime;
@@ -198,7 +203,5 @@ namespace KahaGameCore.Common
 
 
         }
-    }
-
-    
+    } 
 }
