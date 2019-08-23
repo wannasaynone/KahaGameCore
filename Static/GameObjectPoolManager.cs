@@ -5,41 +5,64 @@ namespace KahaGameCore.Static
 {
     public static class GameObjectPoolManager
     {
+        private class PoolObject
+        {
+            public MonoBehaviour monoBehaviour;
+            public bool active;
+        }
+
         private static Dictionary<string, MonoBehaviour> m_fileNameToOrgainPrefab = new Dictionary<string, MonoBehaviour>();
-        private static Dictionary<string, List<MonoBehaviour>> m_fileNameToMonoBehaviour = new Dictionary<string, List<MonoBehaviour>>();
+        private static Dictionary<string, List<PoolObject>> m_fileNameToPoolObjects = new Dictionary<string, List<PoolObject>>();
 
         public static T GetUseableObject<T>(string resourcePath) where T : MonoBehaviour
         {
-            if (m_fileNameToMonoBehaviour.ContainsKey(resourcePath))
+            if (m_fileNameToPoolObjects.ContainsKey(resourcePath))
             {
-                List<MonoBehaviour> _allObject = new List<MonoBehaviour>(m_fileNameToMonoBehaviour[resourcePath]);
+                List<PoolObject> _allObject = new List<PoolObject>(m_fileNameToPoolObjects[resourcePath]);
 
                 for (int i = 0; i < _allObject.Count; i++)
                 {
-                    if(_allObject[i] == null)
+                    if(_allObject[i].monoBehaviour == null)
                     {
-                        m_fileNameToMonoBehaviour[resourcePath].Remove(_allObject[i]);
+                        m_fileNameToPoolObjects[resourcePath].Remove(_allObject[i]);
                         continue;
                     }
 
-                    if (!_allObject[i].gameObject.activeSelf)
+                    if (!_allObject[i].active)
                     {
-                        _allObject[i].gameObject.SetActive(true);
-                        return _allObject[i] as T;
+                        _allObject[i].monoBehaviour.transform.localPosition = Vector3.zero;
+                        _allObject[i].active = true;
+                        return _allObject[i].monoBehaviour as T;
                     }
                 }
 
-                m_fileNameToMonoBehaviour[resourcePath].Add(CreateClone<T>(resourcePath));
-                return m_fileNameToMonoBehaviour[resourcePath][m_fileNameToMonoBehaviour[resourcePath].Count - 1] as T;
+                m_fileNameToPoolObjects[resourcePath].Add(CreateClone<T>(resourcePath));
+                return m_fileNameToPoolObjects[resourcePath][m_fileNameToPoolObjects[resourcePath].Count - 1].monoBehaviour as T;
             }
             else
             {
-                m_fileNameToMonoBehaviour.Add(resourcePath, new List<MonoBehaviour>() { CreateClone<T>(resourcePath) });
-                return m_fileNameToMonoBehaviour[resourcePath][0] as T;
+                m_fileNameToPoolObjects.Add(resourcePath, new List<PoolObject>() { CreateClone<T>(resourcePath) });
+                return m_fileNameToPoolObjects[resourcePath][0].monoBehaviour as T;
             }
         }
 
-        private static T CreateClone<T>(string path) where T : MonoBehaviour
+        public static void Recycle(MonoBehaviour obj)
+        {
+            foreach(KeyValuePair<string, List<PoolObject>> keyValuePair in m_fileNameToPoolObjects)
+            {
+                PoolObject _poolObject = keyValuePair.Value.Find(x => x.monoBehaviour == obj);
+                if (_poolObject != null)
+                {
+                    _poolObject.monoBehaviour.transform.localPosition += new Vector3(100000, 0);
+                    _poolObject.active = false;
+                    return;
+                }
+            }
+
+            Debug.LogErrorFormat("{0} is not created by GameObjectPoolManager", obj);
+        }
+
+        private static PoolObject CreateClone<T>(string path) where T : MonoBehaviour
         {
             if (!m_fileNameToOrgainPrefab.ContainsKey(path))
             {
@@ -60,7 +83,13 @@ namespace KahaGameCore.Static
             T _clone = UnityEngine.Object.Instantiate(m_fileNameToOrgainPrefab[path]) as T;
             _clone.name = _clone.name + ":" + _clone.GetInstanceID();
 
-            return _clone;        
+            PoolObject _newPoolObj = new PoolObject()
+            {
+                monoBehaviour = _clone,
+                active = true
+            };
+
+            return _newPoolObj;        
         }
     }
 }
