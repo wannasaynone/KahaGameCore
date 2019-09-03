@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ProjectStreamer.UI.UIState
+namespace KahaGameCore.Interface
 {
     public abstract class UIStateBase : KahaGameCore.Interface.Manager
     {
