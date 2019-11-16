@@ -14,7 +14,7 @@ namespace KahaGameCore.Static
         private static Dictionary<string, MonoBehaviour> m_fileNameToOrgainPrefab = new Dictionary<string, MonoBehaviour>();
         private static Dictionary<string, List<PoolObject>> m_fileNameToPoolObjects = new Dictionary<string, List<PoolObject>>();
 
-        public static T GetUseableObject<T>(string resourcePath) where T : MonoBehaviour
+        public static void GetUseableObject<T>(string resourcePath, System.Action<T> onGot) where T : MonoBehaviour
         {
             if (m_fileNameToPoolObjects.ContainsKey(resourcePath))
             {
@@ -32,17 +32,35 @@ namespace KahaGameCore.Static
                     {
                         _allObject[i].monoBehaviour.transform.localPosition = Vector3.zero;
                         _allObject[i].active = true;
-                        return _allObject[i].monoBehaviour as T;
+                        if(onGot != null)
+                        {
+                            onGot(_allObject[i].monoBehaviour as T);
+                        }
+                        return;
                     }
                 }
 
-                m_fileNameToPoolObjects[resourcePath].Add(CreateClone<T>(resourcePath));
-                return m_fileNameToPoolObjects[resourcePath][m_fileNameToPoolObjects[resourcePath].Count - 1].monoBehaviour as T;
+                CreateClone<T>(resourcePath,
+                delegate(PoolObject poolObj)
+                {
+                    m_fileNameToPoolObjects[resourcePath].Add(poolObj);
+                    if (onGot != null)
+                    {
+                        onGot(m_fileNameToPoolObjects[resourcePath][m_fileNameToPoolObjects[resourcePath].Count - 1].monoBehaviour as T);
+                    }
+                });
             }
             else
             {
-                m_fileNameToPoolObjects.Add(resourcePath, new List<PoolObject>() { CreateClone<T>(resourcePath) });
-                return m_fileNameToPoolObjects[resourcePath][0].monoBehaviour as T;
+                CreateClone<T>(resourcePath,
+                delegate (PoolObject poolObj)
+                {
+                    m_fileNameToPoolObjects.Add(resourcePath, new List<PoolObject>() { poolObj });
+                    if (onGot != null)
+                    {
+                        onGot(poolObj.monoBehaviour as T);
+                    }
+                });
             }
         }
 
@@ -59,37 +77,67 @@ namespace KahaGameCore.Static
                 }
             }
 
-            Debug.LogErrorFormat("{0} is not created by GameObjectPoolManager", obj);
+            Debug.LogErrorFormat("[GameObjectPoolManager] {0} is not created by GameObjectPoolManager", obj);
         }
 
-        private static PoolObject CreateClone<T>(string path) where T : MonoBehaviour
+        private static void LoadOrgainResource(string path, System.Action onLoaded)
         {
             if (!m_fileNameToOrgainPrefab.ContainsKey(path))
             {
-                T _resource = GameResourcesManager.LoadResource<T>(path);
-
-                if (_resource == null)
+                GameResourcesManager.LoadResource(path, 
+                delegate(MonoBehaviour res)
                 {
-                    _resource = GameResourcesManager.LoadBundleAsset<T>(path);
-                    if(_resource == null)
+                    if(res == null)
                     {
-                        Debug.LogErrorFormat("Can't find {0} in {1}, will return null.", typeof(T), path);
-                        return null;
+                        Debug.LogError("[GameObjectPoolManager] Can't find asset at " + path);
+                        return;
                     }
-                }
-                m_fileNameToOrgainPrefab.Add(path, _resource);
+
+                    if(onLoaded != null)
+                    {
+                        m_fileNameToOrgainPrefab.Add(path, res);
+                        if(onLoaded != null)
+                        {
+                            onLoaded();
+                        }
+                    }
+                });
             }
-
-            T _clone = UnityEngine.Object.Instantiate(m_fileNameToOrgainPrefab[path]) as T;
-            _clone.name = _clone.name + ":" + _clone.GetInstanceID();
-
-            PoolObject _newPoolObj = new PoolObject()
+            else
             {
-                monoBehaviour = _clone,
-                active = true
-            };
+                if (onLoaded != null)
+                {
+                    onLoaded();
+                }
+            }
+        }
 
-            return _newPoolObj;        
+        private static void CreateClone<T>(string path, System.Action<PoolObject> onCreated) where T : MonoBehaviour
+        {
+            if(m_fileNameToOrgainPrefab.ContainsKey(path))
+            {
+                T _clone = Object.Instantiate(m_fileNameToOrgainPrefab[path]) as T;
+                _clone.name = _clone.name + ":" + _clone.GetInstanceID();
+
+                PoolObject _newPoolObj = new PoolObject()
+                {
+                    monoBehaviour = _clone,
+                    active = true
+                };
+
+                if (onCreated != null)
+                {
+                    onCreated(_newPoolObj);
+                }
+            }
+            else
+            {
+                LoadOrgainResource(path, 
+                delegate
+                {
+                    CreateClone<T>(path, onCreated);
+                });
+            }
         }
     }
 }

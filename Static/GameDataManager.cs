@@ -10,128 +10,97 @@ namespace KahaGameCore.Static
     public static class GameDataManager
     {
         private static Dictionary<Type, IGameData[]> m_gameData = new Dictionary<Type, IGameData[]>();
-        private static Dictionary<Type, ScriptableObject> m_typeToSO = new Dictionary<Type, ScriptableObject>();
 
-        public static T[] LoadGameData<T>(string path, bool isForceUpdate = false) where T : IGameData
+        public static void LoadGameData<T>(string fileName, Action onLoaded = null, bool isForceUpdate = false) where T : IGameData
         {
             if (m_gameData.ContainsKey(typeof(T)))
             {
                 if(!isForceUpdate)
                 {
-                    return GetAllGameData<T>();
+                    if(onLoaded != null)
+                    {
+                        onLoaded();
+                    }
+                    return;
                 }
 
-                T[] _data = JsonReader.Deserialize<T[]>(GetJsonString(path));
-                m_gameData[typeof(T)] = new IGameData[_data.Length];
-                for (int i = 0; i < _data.Length; i++)
-                {
-                    m_gameData[typeof(T)][i] = _data[i];
-                }
-
-                return GetAllGameData<T>();
+                UpdateGameData<T>(fileName, onLoaded);
             }
             else
             {
-                T[] _data = JsonReader.Deserialize<T[]>(GetJsonString(path));
+                UpdateGameData<T>(fileName, onLoaded);
+            }
+        }
+
+        private static void UpdateGameData<T>(string name, Action onUpdated) where T : IGameData
+        {
+            GetJsonString(name,
+            delegate (string data)
+            {
+                T[] _data = JsonReader.Deserialize<T[]>(data);
                 IGameData[] _gameData = new IGameData[_data.Length];
                 for (int i = 0; i < _data.Length; i++)
                 {
                     _gameData[i] = _data[i];
                 }
-                m_gameData.Add(typeof(T), _gameData);
-
-                return GetAllGameData<T>();
-            }
-        }
-
-        private static string GetJsonString(string path)
-        {
-            TextAsset _dataTextAsset = Resources.Load<TextAsset>(path);
-            if (_dataTextAsset == null)
-            {
-                string _allPath = Application.persistentDataPath + "/Resources/Datas/" + path + ".txt";
-                if (!string.IsNullOrEmpty(path))
+                if(m_gameData.ContainsKey(typeof(T)))
                 {
-                    if (File.Exists(_allPath))
-                    {
-                        return File.ReadAllText(_allPath);
-                    }
+                    m_gameData[typeof(T)] = _gameData;
                 }
-                Debug.LogErrorFormat("Can't find json file at {0} or {1} while getting json string.", path, _allPath);
-                return null;
-            }
-            return _dataTextAsset.text;
+                else
+                {
+                    m_gameData.Add(typeof(T), _gameData);
+                }
+
+                if(onUpdated != null)
+                {
+                    onUpdated();
+                }
+            });
         }
 
-        public static T LoadGameData<T>(string path, int id, bool isForceUpdate = false) where T : IGameData
+        private static void GetJsonString(string name, Action<string> onJsonLoaded)
         {
-            LoadGameData<T>(path, isForceUpdate);
-            return GetGameData<T>(id);
-        }
-
-        private static string GetDefaultDataPath()
-        {
-            return Application.persistentDataPath + "/Resources/Datas/";
-        }
-
-        private static string GetDefaultDataPath<T>()
-        {
-            string _filePath = GetDefaultDataPath();
-
-            if (_filePath[_filePath.Length - 1] != '/')
-            {
-                _filePath += "/";
-            }
-
-            string[] _fullName = typeof(T).FullName.ToString().Split('.');
-            string[] _fullClassName = _fullName[_fullName.Length - 1].Split('+');
-            string _fileName = _fullClassName[_fullClassName.Length - 1].Replace("[]", "");
-
-            return _filePath + _fileName + ".txt";
-        }
-
-        public static bool DeleteJsonData<T>(string filePath = null)
-        {
-            if (string.IsNullOrEmpty(filePath))
-            {
-                filePath = GetDefaultDataPath<T>();
-            }
-
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-                Debug.Log("Json Data Deleted: " + filePath);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        public static T LoadJsonData<T>(string filePath = null)
-        {
-            if (string.IsNullOrEmpty(filePath))
-            {
-                filePath = GetDefaultDataPath<T>();
-            }
-
-            if(File.Exists(filePath))
-            {
-                string _jsonString = File.ReadAllText(filePath);
-                return JsonReader.Deserialize<T>(_jsonString);
-            }
-            else
-            {
-                return default(T);
-            }
+            GameResourcesManager.LoadResource(name,
+                delegate (TextAsset asset)
+                {
+                    if (asset == null)
+                    {
+                        string _allPath = Application.persistentDataPath + "/Resources/Datas/" + name + ".txt";
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            if (File.Exists(_allPath))
+                            {
+                                if(onJsonLoaded != null)
+                                {
+                                    onJsonLoaded(File.ReadAllText(_allPath));
+                                } 
+                            }
+                            else
+                            {
+                                Debug.LogError("[GameDataManager] path is not existed:" + _allPath);
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogError("[GameDataManager] path is empty");
+                        }
+                    }
+                    else
+                    {
+                        if (onJsonLoaded != null)
+                        {
+                            onJsonLoaded(asset.text);
+                        }
+                    }
+                });
         }
 
         public static void SaveData(object[] saveObj, string path = null)
         {
             if(string.IsNullOrEmpty(path))
             {
-                path = GetDefaultDataPath();
+                path = Application.persistentDataPath + "/Resources/Datas/";
             }
 
             if(path[path.Length - 1] != '/')
@@ -139,29 +108,17 @@ namespace KahaGameCore.Static
                 path += "/";
             }
 
-            string _jsonData = "";
-
-            if (saveObj.Length > 1)
+            string _jsonData = JsonWriter.Serialize(saveObj);
+            if(!System.IO.Directory.Exists(path))
             {
-                _jsonData = JsonWriter.Serialize(saveObj);
+                System.IO.Directory.CreateDirectory(path);
             }
-            else
-            {
-                _jsonData = JsonWriter.Serialize(saveObj[0]);
-            }
-
-            if(!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-
             string[] _fullName = saveObj.ToString().Split('.');
             string[] _fullClassName = _fullName[_fullName.Length - 1].Split('+');
-            File.WriteAllText(path + _fullClassName[_fullClassName.Length-1].Replace("[]","") + ".txt", _jsonData);
+            System.IO.File.WriteAllText(path + _fullClassName[_fullClassName.Length-1].Replace("[]","") + ".txt", _jsonData);
 #if UNITY_EDITOR
             UnityEditor.AssetDatabase.Refresh();
 #endif
-            Debug.Log("Saved:" + path);
         }
 
         public static T GetGameData<T>(int id) where T : IGameData
@@ -178,7 +135,7 @@ namespace KahaGameCore.Static
             }
             else
             {
-                Debug.LogErrorFormat("{0} can't be found, use LoadGameData first", typeof(T).Name);
+                Debug.LogErrorFormat("[GameDataManager] {0} can't be found, use LoadGameData first", typeof(T).Name);
             }
 
             return default(T);
@@ -188,93 +145,10 @@ namespace KahaGameCore.Static
         {
             if (m_gameData.ContainsKey(typeof(T)))
             {
-                T[] _gameDatas = new T[m_gameData[typeof(T)].Length];
-                for (int i = 0; i < m_gameData[typeof(T)].Length; i++)
-                {
-                    _gameDatas[i] = (T)m_gameData[typeof(T)][i];
-                }
-                return _gameDatas;
+                return m_gameData[typeof(T)] as T[];
             }
 
             return default(T[]);
-        }
-
-        /// <summary>
-        /// Load ScriptableObject-Form-Data from path. Only can be used when ScriptableObject is one and only.
-        /// </summary>
-        public static void LoadScriptableObjectData<T>(string path) where T : ScriptableObject
-        {
-            T _obj = GameResourcesManager.LoadResource<T>(path);
-            if(_obj != null)
-            {
-                if(m_typeToSO.ContainsKey(typeof(T)))
-                {
-                    Debug.LogErrorFormat("{0} is existed, but is trying to load it, check it", typeof(T).Name);
-                    return;
-                }
-                else
-                {
-                    m_typeToSO.Add(typeof(T), _obj);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get ScriptableObject-Form-Data which is one and only.
-        /// </summary>
-        public static T GetScriptableObjectData<T>() where T : ScriptableObject
-        {
-            if (GameResourcesManager.CurrentState != GameResourcesManager.State.Inited)
-            {
-                Debug.LogError("Bundle not inited");
-                return null;
-            }
-
-            if(m_typeToSO.ContainsKey(typeof(T)))
-            {
-                return m_typeToSO[typeof(T)] as T;
-            }
-            else
-            {
-                List<ScriptableObject> _allSO = GameResourcesManager.LoadAllBundleAssets<ScriptableObject>();
-                for(int i = 0; i < _allSO.Count; i++)
-                {
-                    if (TryRegisterSO<T>(_allSO[i]))
-                    {
-                        return m_typeToSO[typeof(T)] as T;
-                    }
-                }
-
-                Debug.LogErrorFormat("Can't get ScriptableObject:{0}", typeof(T).Name);
-
-                return null;
-            }
-        }
-
-        private static bool TryRegisterSO<T>(ScriptableObject obj) where T : ScriptableObject
-        {
-            if(obj == null)
-            {
-                return false;
-            }
-
-            if (obj is T)
-            {
-                if (m_typeToSO.ContainsKey(typeof(T)))
-                {
-                    Debug.LogFormat("{0} is existed, but is trying to load it, check it");
-                    return false;
-                }
-                else
-                {
-                    m_typeToSO.Add(typeof(T), obj);
-                    return true;
-                }
-            }
-            else
-            {
-                return false;
-            }
         }
     }
 }
