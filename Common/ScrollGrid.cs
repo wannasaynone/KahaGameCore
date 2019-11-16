@@ -9,7 +9,6 @@ namespace KahaGameCore.Common
     [RequireComponent(typeof(ScrollRect))]
     public class ScrollGrid : MonoBehaviour
     {
-        [SerializeField] private RectTransform m_uiBaseCanvas = null;
         [SerializeField] private List<RectTransform> m_items = null;
         [SerializeField] private float m_gap = 20f;
 
@@ -24,21 +23,17 @@ namespace KahaGameCore.Common
             m_minHeight = m_scroll.viewport.rect.height;
             m_scroll.normalizedPosition = new Vector2(0, 1);
 
-            if (m_items != null && m_items.Count > 0)
+            if (m_items == null)
             {
-                for (int i = 0; i < m_items.Count; i++)
-                {
-                    if (m_items[i].parent != m_scroll.content)
-                    {
-                        m_items[i].SetParent(m_scroll.content);
-                    }
-                    m_items[i].anchorMax = new Vector2(0.5f, 1);
-                    m_items[i].anchorMin = new Vector2(0.5f, 1);
-                    m_items[i].pivot = new Vector2(0.5f, 1);
-                }
+                return;
             }
 
-            Sort();
+            for(int i = 0; i < m_items.Count; i++)
+            {
+                m_items[i].anchorMax = new Vector2(0.5f, 1);
+                m_items[i].anchorMin = new Vector2(0.5f, 1);
+                m_items[i].pivot = new Vector2(0.5f, 1);
+            }
         }
 
         public void AddItem(RectTransform item)
@@ -60,7 +55,6 @@ namespace KahaGameCore.Common
         public void RemoveItem(RectTransform item)
         {
             m_items.Remove(item);
-            item.SetParent(m_uiBaseCanvas);
         }
 
         public void Sort()

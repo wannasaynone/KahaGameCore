@@ -85,6 +85,19 @@ namespace KahaGameCore.Interface
             }
             return _views;
         }
+
+        protected T GetView<T>(int instanceID) where T : View
+        {
+            for (int i = 0; i < m_views.Count; i++)
+            {
+                if (m_views[i] is T && m_views[i].GetInstanceID() == instanceID)
+                {
+                    return m_views[i] as T;
+                }
+            }
+
+            return null;
+        }
     }
 }
 
