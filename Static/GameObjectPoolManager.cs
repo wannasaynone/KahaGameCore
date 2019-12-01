@@ -80,12 +80,12 @@ namespace KahaGameCore.Static
             Debug.LogErrorFormat("[GameObjectPoolManager] {0} is not created by GameObjectPoolManager", obj);
         }
 
-        private static void LoadOrgainResource(string path, System.Action onLoaded)
+        private static void LoadOrgainResource<T>(string path, System.Action onLoaded) where T : MonoBehaviour
         {
             if (!m_fileNameToOrgainPrefab.ContainsKey(path))
             {
                 GameResourcesManager.LoadResource(path, 
-                delegate(MonoBehaviour res)
+                delegate(T res)
                 {
                     if(res == null)
                     {
@@ -132,7 +132,7 @@ namespace KahaGameCore.Static
             }
             else
             {
-                LoadOrgainResource(path, 
+                LoadOrgainResource<T>(path, 
                 delegate
                 {
                     CreateClone<T>(path, onCreated);
