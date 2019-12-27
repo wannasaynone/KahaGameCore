@@ -227,7 +227,7 @@ namespace KahaGameCore.Static
                 return;
             }
 
-            if (typeof(T) == typeof(MonoBehaviour))
+            if (typeof(T).IsSubclassOf(typeof(MonoBehaviour)))
             {
                 AssetBundleRequest _request = m_bundleNameToAssetBundle[bundleName].LoadAssetAsync<GameObject>(resourceName);
                 GeneralCoroutineRunner.Instance.StartCoroutine(IELoadAssetFromBundle(_request, resourceName, onLoaded, onProgressUpdated));
@@ -253,7 +253,7 @@ namespace KahaGameCore.Static
             }
 
             T _obj = null;
-            if (typeof(T) == typeof(MonoBehaviour))
+            if (typeof(T).IsSubclassOf(typeof(MonoBehaviour)))
             {
                 _obj = m_bundleNameToAssetBundle[bundleName].LoadAsset<GameObject>(resourceName).GetComponent<T>();
             }
