@@ -21,6 +21,11 @@ namespace KahaGameCore.Editor
             {
                 Directory.CreateDirectory(_path);
             }
+            else
+            {
+                Directory.Delete(_path, true);
+                Directory.CreateDirectory(_path);
+            }
 
             Debug.Log("Build Assetbundle to " + _path);
 
