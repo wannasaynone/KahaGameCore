@@ -2,263 +2,335 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using UnityEngine.Networking;
 
 namespace KahaGameCore.Static
 {
     public static class GameResourcesManager
     {
-        private static readonly string PathURL =
-#if UNITY_ANDROID
-		"jar:file://" + Application.dataPath + "!/assets/";
+        public static readonly string ASSET_BUNDLE_LOCAL_PATH =
+#if UNITY_EDITOR
+    Application.streamingAssetsPath + "/";
+#elif UNITY_ANDROID
+    "jar:file://" + Application.dataPath + "!/assets/";
 #elif UNITY_IPHONE
-		Application.dataPath + "/Raw/";
-#elif UNITY_STANDALONE_WIN || UNITY_EDITOR
-       Application.dataPath + "/StreamingAssets/";
+    Application.dataPath + "/Raw/";
+#elif UNITY_STANDALONE_WIN
+	"file://" + Application.dataPath + "/StreamingAssets/";
 #else
-        string.Empty;
+    string.Empty;
 #endif
+        private static Dictionary<string, UnityEngine.Object> m_resourceNameToResource = new Dictionary<string, UnityEngine.Object>();
+        private static Dictionary<string, AssetBundle> m_bundleNameToAssetBundle = new Dictionary<string, AssetBundle>();
 
-        private static Dictionary<string, AssetBundle> m_nameToBundle = new Dictionary<string, AssetBundle>();
-        private const string PLATFORM_WINDOWS = "StandaloneWindows";
-
-        private static event Action OnAssetBundleInited = null;
-        public static State CurrentState { get { return m_state; } }
-        private static Dictionary<string, UnityEngine.Object> m_resourcePathToObject = new Dictionary<string, UnityEngine.Object>();
-        private static Dictionary<string, UnityEngine.Sprite[]> m_resourcePathToMultipleSprite = new Dictionary<string, Sprite[]>();
-        private static Dictionary<Type, List<UnityEngine.Object>> m_typeToObjects = new Dictionary<Type, List<UnityEngine.Object>>();
-        private static List<UnityEngine.Object> m_loadedObjects = new List<UnityEngine.Object>();
-
-        private static State m_state = State.Default;
-        public enum State
+        public enum AssetBundleSource
         {
-            Default,
-            Initing,
-            Inited
+            Editor,
+            StreamingAsset
         }
 
-        public static void Init(Action onAseetBundleInited)
+        public static bool IsBundleLoaded(string bundleName)
         {
-            if (m_state == State.Inited)
+            return m_bundleNameToAssetBundle.ContainsKey(bundleName);
+        }
+
+        public static bool IsResourceLoaded(string sourceName)
+        {
+            return m_resourceNameToResource.ContainsKey(sourceName);
+        }
+
+        public static void UnloadBundle(string bundleName)
+        {
+            if(!IsBundleLoaded(bundleName))
             {
-                onAseetBundleInited();
                 return;
             }
 
-            OnAssetBundleInited += onAseetBundleInited;
+            m_bundleNameToAssetBundle[bundleName].Unload(true);
+            m_bundleNameToAssetBundle.Remove(bundleName);
+        }
 
-            if (m_state == State.Default)
+        public static void UnloadResource(string sourceName)
+        {
+            if(!IsResourceLoaded(sourceName))
             {
-                GeneralCoroutineRunner.Instance.StartCoroutine(InitAssetBundle());
+                return;
+            }
+
+            Resources.UnloadAsset(m_resourceNameToResource[sourceName]);
+            m_resourceNameToResource.Remove(sourceName);
+        }
+
+        public static void LoadAssetBundle(AssetBundleSource source, string bundleName, Action onLoaded, Action<float> onProgressUpdated = null)
+        {
+            if(IsBundleLoaded(bundleName))
+            {
+                if(onLoaded != null)
+                {
+                    onLoaded();
+                }
+            }
+
+            switch(source)
+            {
+                case AssetBundleSource.Editor:
+                    {
+#if UNITY_EDITOR
+                        UnityEditor.BuildTarget _buildTarget = UnityEditor.EditorUserBuildSettings.activeBuildTarget;
+                        string _path = Application.dataPath + "/../AssetBundle/" + _buildTarget + "/";
+                        LoadAssetBundle(_path, bundleName, onLoaded, onProgressUpdated);
+#else
+                        Debug.LogError("DO NOT RUN THIS SOURCE WHILE RELEASE");
+#endif
+                        break;
+                    }
+                case AssetBundleSource.StreamingAsset:
+                    {
+                        LoadAssetBundle(ASSET_BUNDLE_LOCAL_PATH, bundleName, onLoaded, onProgressUpdated);
+                        break;
+                    }
             }
         }
 
-        private static IEnumerator InitAssetBundle()
+        public static void LoadAssetBundle(string host, string bundleName, Action onLoaded, Action<float> onProgressUpdated)
         {
-            if (m_state != State.Default)
+            if (IsBundleLoaded(bundleName))
             {
+                if (onLoaded != null)
+                {
+                    onLoaded();
+                }
+                return;
+            }
+
+            if (host.Contains("http"))
+            {
+                UnityWebRequest _webRequest = UnityWebRequestAssetBundle.GetAssetBundle(host + bundleName, 0);
+                UnityWebRequestAsyncOperation _oper = _webRequest.SendWebRequest();
+
+                GeneralCoroutineRunner.Instance.StartCoroutine(IELoadAssetBundle(_oper, bundleName, onLoaded, onProgressUpdated));
+            }
+            else
+            {
+                if(!System.IO.File.Exists(host + bundleName))
+                {
+                    Debug.LogError(host + bundleName + " not exist");
+                    return;
+                }
+                AssetBundleCreateRequest _request = AssetBundle.LoadFromFileAsync(host + bundleName, 0);
+                GeneralCoroutineRunner.Instance.StartCoroutine(IELoadAssetBundle(_request, bundleName, onLoaded, onProgressUpdated));
+            }
+        }
+
+        private static IEnumerator IELoadAssetBundle(UnityWebRequestAsyncOperation request, string bundleName, Action onLoaded, Action<float> onProgressUpdated)
+        {
+            while(!request.isDone)
+            {
+                if (onProgressUpdated != null)
+                {
+                    onProgressUpdated(request.progress);
+                }
+                yield return null;
+            }
+
+            if(request.webRequest.isNetworkError || request.webRequest.isHttpError)
+            {
+                Debug.LogError("[GameResourcesManager] Network error while downloading asset bundle");
                 yield break;
             }
 
-            m_state = State.Initing;
+            AssetBundle _ab = DownloadHandlerAssetBundle.GetContent(request.webRequest);
+            m_bundleNameToAssetBundle.Add(bundleName, _ab);
 
-            AssetBundleCreateRequest _mainAssetBundleRequest = AssetBundle.LoadFromFileAsync(string.Format("{0}/{1}", PathURL, PLATFORM_WINDOWS));
-
-            while (!_mainAssetBundleRequest.isDone)
+            if(onLoaded != null)
             {
-                // Debug.Log("loading main bundle..." + _mainAssetBundleRequest.progress * 100);
+                onLoaded();
+            }
+        }
+
+        private static IEnumerator IELoadAssetBundle(AssetBundleCreateRequest request, string bundleName, Action onLoaded, Action<float> onProgressUpdated)
+        {
+            while (!request.isDone)
+            {
+                if (onProgressUpdated != null)
+                {
+                    onProgressUpdated(request.progress);
+                }
                 yield return null;
             }
 
-            AssetBundle _mainAssetBundle = _mainAssetBundleRequest.assetBundle;
-            AssetBundleRequest _manifestLoadRequest = _mainAssetBundle.LoadAssetAsync<AssetBundleManifest>("AssetBundleManifest");
-
-            while (!_manifestLoadRequest.isDone)
+            if (request.assetBundle == null)
             {
-                // Debug.Log("loading main bundle manifest..." + _manifestLoadRequest.progress * 100);
+                Debug.LogError("[GameResourcesManager] Can't find asset bundle");
+                yield break;
+            }
+
+            AssetBundle _ab = request.assetBundle;
+            m_bundleNameToAssetBundle.Add(bundleName, _ab);
+
+            if (onLoaded != null)
+            {
+                onLoaded();
+            }
+        }
+
+        public static void LoadResource<T>(string resourceName, Action<T> onLoaded, Action<float> onProgressUpdated = null) where T : UnityEngine.Object
+        {
+            if(IsResourceLoaded(resourceName))
+            {
+                onLoaded(m_resourceNameToResource[resourceName] as T);
+                return;
+            }
+
+            ResourceRequest _resRequest = Resources.LoadAsync<T>(resourceName);
+            GeneralCoroutineRunner.Instance.StartCoroutine(IELoadResource(resourceName, _resRequest, onLoaded, onProgressUpdated));
+        }
+
+        public static T LoadResource<T>(string resourceName) where T : UnityEngine.Object
+        {
+            if (IsResourceLoaded(resourceName))
+            {
+                return m_resourceNameToResource[resourceName] as T;
+            }
+
+            T _obj = Resources.Load<T>(resourceName);
+            if(_obj != null)
+            {
+                m_resourceNameToResource.Add(resourceName, _obj);
+            }
+            else
+            {
+                Debug.LogError("[GameResourcesManager][Resources] Can't find resource asset at " + resourceName);
+                return null;
+            }
+
+            return _obj;
+        }
+
+        public static void LoadResource<T>(string bundleName, string resourceName, Action<T> onLoaded, Action<float> onProgressUpdated = null) where T : UnityEngine.Object
+        {
+            if (IsResourceLoaded(resourceName))
+            {
+                onLoaded(m_resourceNameToResource[resourceName] as T);
+                return;
+            }
+
+            if (!m_bundleNameToAssetBundle.ContainsKey(bundleName))
+            {
+                Debug.LogErrorFormat("[GameResourcesManager][AssetBundle] AssetBundle {0} has not been loaded", bundleName);
+                return;
+            }
+
+            if (!m_bundleNameToAssetBundle[bundleName].Contains(resourceName))
+            {
+                Debug.LogErrorFormat("[GameResourcesManager][AssetBundle] Can't find resource asset {0} in bundle {1}", resourceName, bundleName);
+                return;
+            }
+
+            if (typeof(T).IsSubclassOf(typeof(MonoBehaviour)))
+            {
+                AssetBundleRequest _request = m_bundleNameToAssetBundle[bundleName].LoadAssetAsync<GameObject>(resourceName);
+                GeneralCoroutineRunner.Instance.StartCoroutine(IELoadAssetFromBundle(_request, resourceName, onLoaded, onProgressUpdated));
+            }
+            else
+            {
+                AssetBundleRequest _request = m_bundleNameToAssetBundle[bundleName].LoadAssetAsync<T>(resourceName);
+                GeneralCoroutineRunner.Instance.StartCoroutine(IELoadAssetFromBundle(_request, resourceName, onLoaded, onProgressUpdated));
+            }
+        }
+
+        public static T LoadResource<T>(string bundleName, string resourceName) where T : UnityEngine.Object
+        {
+            if (IsResourceLoaded(resourceName))
+            {
+                return m_resourceNameToResource[resourceName] as T;
+            }
+
+            if (!IsBundleLoaded(bundleName))
+            {
+                Debug.LogErrorFormat("[GameResourcesManager][AssetBundle] AssetBundle {0} has not been loaded", bundleName);
+                return null;
+            }
+
+            T _obj = null;
+            if (typeof(T).IsSubclassOf(typeof(MonoBehaviour)))
+            {
+                _obj = m_bundleNameToAssetBundle[bundleName].LoadAsset<GameObject>(resourceName).GetComponent<T>();
+            }
+            else
+            {
+                _obj = m_bundleNameToAssetBundle[bundleName].LoadAsset<T>(resourceName);
+            }
+
+            if (_obj != null)
+            {
+                m_resourceNameToResource.Add(resourceName, _obj);
+            }
+            else
+            {
+                Debug.LogErrorFormat("[GameResourcesManager][AssetBundle] Can't find resource asset {0} in bundle {1}", resourceName, bundleName);
+            }
+
+            return _obj;
+        }
+
+        private static IEnumerator IELoadResource<T>(string resourceName, ResourceRequest request, Action<T> onLoaded, Action<float> onProgressUpdated) where T : UnityEngine.Object
+        {
+            while(!request.isDone)
+            {
+                if(onProgressUpdated != null)
+                {
+                    onProgressUpdated(request.progress);
+                }
                 yield return null;
             }
 
-            AssetBundleManifest _manifest = _manifestLoadRequest.asset as AssetBundleManifest;
-            string[] _allBundleName = _manifest.GetAllAssetBundles();
-            for (int i = 0; i < _allBundleName.Length; i++)
+            if(request.asset == null)
             {
-                AssetBundleCreateRequest _otherBundleCreateRequest = AssetBundle.LoadFromFileAsync(string.Format("{0}/{1}", PathURL, _allBundleName[i]));
-                while (!_otherBundleCreateRequest.isDone)
-                {
-                    // Debug.Log("loading other bundles..." + _otherBundleCreateRequest.progress * 100);
-                    yield return null;
-                }
-                m_nameToBundle.Add(_allBundleName[i], _otherBundleCreateRequest.assetBundle);
+                Debug.LogError("[GameResourcesManager][Resources] Can't find resource asset at " + resourceName);
+                yield break;
             }
 
-            // TODO: rewrite this part: only load asset from bundle while needed
-            // TODO: add release asset flow
+            m_resourceNameToResource.Add(resourceName, request.asset);
 
-            /*
-            List<string> _allBundleNames = new List<string>(m_nameToBundle.Keys);
-            m_loadedObjects.Clear();
-            for (int _bundleIndex = 0; _bundleIndex < _allBundleNames.Count; _bundleIndex++)
+            if(onLoaded != null)
             {
-                AssetBundle _currentLoadingBundle = m_nameToBundle[_allBundleNames[_bundleIndex]];
-
-                if (_currentLoadingBundle.isStreamedSceneAssetBundle)
-                {
-                    // Debug.LogFormat("{0} bunlde is Streamed Scene Asset Bundle, skipped", _allBundleName[_bundleIndex]);
-                    continue;
-                }
-
-                AssetBundleRequest _loadRequest = _currentLoadingBundle.LoadAllAssetsAsync();
-
-                while (!_loadRequest.isDone)
-                {
-                    // Debug.LogFormat("loading assets in {0} bunlde ...{1}", _allBundleName[_bundleIndex], _loadRequest.progress * 100);
-                    yield return null;
-                }
-
-                UnityEngine.Object[] _loadedObjects = _loadRequest.allAssets;
-
-                for (int _objectIndex = 0; _objectIndex < _loadedObjects.Length; _objectIndex++)
-                {
-                    m_loadedObjects.Add(_loadedObjects[_objectIndex]);
-                    // Debug.LogFormat("assets {0} loaded", _loadedObjects[_objectIndex].name);
-                }
-            }
-            */
-
-            // Debug.Log("All Asset Bundle Assets Loaded");
-
-            m_state = State.Inited;
-
-            // Debug.Log("Asset Bundle Inited");
-
-            if (OnAssetBundleInited != null)
-            {
-                OnAssetBundleInited();
-                OnAssetBundleInited = null;
+                onLoaded(request.asset as T);
             }
         }
 
-        // TODO: rewrite this part: only load asset from bundle while needed
-        public static List<T> LoadAllBundleAssets<T>() where T : UnityEngine.Object
+        private static IEnumerator IELoadAssetFromBundle<T>(AssetBundleRequest request, string assetName, Action<T> onLoaded, Action<float> onProgressUpdated) where T : UnityEngine.Object
         {
-            if (CurrentState != State.Inited)
+            while (!request.isDone)
             {
-                Debug.LogError("Bundle is not inited");
-                return null;
+                if (onProgressUpdated != null)
+                {
+                    onProgressUpdated(request.progress);
+                }
+                yield return null;
             }
 
-            List<T> _results = new List<T>();
-
-            for(int i = 0; i < m_loadedObjects.Count; i++)
+            if (request.asset == null)
             {
-                if(m_loadedObjects[i] is T)
+                Debug.LogError("[GameResourcesManager][AssetBundle] request.asset == null");
+                yield break;
+            }
+
+            T _t = request.asset as T;
+            if (_t == null)
+            {
+                _t = ((GameObject)request.asset).GetComponent<T>();
+                if (_t == null)
                 {
-                    _results.Add(m_loadedObjects[i] as T);
+                    Debug.LogError("[GameResourcesManager][AssetBundle] asset doesn't have/is not " + typeof(T));
+                    yield break;
                 }
             }
 
-            return _results;
-        }
-
-        // TODO: rewrite this part: only load asset from bundle while needed
-        public static T LoadBundleAsset<T>(string name) where T : UnityEngine.Object
-        {
-            if (CurrentState != State.Inited)
+            m_resourceNameToResource.Add(assetName, _t);
+            if (onLoaded != null)
             {
-                Debug.LogError("Bundle is not inited");
-                return null;
-            }
-
-            if(m_typeToObjects.ContainsKey(typeof(T)))
-            {
-                return m_typeToObjects[typeof(T)].Find(x => x.name == name) as T;
-            }
-            else
-            {
-                for (int i = 0; i < m_loadedObjects.Count; i++)
-                {
-                    if (m_loadedObjects[i].name == name)
-                    {
-                        return TryGetComponent<T>(m_loadedObjects[i]);
-                    }
-                }
-
-                Debug.LogWarningFormat("Can't find bundle asset: type={0}, name={1}", typeof(T).Name, name);
-                return null;
-            }
-        }
-
-        private static T TryGetComponent<T>(UnityEngine.Object obj) where T : UnityEngine.Object
-        {
-            if (m_typeToObjects.ContainsKey(typeof(T)))
-            {
-                return m_typeToObjects[typeof(T)].Find(x => x == obj) as T;
-            }
-
-            if (obj is T)
-            {
-                m_typeToObjects.Add(typeof(T), new List<UnityEngine.Object>() { obj });
-                return obj as T;
-            }
-            else
-            {
-                if (obj is GameObject)
-                {
-                    T _check = ((GameObject)obj).GetComponent<T>();
-                    if (_check != null)
-                    {
-                        m_typeToObjects.Add(typeof(T), new List<UnityEngine.Object>() { _check });
-                        return _check;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        public static T LoadResource<T>(string path) where T : UnityEngine.Object
-        {
-            if (m_resourcePathToObject.ContainsKey(path))
-            {
-                return m_resourcePathToObject[path] as T;
-            }
-            else
-            {
-                T _obj = Resources.Load<T>(path);
-
-                if (_obj == null)
-                {
-                    Debug.LogWarningFormat("Can't find {0} in {1}, will return null", typeof(T), path);
-                    return null;
-                }
-                else
-                {
-                    m_resourcePathToObject.Add(path, _obj);
-                    return _obj;
-                }
-            }
-        }
-
-        public static Sprite LoadMultipleModeSprite(string path, int index)
-        {
-            if (m_resourcePathToMultipleSprite.ContainsKey(path))
-            {
-                return m_resourcePathToMultipleSprite[path][index];
-            }
-            else
-            {
-                Sprite[] _sprites = Resources.LoadAll<Sprite>(path);
-
-                if (_sprites == null || _sprites.Length == 0)
-                {
-                    Debug.LogWarningFormat("Can't find Sprite in {0}, will return null", path);
-                    return null;
-                }
-                else
-                {
-                    m_resourcePathToMultipleSprite.Add(path, _sprites);
-                    return _sprites[index];
-                }
+                onLoaded(_t);
             }
         }
     }
