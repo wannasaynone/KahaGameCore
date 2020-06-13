@@ -43,7 +43,7 @@ namespace KahaGameCore.Static
 #endif
         }
 
-        public static bool ClickOn(Collider2D collider, bool checkUGUI = false)
+        public static bool ClickOn(Collider2D collider, bool checkUGUI = true)
         {
             InputInfo _info = DetectInput();
             if (_info.InputState == State.Down
@@ -57,7 +57,7 @@ namespace KahaGameCore.Static
             return false;
         }
 
-        public static bool ClickUp(Collider2D collider, bool checkUGUI = false)
+        public static bool ClickUp(Collider2D collider, bool checkUGUI = true)
         {
             InputInfo _info = DetectInput();
             if (_info.InputState == State.Up
