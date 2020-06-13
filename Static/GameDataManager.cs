@@ -16,7 +16,7 @@ namespace KahaGameCore.Static
         {
             if (m_gameData.ContainsKey(typeof(T)))
             {
-                if(!isForceUpdate)
+                if (!isForceUpdate)
                 {
                     return GetAllGameData<T>();
                 }
@@ -69,29 +69,99 @@ namespace KahaGameCore.Static
             return GetGameData<T>(id);
         }
 
-        public static void SaveData(object[] saveObj, string path = null)
+        public static string GetDefaultDataFolderPath()
         {
-            if(string.IsNullOrEmpty(path))
+            return Application.persistentDataPath + "/Resources/Datas/";
+        }
+
+        public static string GetDefaultDataFilePath<T>()
+        {
+            string _filePath = GetDefaultDataFolderPath();
+
+            if (_filePath[_filePath.Length - 1] != '/')
             {
-                path = Application.persistentDataPath + "/Resources/Datas/";
+                _filePath += "/";
             }
 
-            if(path[path.Length - 1] != '/')
+            string[] _fullName = typeof(T).FullName.ToString().Split('.');
+            string[] _fullClassName = _fullName[_fullName.Length - 1].Split('+');
+            string _fileName = _fullClassName[_fullClassName.Length - 1].Replace("[]", "");
+
+            return _filePath + _fileName + ".txt";
+        }
+
+        public static bool DeleteJsonData<T>(string filePath = null)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                filePath = GetDefaultDataFilePath<T>();
+            }
+
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+                Debug.Log("Json Data Deleted: " + filePath);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public static T LoadJsonData<T>(string filePath = null)
+        {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                filePath = GetDefaultDataFilePath<T>();
+            }
+
+            if (File.Exists(filePath))
+            {
+                string _jsonString = File.ReadAllText(filePath);
+                return JsonReader.Deserialize<T>(_jsonString);
+            }
+            else
+            {
+                return default(T);
+            }
+        }
+
+        public static void SaveData(object[] saveObj, string path = null)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                path = GetDefaultDataFolderPath();
+            }
+
+            if (path[path.Length - 1] != '/')
             {
                 path += "/";
             }
 
-            string _jsonData = JsonWriter.Serialize(saveObj);
-            if(!System.IO.Directory.Exists(path))
+            string _jsonData = "";
+
+            if (saveObj.Length > 1)
             {
-                System.IO.Directory.CreateDirectory(path);
+                _jsonData = JsonWriter.Serialize(saveObj);
             }
+            else
+            {
+                _jsonData = JsonWriter.Serialize(saveObj[0]);
+            }
+
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
             string[] _fullName = saveObj.ToString().Split('.');
             string[] _fullClassName = _fullName[_fullName.Length - 1].Split('+');
-            System.IO.File.WriteAllText(path + _fullClassName[_fullClassName.Length-1].Replace("[]","") + ".txt", _jsonData);
+            File.WriteAllText(path + _fullClassName[_fullClassName.Length - 1].Replace("[]", "") + ".txt", _jsonData);
 #if UNITY_EDITOR
             UnityEditor.AssetDatabase.Refresh();
 #endif
+            Debug.Log("Saved:" + path);
         }
 
         public static T GetGameData<T>(int id) where T : IGameData
@@ -135,9 +205,9 @@ namespace KahaGameCore.Static
         public static void LoadScriptableObjectData<T>(string path) where T : ScriptableObject
         {
             T _obj = GameResourcesManager.LoadResource<T>(path);
-            if(_obj != null)
+            if (_obj != null)
             {
-                if(m_typeToSO.ContainsKey(typeof(T)))
+                if (m_typeToSO.ContainsKey(typeof(T)))
                 {
                     Debug.LogErrorFormat("{0} is existed, but is trying to load it, check it", typeof(T).Name);
                     return;
@@ -160,14 +230,14 @@ namespace KahaGameCore.Static
                 return null;
             }
 
-            if(m_typeToSO.ContainsKey(typeof(T)))
+            if (m_typeToSO.ContainsKey(typeof(T)))
             {
                 return m_typeToSO[typeof(T)] as T;
             }
             else
             {
                 List<ScriptableObject> _allSO = GameResourcesManager.LoadAllBundleAssets<ScriptableObject>();
-                for(int i = 0; i < _allSO.Count; i++)
+                for (int i = 0; i < _allSO.Count; i++)
                 {
                     if (TryRegisterSO<T>(_allSO[i]))
                     {
@@ -183,7 +253,7 @@ namespace KahaGameCore.Static
 
         private static bool TryRegisterSO<T>(ScriptableObject obj) where T : ScriptableObject
         {
-            if(obj == null)
+            if (obj == null)
             {
                 return false;
             }

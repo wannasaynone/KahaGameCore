@@ -43,6 +43,34 @@ namespace KahaGameCore.Static
 #endif
         }
 
+        public static bool ClickOn(Collider2D collider, bool checkUGUI = false)
+        {
+            InputInfo _info = DetectInput();
+            if (_info.InputState == State.Down
+                && _info.RayCastCollider != null
+                && _info.RayCastCollider == collider
+                && (checkUGUI && !_info.isOnUGUI))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool ClickUp(Collider2D collider, bool checkUGUI = false)
+        {
+            InputInfo _info = DetectInput();
+            if (_info.InputState == State.Up
+                && _info.RayCastCollider != null
+                && _info.RayCastCollider == collider
+                && (checkUGUI && !_info.isOnUGUI))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         private static InputInfo DetectComputerInput()
         {
             if (UnityEngine.Input.GetMouseButtonDown(0))

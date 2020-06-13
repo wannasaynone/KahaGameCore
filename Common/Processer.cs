@@ -22,10 +22,10 @@ namespace KahaGameCore.Common
                 return;
             }
             m_onDone = onCompleted;
-            RunGameCommands();
+            RunProcessableItems();
         }
 
-        private void RunGameCommands()
+        private void RunProcessableItems()
         {
             m_currentIndex++;
             if (m_currentIndex >= m_processableItems.Length)
@@ -42,11 +42,11 @@ namespace KahaGameCore.Common
             if(m_processableItems[m_currentIndex] == null)
             {
                 UnityEngine.Debug.LogErrorFormat("m_processableItems[{0}] == null", m_currentIndex);
-                RunGameCommands();
+                RunProcessableItems();
                 return;
             }
 
-            m_processableItems[m_currentIndex].Process(RunGameCommands);
+            m_processableItems[m_currentIndex].Process(RunProcessableItems);
         }
     }
 }
