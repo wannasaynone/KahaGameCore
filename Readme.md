@@ -104,7 +104,7 @@ SomeMonoClass _clone = GameObjectPoolManager.GetUseableObject<SomeMonoClass>(pre
 ```C#
 private void Update()
 {
-    if(ClickUp(collider2D))
+    if(InputDetecter2D.ClickUp(collider2D))
     {
         Debug.Log("Touch Up");
     }
