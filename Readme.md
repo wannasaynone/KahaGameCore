@@ -115,6 +115,29 @@ private void Update()
 ```C#
 TimerManager.Schedule(1f, delegate{ Debug.Log("1 sec later") });
 ```
+### Processer
+有時會有需要連續處理多個相同行為後，接回遊戲流程的需求。例如執行遊戲事件，遊戲事件包含多個遊戲邏輯命令，逐一執行後接回遊戲事件結束流程。這時就可以用Processer，配合IProcessable處理。
+```C#
+public class GameCommand : IProcessable
+{
+    public void Process(System.Action onCompleted)
+    {
+        // ...game command logic
+        if(onCompleted != null)
+            onCompleted();
+    }
+}
+```
+```C#
+public class GameEventManager 
+{
+     public void ProcessEvent(GameCommand[] commands, System.Action onCompleted)
+     {
+         Processer gameCommandProcesser = new Processer(commands);
+         gameCommandProcesser.Start(onCompleted);
+     }
+}
+```
 ## 為什麼需要這個開發框架
 Unity3D是極其自由的遊戲引擎，它使用了組件式component-based的概念。只要編寫繼承了MonoBehaviour的C#程式腳本，就可以將其作為一個組件掛載於遊戲物件GameObject上被遊戲引擎驅動。而便利的同時也帶來了問題，每一個組件Component都相當於擁有自己的運作邏輯，加上每一禎每一個Component都有可能互相影響，在遊戲開發規模越來越大時，不同Component的程式邏輯在執行流程不易全盤掌握的情況下，很容易導致各種不可預期的結果。且通常在這種情況下，Component之間通常有彼此過度相依，導致邏輯問題不易解決的狀況。
 
