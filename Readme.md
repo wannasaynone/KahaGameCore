@@ -58,19 +58,53 @@ Debug.Log(neededData.FloatData);
 
 output = 3.14159
 ```
+此外也提供其他json相關存、讀、刪檔功能。
+```json
+{
+    "ID":0,
+    "FloatData":3.14159,
+    "StringData":"圓周率日快樂"
+}
+```
+```C#
+public class PureJsonData
+{
+    public int ID {get; private set;}
+    public float FloatData {get; private set;}
+    public string StringData {get; private set;}
+}
+```
+```C#
+PureJsonData neededData = GameDataManager.LoadJsonData<PureJsonData>();
+Debug.Log(neededData.FloatData);
+
+output = 3.14159
+```
+```C#
+PureJsonData[] datas;
+// set data into datas...
+GameDataManager.SaveData(datas);
+```
+```C#
+GameDataManager.DeleteJsonData<PureJsonData>();
+```
+可填入自定義路徑，預設路徑為
+```
+資料夾路徑：Application.persistentDataPath + "/Resources/Datas/"
+檔案路徑：資料夾路徑 + className.txt
+```
+預測
 ### GameObjectPoolManager
 物件池管理器，支援所有MonoBehaviour，有使用於範例專案。
 ```C#
-SomeMonoClass _clone = GameObjectPoolManager.GetUseableObject<SomeMonoClass>("resource path here");
+SomeMonoClass _clone = GameObjectPoolManager.GetUseableObject<SomeMonoClass>(prefabfileObject);
 ```
 ### InputDetecter2D
 令觸控可以與場景的Collider2D互動撰寫的觸控偵測器，通常用於按鈕互動，因此只支援單點操作。
 ```C#
 private void Update()
 {
-    InputInfo _info = InputDetecter2D.DetectInput();
-    if(_info.InputState == InputDetecter2D.State.Up
-       && _info.RayCastCollider != null && _info.RayCastCollider == m_collider)
+    if(ClickUp(collider2D))
     {
         Debug.Log("Touch Up");
     }
