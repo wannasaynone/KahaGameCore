@@ -16,14 +16,14 @@ namespace KahaGameCore.Static
             }
         }
 
-        private static Dictionary<MonoBehaviour, List<PoolObject>> m_prefabToPoolObjects = new Dictionary<MonoBehaviour, List<PoolObject>>();
-        private static Dictionary<MonoBehaviour, MonoBehaviour> m_clonesToPrefab = new Dictionary<MonoBehaviour, MonoBehaviour>();
+        private static Dictionary<int, List<PoolObject>> m_prefabMonoInstanceIDToPoolObjects = new Dictionary<int, List<PoolObject>>();
+        private static Dictionary<MonoBehaviour, int> m_clonesToPrefabMonoInstanceID = new Dictionary<MonoBehaviour, int>();
 
         public static T GetInstance<T>(MonoBehaviour prefab) where T : MonoBehaviour
         {
-            if (m_prefabToPoolObjects.ContainsKey(prefab))
+            if (m_prefabMonoInstanceIDToPoolObjects.ContainsKey(prefab.GetInstanceID()))
             {
-                List<PoolObject> _allInstances = m_prefabToPoolObjects[prefab];
+                List<PoolObject> _allInstances = m_prefabMonoInstanceIDToPoolObjects[prefab.GetInstanceID()];
                 for (int i = 0; i < _allInstances.Count; i++)
                 {
                     if (!_allInstances[i].actived)
@@ -34,7 +34,7 @@ namespace KahaGameCore.Static
                 }
 
                 PoolObject _newObj = CreateNewPoolObject(prefab);
-                m_prefabToPoolObjects[prefab].Add(_newObj);
+                m_prefabMonoInstanceIDToPoolObjects[prefab.GetInstanceID()].Add(_newObj);
                 _newObj.actived = true;
 
                 return _newObj.MonoBehaviour as T;
@@ -42,7 +42,7 @@ namespace KahaGameCore.Static
             else
             {
                 PoolObject _newObj = CreateNewPoolObject(prefab);
-                m_prefabToPoolObjects.Add(prefab, new List<PoolObject> { _newObj });
+                m_prefabMonoInstanceIDToPoolObjects.Add(prefab.GetInstanceID(), new List<PoolObject> { _newObj });
                 _newObj.actived = true;
 
                 return _newObj.MonoBehaviour as T;
@@ -52,20 +52,20 @@ namespace KahaGameCore.Static
         private static PoolObject CreateNewPoolObject(MonoBehaviour prefab)
         {
             PoolObject _newObj = new PoolObject(Object.Instantiate(prefab));
-            m_clonesToPrefab.Add(_newObj.MonoBehaviour, prefab);
+            m_clonesToPrefabMonoInstanceID.Add(_newObj.MonoBehaviour, prefab.GetInstanceID());
 
             return _newObj;
         }
 
         public static void Recycle(MonoBehaviour monoBehaviour)
         {
-            List<PoolObject> _allInstances = m_prefabToPoolObjects[m_clonesToPrefab[monoBehaviour]];
+            List<PoolObject> _allInstances = m_prefabMonoInstanceIDToPoolObjects[m_clonesToPrefabMonoInstanceID[monoBehaviour]];
             for (int i = 0; i < _allInstances.Count; i++)
             {
                 if (_allInstances[i].MonoBehaviour == monoBehaviour)
                 {
                     _allInstances[i].MonoBehaviour.transform.position = new Vector3(10000f, 0f, 0f);
-                    _allInstances[i].actived = true;
+                    _allInstances[i].actived = false;
                 }
             }
         }

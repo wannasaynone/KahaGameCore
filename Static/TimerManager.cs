@@ -10,8 +10,9 @@ namespace KahaGameCore.Static
 
         private class Timer
         {
-            public float Time;
-            public Action Action;
+            public float time;
+            public Action onTimeEnded;
+            public Action<float> onTimeUpdated;
         }
 
         private static Dictionary<long, Timer> m_timers = new Dictionary<long, Timer>();
@@ -19,12 +20,9 @@ namespace KahaGameCore.Static
         private static long m_currentID = 0;
 
         /// <summary>
-        /// Schedule a method which will be excuted when time is up.
+        /// return timer's id
         /// </summary>
-        /// <param name="time">wait for</param>
-        /// <param name="action">method</param>
-        /// <returns>timer id</returns>
-        public static long Schedule(float time, Action action)
+        public static long Schedule(float time, Action onTimeEnded, Action<float> onTimeUpdated = null)
         {
             if (m_currentID + 1 > long.MaxValue)
             {
@@ -40,7 +38,7 @@ namespace KahaGameCore.Static
                 DontDestroyOnLoad(new GameObject("[TimerManager]").AddComponent<TimerManager>());
             }
 
-            m_timers.Add(m_currentID, new Timer() { Time = time, Action = action });
+            m_timers.Add(m_currentID, new Timer() { time = time, onTimeEnded = onTimeEnded, onTimeUpdated = onTimeUpdated });
 
             return m_currentID;
         }
@@ -54,8 +52,26 @@ namespace KahaGameCore.Static
         {
             if (m_timers.ContainsKey(id))
             {
-                m_timers[id].Time += time;
+                m_timers[id].time += time;
             }
+        }
+
+        public static void SetTime(long id, float newTime)
+        {
+            if (m_timers.ContainsKey(id))
+            {
+                m_timers[id].time = newTime;
+            }
+        }
+
+        public static float GetTime(long id)
+        {
+            if (m_timers.ContainsKey(id))
+            {
+                return m_timers[id].time;
+            }
+
+            return -1f;
         }
 
         private void Awake()
@@ -75,14 +91,14 @@ namespace KahaGameCore.Static
             List<long> _allTimerIds = new List<long>(m_timers.Keys);
             for (int i = 0; i < _allTimerIds.Count; i++)
             {
-                if (m_timers[_allTimerIds[i]].Time > 0f)
+                if (m_timers[_allTimerIds[i]].time > 0f)
                 {
-                    m_timers[_allTimerIds[i]].Time -= _deltaTime;
-                    if (m_timers[_allTimerIds[i]].Time <= 0)
+                    m_timers[_allTimerIds[i]].time -= _deltaTime;
+                    if (m_timers[_allTimerIds[i]].time <= 0)
                     {
-                        if (m_timers[_allTimerIds[i]].Action != null)
+                        if (m_timers[_allTimerIds[i]].onTimeEnded != null)
                         {
-                            m_timers[_allTimerIds[i]].Action();
+                            m_timers[_allTimerIds[i]].onTimeEnded();
                         }
                         m_waitForRemoveTimers.Add(_allTimerIds[i]);
                     }
