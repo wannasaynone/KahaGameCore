@@ -10,6 +10,10 @@ namespace KahaGameCore.Common
 {
     public class GameStarter 
     {
+        public bool skipCheckFirebase = true;
+        public bool skipCheckAD = true;
+        public bool skipCheckIAP = true;
+
         public event Action OnStartToInitPlugins = null;
         public event Action OnCheckConnectionFailed = null;
         public event Action OnTimeOut = null;
@@ -17,7 +21,7 @@ namespace KahaGameCore.Common
 
         private const float TIME_OUT_TIME = 15f;
 
-        private void Start()
+        public void Start()
         {
             Debug.Log("GameStarter Start");
 
@@ -32,11 +36,19 @@ namespace KahaGameCore.Common
                     Debug.Log("CheckConnection: " + having);
                     if (having)
                     {
-                        StartInitFirebase();
+
+                        if(skipCheckFirebase)
+                        {
+                            StartPreloadAd();
+                        }
+                        else
+                        {
+                            StartInitFirebase();
+                        }
                     }
                     else
                     {
-                        if(OnCheckConnectionFailed != null)
+                        if (OnCheckConnectionFailed != null)
                         {
                             OnCheckConnectionFailed();
                         }
@@ -61,10 +73,17 @@ namespace KahaGameCore.Common
 
         private void StartPreloadAd()
         {
-            Debug.Log("StartPreloadAd");
-            m_adTimer = TIME_OUT_TIME;
-            AdvertisementManager.Instance.Init();
-            Static.GeneralCoroutineRunner.Instance.StartCoroutine(IEWaitADLoading());
+            if(skipCheckAD)
+            {
+                StartInitIAP();
+            }
+            else
+            {
+                Debug.Log("StartPreloadAd");
+                m_adTimer = TIME_OUT_TIME;
+                AdvertisementManager.Instance.Init();
+                Static.GeneralCoroutineRunner.Instance.StartCoroutine(IEWaitADLoading());
+            }
         }
 
         private float m_adTimer = 0f;
@@ -94,9 +113,19 @@ namespace KahaGameCore.Common
 
         private void StartInitIAP()
         {
-            Debug.Log("StartInitIAP");
-            m_storeTimer = TIME_OUT_TIME;
-            Static.GeneralCoroutineRunner.Instance.StartCoroutine(IEWaitStoreInited());
+            if(skipCheckIAP)
+            {
+                if (OnAllInited != null)
+                {
+                    OnAllInited();
+                }
+            }
+            else
+            {
+                Debug.Log("StartInitIAP");
+                m_storeTimer = TIME_OUT_TIME;
+                Static.GeneralCoroutineRunner.Instance.StartCoroutine(IEWaitStoreInited());
+            }
         }
 
         private float m_storeTimer = 0f;
