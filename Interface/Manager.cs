@@ -66,6 +66,7 @@ namespace KahaGameCore.Interface
         {
             if(!m_gameObjectNameToUIViews.ContainsKey(typeof(T)))
             {
+                Debug.LogError("Can't Find UI View: " + typeof(T).ToString());
                 return null;
             }
 
