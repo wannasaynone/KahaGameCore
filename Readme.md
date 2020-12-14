@@ -8,6 +8,14 @@
 
 關於Unity3D引擎，可以至他們的官網查看：https://unity.com/
 ## 關於Manager-View開發框架
+### 已應用商案
+遊戲商店搜尋：「實況主百萬挑戰」
+
+https://play.google.com/store/apps/details?id=com.storia.projectstreamer&hl=en_US 
+
+https://apps.apple.com/tw/app/實況主百萬挑戰/id1490694898 
+
+目前雙版本下載量累積突破15萬。 
 ### 如何使用
 1. 下載package後import到遊戲內  
 https://github.com/wannasaynone/KahaGameCore/tree/master/Release  
