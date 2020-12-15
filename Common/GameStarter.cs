@@ -1,18 +1,20 @@
 ﻿using UnityEngine;
 using System;
+#if ENABLE_FIREBASE
 using Firebase.Extensions;
 using Firebase.Analytics;
+#endif
 using System.Threading.Tasks;
 using System.Collections;
+#if ENABLE_IAP
 using UnityEngine.Purchasing;
+#endif
 
 namespace KahaGameCore.Common
 {
     public class GameStarter 
     {
-        public bool skipCheckFirebase = true;
-        public bool skipCheckAD = true;
-        public bool skipCheckIAP = true;
+        public bool skipAll = false;
 
         public event Action OnStartToInitPlugins = null;
         public event Action OnCheckConnectionFailed = null;
@@ -30,21 +32,22 @@ namespace KahaGameCore.Common
                 OnStartToInitPlugins();
             }
 
+            if(skipAll)
+            {
+                if(OnAllInited != null)
+                {
+                    OnAllInited();
+                }
+                return;
+            }
+
             GameUtility.CheckConnection(
                 delegate (bool having)
                 {
                     Debug.Log("CheckConnection: " + having);
                     if (having)
                     {
-
-                        if(skipCheckFirebase)
-                        {
-                            StartPreloadAd();
-                        }
-                        else
-                        {
-                            StartInitFirebase();
-                        }
+                        StartInitFirebase();
                     }
                     else
                     {
@@ -59,31 +62,32 @@ namespace KahaGameCore.Common
 
         private void StartInitFirebase()
         {
+#if ENABLE_FIREBASE
             Debug.Log("StartInitFirebase");
             Task task = Firebase.FirebaseApp.CheckAndFixDependenciesAsync();
             task.ContinueWithOnMainThread(OnFirebaseInited);
+#endif
             StartPreloadAd();
         }
 
         private void OnFirebaseInited(Task task)
         {
+#if ENABLE_FIREBASE
             Debug.Log("OnFirebaseInited");
             FirebaseAnalytics.SetAnalyticsCollectionEnabled(true);
+#endif
         }
 
         private void StartPreloadAd()
         {
-            if(skipCheckAD)
-            {
-                StartInitIAP();
-            }
-            else
-            {
-                Debug.Log("StartPreloadAd");
-                m_adTimer = TIME_OUT_TIME;
-                AdvertisementManager.Instance.Init();
-                Static.GeneralCoroutineRunner.Instance.StartCoroutine(IEWaitADLoading());
-            }
+#if ENABLE_AD
+            Debug.Log("StartPreloadAd");
+            m_adTimer = TIME_OUT_TIME;
+            AdvertisementManager.Instance.Init();
+            Static.GeneralCoroutineRunner.Instance.StartCoroutine(IEWaitADLoading());
+#else
+            StartInitIAP();
+#endif
         }
 
         private float m_adTimer = 0f;
@@ -113,19 +117,9 @@ namespace KahaGameCore.Common
 
         private void StartInitIAP()
         {
-            if(skipCheckIAP)
-            {
-                if (OnAllInited != null)
-                {
-                    OnAllInited();
-                }
-            }
-            else
-            {
-                Debug.Log("StartInitIAP");
-                m_storeTimer = TIME_OUT_TIME;
-                Static.GeneralCoroutineRunner.Instance.StartCoroutine(IEWaitStoreInited());
-            }
+            Debug.Log("StartInitIAP");
+            m_storeTimer = TIME_OUT_TIME;
+            Static.GeneralCoroutineRunner.Instance.StartCoroutine(IEWaitStoreInited());
         }
 
         private float m_storeTimer = 0f;
@@ -141,6 +135,7 @@ namespace KahaGameCore.Common
                 yield break;
             }
 
+#if ENABLE_IAP
             if (CodelessIAPStoreListener.initializationComplete)
             {
                 Debug.Log("Store Inited");
@@ -155,6 +150,12 @@ namespace KahaGameCore.Common
                 m_storeTimer -= Time.deltaTime;
                 Static.GeneralCoroutineRunner.Instance.StartCoroutine(IEWaitStoreInited());
             }
+#else
+            if (OnAllInited != null)
+            {
+                OnAllInited();
+            }
+#endif
         }
     }
 }
