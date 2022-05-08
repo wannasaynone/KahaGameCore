@@ -1,13 +1,13 @@
 ﻿using System;
-using KahaGameCore.Interface;
 
-namespace KahaGameCore.Common
+namespace KahaGameCore.Processer
 {
     public class Processer<T> where T : IProcessable
     {
         private readonly T[] m_processableItems = null;
 
         private Action m_onDone = null;
+        private Action m_onForceQuit = null;
         private int m_currentIndex = -1;
 
         public Processer(T[] items)
@@ -15,13 +15,14 @@ namespace KahaGameCore.Common
             m_processableItems = items;
         }
 
-        public void Start(Action onCompleted)
+        public void Start(Action onCompleted, Action onForceQuit)
         {
             if(m_currentIndex != -1)
             {
                 return;
             }
             m_onDone = onCompleted;
+            m_onForceQuit = onForceQuit;
             RunProcessableItems();
         }
 
@@ -30,12 +31,8 @@ namespace KahaGameCore.Common
             m_currentIndex++;
             if (m_currentIndex >= m_processableItems.Length)
             {
-                if (m_onDone != null)
-                {
-                    m_onDone();
-                }
-
                 m_currentIndex = -1;
+                m_onDone?.Invoke();
                 return;
             }
 
@@ -46,7 +43,7 @@ namespace KahaGameCore.Common
                 return;
             }
 
-            m_processableItems[m_currentIndex].Process(RunProcessableItems);
+            m_processableItems[m_currentIndex].Process(RunProcessableItems, m_onForceQuit);
         }
     }
 }

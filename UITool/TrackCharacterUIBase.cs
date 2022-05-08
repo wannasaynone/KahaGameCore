@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace KahaGameCore.Common
+namespace KahaGameCore.UITool
 {
     public class TrackCharacterUIBase : MonoBehaviour
     {

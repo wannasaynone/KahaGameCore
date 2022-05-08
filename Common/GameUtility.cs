@@ -9,7 +9,7 @@ namespace KahaGameCore.Common
         public static void RunNunber(float from, float to, float time, Action<float> onAdd, Action onDone)
         {
             float _each = (to - from) / (time / Time.deltaTime);
-            KahaGameCore.Static.GeneralCoroutineRunner.Instance.StartCoroutine(IENumberRunner(from, to, _each, time, onAdd, onDone));
+            GeneralCoroutineRunner.Instance.StartCoroutine(IENumberRunner(from, to, _each, time, onAdd, onDone));
         }
 
         private static IEnumerator IENumberRunner(float current, float target, float each, float time, Action<float> onAdd, Action onDone)
@@ -23,33 +23,24 @@ namespace KahaGameCore.Common
                 current = target;
             }
 
-            if(onAdd != null)
-            {
-                onAdd(current);
-            }
+            onAdd?.Invoke(current);
 
             time -= _delta;
             if(time <= 0f)
             {
-                if (onDone != null)
-                {
-                    onDone();
-                }
+                onDone?.Invoke();
                 yield break;
             }
             yield return new WaitForSeconds(_delta);
 
-            KahaGameCore.Static.GeneralCoroutineRunner.Instance.StartCoroutine(IENumberRunner(current, target, each, time, onAdd, onDone));
+            GeneralCoroutineRunner.Instance.StartCoroutine(IENumberRunner(current, target, each, time, onAdd, onDone));
         }
 
         public static void CheckConnection(Action<bool> onChecked)
         {
             Debug.Log("CheckConnection");
             Debug.Log("Application.internetReachability=" + Application.internetReachability);
-            if (onChecked != null)
-            {
-                onChecked(Application.internetReachability != NetworkReachability.NotReachable);
-            }
+            onChecked?.Invoke(Application.internetReachability != NetworkReachability.NotReachable);
         }
 
         public static Color GetColor(string colorString)

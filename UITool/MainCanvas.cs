@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace KahaGameCore.Common
+namespace KahaGameCore.UITool
 {
     public class MainCanvas
     {
