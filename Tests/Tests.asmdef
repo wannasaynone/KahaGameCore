@@ -1,10 +1,13 @@
 {
     "name": "Tests",
+    "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "KahaGameCore.Common",
-        "KahaGameCore.Processer"
+        "KahaGameCore.Processer",
+        "Zenject",
+        "KahaGameCore"
     ],
     "includePlatforms": [
         "Editor"

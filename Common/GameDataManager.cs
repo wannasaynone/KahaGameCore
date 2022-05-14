@@ -6,11 +6,11 @@ using JsonFx.Json;
 
 namespace KahaGameCore.Common
 {
-    public static class GameDataManager
+    public class GameDataManager
     {
-        private static Dictionary<Type, IGameData[]> m_gameData = new Dictionary<Type, IGameData[]>();
+        private Dictionary<Type, IGameData[]> m_gameData = new Dictionary<Type, IGameData[]>();
 
-        public static T[] DeserializeGameData<T>(string json, bool isForceUpdate = false) where T : IGameData
+        public T[] DeserializeGameData<T>(string json, bool isForceUpdate = false) where T : IGameData
         {
             json = json.Trim().Replace("\n", "").Replace("\r", "").Replace("\t", "").Replace("\v", "").Replace("\b", "");
 
@@ -44,7 +44,7 @@ namespace KahaGameCore.Common
             }
         }
 
-        public static void Unload<T>() where T : IGameData
+        public void Unload<T>() where T : IGameData
         {
             if (m_gameData.ContainsKey(typeof(T)))
             {
@@ -52,7 +52,7 @@ namespace KahaGameCore.Common
             }
         }
 
-        public static string GetDefaultDataFilePath<T>()
+        public string GetDefaultDataFilePath<T>()
         {
             string filePath = GetDefaultDataFolderPath();
 
@@ -66,7 +66,7 @@ namespace KahaGameCore.Common
             return filePath + fileName;
         }
 
-        public static bool DeleteSave<T>()
+        public bool DeleteSave<T>()
         {
             string filePath = GetDefaultDataFilePath<T>();
 
@@ -82,7 +82,7 @@ namespace KahaGameCore.Common
             }
         }
 
-        public static T LoadSave<T>()
+        public T LoadSave<T>()
         {
             string filePath = GetDefaultDataFilePath<T>();
 
@@ -97,7 +97,7 @@ namespace KahaGameCore.Common
             }
         }
 
-        public static void Save(object saveObj)
+        public void Save(object saveObj)
         {
             string path = GetDefaultDataFolderPath();
 
@@ -123,7 +123,7 @@ namespace KahaGameCore.Common
             Debug.Log("Saved:" + path);
         }
 
-        public static T GetGameData<T>(int id) where T : IGameData
+        public T GetGameData<T>(int id) where T : IGameData
         {
             if (m_gameData.ContainsKey(typeof(T)))
             {
@@ -143,7 +143,7 @@ namespace KahaGameCore.Common
             return default;
         }
 
-        public static T[] GetAllGameData<T>() where T : IGameData
+        public T[] GetAllGameData<T>() where T : IGameData
         {
             if (m_gameData.ContainsKey(typeof(T)))
             {
@@ -158,14 +158,14 @@ namespace KahaGameCore.Common
             return default;
         }
 
-        private static string GetFileName<T>()
+        private string GetFileName<T>()
         {
             string[] fullName = typeof(T).FullName.ToString().Split('.');
             string[] fullClassName = fullName[fullName.Length - 1].Split('+');
             return fullClassName[fullClassName.Length - 1].Replace("[]", "") + ".txt";
         }
 
-        private static string GetDefaultDataFolderPath()
+        private string GetDefaultDataFolderPath()
         {
             return Application.persistentDataPath + "/Resources/Datas/";
         }

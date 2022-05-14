@@ -1,10 +1,28 @@
 ﻿using System;
 using NUnit.Framework;
+using Zenject;
 
 namespace KahaGameCore.Tests
 {
+    [TestFixture]
     public class KahaGameCoreTester
     {
+        DiContainer Container;
+
+        [SetUp]
+        public virtual void Setup()
+        {
+            Container = new DiContainer(StaticContext.Container);
+            Container.Bind<Main.Core>().AsSingle();
+            Container.Bind<Common.GameDataManager>().AsSingle();
+        }
+
+        [TearDown]
+        public virtual void Teardown()
+        {
+            StaticContext.Clear();
+        }
+
         private class TestData : Common.IGameData
         {
             public int ID { get; private set; }
@@ -30,25 +48,25 @@ namespace KahaGameCore.Tests
                                   "}\n" +
                               "]";
 
-            Assert.IsNull(Common.GameDataManager.GetAllGameData<TestData>());
-            Assert.IsNull(Common.GameDataManager.GetGameData<TestData>(1));
+            Assert.IsNull(Container.Resolve<Main.Core>().GameDataManager.GetAllGameData<TestData>());
+            Assert.IsNull(Container.Resolve<Main.Core>().GameDataManager.GetGameData<TestData>(1));
 
-            Common.GameDataManager.DeserializeGameData<TestData>(testJson);
-            Assert.AreEqual(2, Common.GameDataManager.GetAllGameData<TestData>().Length);
+            Container.Resolve<Main.Core>().GameDataManager.DeserializeGameData<TestData>(testJson);
+            Assert.AreEqual(2, Container.Resolve<Main.Core>().GameDataManager.GetAllGameData<TestData>().Length);
 
-            TestData testData = Common.GameDataManager.GetGameData<TestData>(1);
+            TestData testData = Container.Resolve<Main.Core>().GameDataManager.GetGameData<TestData>(1);
             Assert.IsNotNull(testData);
             Assert.AreEqual("Test String", testData.TestStringField);
             Assert.IsTrue(UnityEngine.Mathf.Approximately(testData.TestFloatField, 3.14f));
 
-            testData = Common.GameDataManager.GetGameData<TestData>(2);
+            testData = Container.Resolve<Main.Core>().GameDataManager.GetGameData<TestData>(2);
             Assert.IsNotNull(testData);
             Assert.AreEqual("Test String 2", testData.TestStringField);
             Assert.IsTrue(UnityEngine.Mathf.Approximately(testData.TestFloatField, 6.28f));
 
-            Common.GameDataManager.Unload<TestData>();
-            Assert.IsNull(Common.GameDataManager.GetAllGameData<TestData>());
-            Assert.IsNull(Common.GameDataManager.GetGameData<TestData>(1));
+            Container.Resolve<Main.Core>().GameDataManager.Unload<TestData>();
+            Assert.IsNull(Container.Resolve<Main.Core>().GameDataManager.GetAllGameData<TestData>());
+            Assert.IsNull(Container.Resolve<Main.Core>().GameDataManager.GetGameData<TestData>(1));
         }
 
         private class TestGameSave
@@ -91,11 +109,11 @@ namespace KahaGameCore.Tests
                 new TestGameSave.NestGameSave(3, 50)
             });
 
-            TestGameSave loadSave = Common.GameDataManager.LoadSave<TestGameSave>();
+            TestGameSave loadSave = Container.Resolve<Main.Core>().GameDataManager.LoadSave<TestGameSave>();
             Assert.IsNull(loadSave);
 
-            Common.GameDataManager.Save(testSave);
-            loadSave = Common.GameDataManager.LoadSave<TestGameSave>();
+            Container.Resolve<Main.Core>().GameDataManager.Save(testSave);
+            loadSave = Container.Resolve<Main.Core>().GameDataManager.LoadSave<TestGameSave>();
 
             Assert.IsNotNull(loadSave);
             Assert.AreEqual(testSave.UID, loadSave.UID);
@@ -105,8 +123,8 @@ namespace KahaGameCore.Tests
             Assert.AreEqual(testSave.NestGameSaves[0].CharacterID, loadSave.NestGameSaves[0].CharacterID);
             Assert.AreEqual(testSave.NestGameSaves[2].CharacterLevel, loadSave.NestGameSaves[2].CharacterLevel);
 
-            Assert.IsTrue(Common.GameDataManager.DeleteSave<TestGameSave>());
-            loadSave = Common.GameDataManager.LoadSave<TestGameSave>();
+            Assert.IsTrue(Container.Resolve<Main.Core>().GameDataManager.DeleteSave<TestGameSave>());
+            loadSave = Container.Resolve<Main.Core>().GameDataManager.LoadSave<TestGameSave>();
             Assert.IsNull(loadSave);
         }
         
