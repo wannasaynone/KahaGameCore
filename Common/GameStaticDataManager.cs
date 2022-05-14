@@ -55,7 +55,6 @@ namespace KahaGameCore.Common
             {
                 for (int i = 0; i < m_gameData[typeof(T)].Length; i++)
                 {
-                    Debug.Log("i=" + i + ", m_gameData[typeof(T)][i]=" + m_gameData[typeof(T)][i]);
                     if (m_gameData[typeof(T)][i].ID == id)
                     {
                         return (T)m_gameData[typeof(T)][i];
