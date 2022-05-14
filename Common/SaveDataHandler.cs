@@ -68,8 +68,7 @@ namespace KahaGameCore.Common
                 path += "/";
             }
 
-            string jsonData = "";
-            jsonData = m_writer.Write(saveObj);
+            string jsonData = m_writer.Write(saveObj);
 
             if (!Directory.Exists(path))
             {
