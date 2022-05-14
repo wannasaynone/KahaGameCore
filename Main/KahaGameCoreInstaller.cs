@@ -2,11 +2,11 @@ using Zenject;
 
 namespace KahaGameCore.Main
 {
-    public class KahaGameCoreInstaller : Installer
+    public class KahaGameCoreInstaller : MonoInstaller
     {
         public override void InstallBindings()
         {
-            Container.Bind<Common.GameDataManager>().AsSingle();
+            Container.Bind<Common.GameStaticDataManager>().AsSingle();
         }
     }
 }

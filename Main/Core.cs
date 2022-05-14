@@ -5,6 +5,6 @@ namespace KahaGameCore.Main
     public class Core
     {
         [Inject]
-        public Common.GameDataManager GameDataManager { get; private set; }
+        public Common.GameStaticDataManager GameDataManager { get; private set; }
     }
 }
