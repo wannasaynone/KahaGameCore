@@ -19,6 +19,8 @@ namespace KahaGameCore.Tests
         [Test]
         public void SaveAndLoadTest()
         {
+            // GameStaticDataSerializer and GameStaticDataDeserializer have its own test
+            // make sure they are all correct before run this test
             Common.SaveDataHandler saveDataHandler = new Common.SaveDataHandler(new Common.GameStaticDataSerializer(), new Common.GameStaticDataDeserializer());
 
             TestGameSave testSave = new TestGameSave(System.Guid.NewGuid().ToString());
