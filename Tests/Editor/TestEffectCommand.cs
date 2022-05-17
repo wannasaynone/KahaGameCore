@@ -45,6 +45,15 @@ namespace KahaGameCore.Tests
                               " } ";
 
             testEffectProcesser.Initial(testData);
+
+            container.Resolve<Zenject.SignalBus>().Fire(new EffectTimingTriggedSignal(new EffectProcesser.ProcessData
+            {
+                caster = null,
+                target = null,
+                skipIfCount = 0,
+                timing = "Test"
+            }));
+
             testEffectProcesser.Start(new EffectTimingTriggedSignal(new EffectProcesser.ProcessData
             {
                 caster = null,
