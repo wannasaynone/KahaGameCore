@@ -23,7 +23,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public async void EffectProcesserInitialTest()
+        public void EffectProcesserInitialTest()
         {
             Zenject.DiContainer container = new Zenject.DiContainer();
             Zenject.SignalBusInstaller.Install(container);
@@ -37,20 +37,36 @@ namespace KahaGameCore.Tests
 
             string testData = "Test" +
                               " { " +
-                              "    DebugLog(this is some debug message in test data);" +
+                              "    DebugLog(this-is-some-debug-message-in-test-data);" +
                               " } " +
                               "Test2" +
                               " { " +
-                              "    DebugLog(this is some debug message in test data in test 2 step);" +
+                              "    DebugLog(this-is-some-debug-message-in-test-data-in-test-2-step);" +
                               " } ";
 
-            await testEffectProcesser.Initial(testData);
+            testEffectProcesser.Initial(testData);
             testEffectProcesser.Start(new EffectTimingTriggedSignal(new EffectProcesser.ProcessData
             {
                 caster = null,
                 target = null,
                 skipIfCount = 0,
                 timing = "Test"
+            }));
+
+            testEffectProcesser.Start(new EffectTimingTriggedSignal(new EffectProcesser.ProcessData
+            {
+                caster = null,
+                target = null,
+                skipIfCount = 0,
+                timing = "Test2"
+            }));
+
+            testEffectProcesser.Start(new EffectTimingTriggedSignal(new EffectProcesser.ProcessData
+            {
+                caster = null,
+                target = null,
+                skipIfCount = 0,
+                timing = "Test3"
             }));
         }
     }

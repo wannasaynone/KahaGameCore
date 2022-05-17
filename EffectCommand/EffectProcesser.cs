@@ -51,7 +51,7 @@ namespace KahaGameCore.EffectCommand
             m_effectCommandFactoryContainer = factoryContainer;
         }
             
-        public async System.Threading.Tasks.Task Initial(string rawCommandString)
+        public async System.Threading.Tasks.Task InitialAsync(string rawCommandString)
         {
             if (string.IsNullOrEmpty(rawCommandString))
             {
@@ -62,6 +62,22 @@ namespace KahaGameCore.EffectCommand
             rawCommandString = rawCommandString.Replace(" ", "").Replace("\n", "").Replace("\t", "").Replace("\r", "");
 
             await StartDeserializeCommandTask(rawCommandString);
+
+            m_signalBus.Subscribe<EffectTimingTriggedSignal>(Start);
+            m_useable = true;
+        }
+
+        public void Initial(string rawCommandString)
+        {
+            if (string.IsNullOrEmpty(rawCommandString))
+            {
+                m_useable = true;
+                return;
+            }
+
+            rawCommandString = rawCommandString.Replace(" ", "").Replace("\n", "").Replace("\t", "").Replace("\r", "");
+
+            StartDeserializeCommandTask(rawCommandString);
 
             m_signalBus.Subscribe<EffectTimingTriggedSignal>(Start);
             m_useable = true;
