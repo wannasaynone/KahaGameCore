@@ -12,7 +12,7 @@ namespace KahaGameCore.Tests
         [Test]
         public void GameDataSerializerTest()
         {
-            Common.GameStaticDataSerializer serializer = new Common.GameStaticDataSerializer();
+            GameData.GameStaticDataSerializer serializer = new GameData.GameStaticDataSerializer();
 
             string json = serializer.Write(new TestData { SomeValue = 100 });
 

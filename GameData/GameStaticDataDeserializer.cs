@@ -1,4 +1,4 @@
-namespace KahaGameCore.Common
+namespace KahaGameCore.GameData
 {
     public class GameStaticDataDeserializer : IJsonReader
     {

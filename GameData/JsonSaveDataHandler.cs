@@ -1,14 +1,14 @@
 using System.IO;
 using UnityEngine;
 
-namespace KahaGameCore.Common
+namespace KahaGameCore.GameData
 {
-    public class SaveDataHandler
+    public class JsonSaveDataHandler
     {
         private readonly IJsonWriter m_writer;
         private readonly IJsonReader m_reader;
 
-        public SaveDataHandler(IJsonWriter writer, IJsonReader reader)
+        public JsonSaveDataHandler(IJsonWriter writer, IJsonReader reader)
         {
             m_writer = writer;
             m_reader = reader;

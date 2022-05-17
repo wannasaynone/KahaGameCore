@@ -7,7 +7,7 @@ namespace KahaGameCore.Tests
     [TestFixture]
     public class TestGameDataManager
     {
-        private class TestData : Common.IGameData
+        private class TestData : GameData.IGameData
         {
             public int ID { get; private set; }
             public string TestStringField { get; private set; }
@@ -25,7 +25,7 @@ namespace KahaGameCore.Tests
         [Test]
         public void LoadDataTest()
         {
-            Common.GameStaticDataManager gameDataManager = new Common.GameStaticDataManager();
+            GameData.GameStaticDataManager gameDataManager = new GameData.GameStaticDataManager();
 
             gameDataManager.Load<TestData>(new TestData[]
             {
@@ -57,7 +57,7 @@ namespace KahaGameCore.Tests
         [Test]
         public void GetDataTest()
         {
-            Common.GameStaticDataManager gameDataManager = new Common.GameStaticDataManager();
+            GameData.GameStaticDataManager gameDataManager = new GameData.GameStaticDataManager();
 
             gameDataManager.Load<TestData>(new TestData[]
             {
@@ -81,7 +81,7 @@ namespace KahaGameCore.Tests
         [Test]
         public void UnloadDataTest()
         {
-            Common.GameStaticDataManager gameDataManager = new Common.GameStaticDataManager();
+            GameData.GameStaticDataManager gameDataManager = new GameData.GameStaticDataManager();
 
             Assert.IsNull(gameDataManager.GetAllGameData<TestData>());
 

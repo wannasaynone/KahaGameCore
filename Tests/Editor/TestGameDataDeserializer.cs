@@ -29,7 +29,7 @@ namespace KahaGameCore.Tests
         [Test]
         public void GameDataDeserializerTest()
         {
-            Common.GameStaticDataDeserializer deserializer = new Common.GameStaticDataDeserializer();
+            GameData.GameStaticDataDeserializer deserializer = new GameData.GameStaticDataDeserializer();
             TestData[] datas = deserializer.Read<TestData[]>(testJson);
 
             Assert.IsNotNull(datas);
