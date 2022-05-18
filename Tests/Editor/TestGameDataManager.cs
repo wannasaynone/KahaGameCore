@@ -76,6 +76,9 @@ namespace KahaGameCore.Tests
             Assert.IsNotNull(testData);
             Assert.AreEqual("Test String 2", testData.TestStringField);
             Assert.IsTrue(UnityEngine.Mathf.Approximately(testData.TestFloatField, 6.28f));
+
+            testData = gameDataManager.GetGameData<TestData>(3);
+            Assert.IsNull(testData);
         }
 
         [Test]

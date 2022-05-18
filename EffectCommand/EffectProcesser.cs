@@ -20,10 +20,26 @@ namespace KahaGameCore.EffectCommand
             public int skipIfCount = 0;
         }
 
-        private class EffectData : IProcessable
+        public class EffectData : IProcessable
         {
-            public EffectCommandBase command;
-            public string[] vars;
+            private readonly EffectCommandBase command;
+            private readonly string[] vars;
+
+            public EffectData(EffectCommandBase command, string[] vars)
+            {
+                this.command = command;
+                this.vars = vars;
+            }
+
+            public int GetVarsLength()
+            {
+                return vars == null ? 0 : vars.Length;
+            }
+
+            public void SetProcessData(ProcessData processData)
+            {
+                command.processData = processData;
+            }
 
             public void Process(Action onCompleted, Action onForceQuit)
             {
@@ -39,215 +55,49 @@ namespace KahaGameCore.EffectCommand
             }
         }
 
-        private bool m_useable = false;
+        private Dictionary<string, List<EffectData>> m_timingToEffectProcesser = new Dictionary<string, List<EffectData>>();
 
-        private readonly Dictionary<string, List<EffectData>> m_timingToEffectProcesser = new Dictionary<string, List<EffectData>>();
-        private readonly Zenject.SignalBus m_signalBus;
-        private readonly EffectCommandFactoryContainer m_effectCommandFactoryContainer;
-
-        public EffectProcesser(Zenject.SignalBus signalBus, EffectCommandFactoryContainer factoryContainer)
+        public EffectProcesser(Zenject.SignalBus signalBus)
         {
-            m_signalBus = signalBus;
-            m_effectCommandFactoryContainer = factoryContainer;
+            signalBus.Subscribe<EffectTimingTriggedSignal>(Start);
+        }
+
+        public void SetUp(Dictionary<string, List<EffectData>> timingToEffectProcesser)
+        {
+            m_timingToEffectProcesser = timingToEffectProcesser;
         }
             
-        public async System.Threading.Tasks.Task InitialAsync(string rawCommandString)
-        {
-            if (string.IsNullOrEmpty(rawCommandString))
-            {
-                m_useable = true;
-                return;
-            }
-
-            rawCommandString = rawCommandString.Replace(" ", "").Replace("\n", "").Replace("\t", "").Replace("\r", "");
-
-            await StartDeserializeCommandTask(rawCommandString);
-
-            m_signalBus.Subscribe<EffectTimingTriggedSignal>(Start);
-            m_useable = true;
-        }
-
-        public void Initial(string rawCommandString)
-        {
-            if (string.IsNullOrEmpty(rawCommandString))
-            {
-                m_useable = true;
-                return;
-            }
-
-            rawCommandString = rawCommandString.Replace(" ", "").Replace("\n", "").Replace("\t", "").Replace("\r", "");
-
-            StartDeserializeCommandTask(rawCommandString);
-
-            m_signalBus.Subscribe<EffectTimingTriggedSignal>(Start);
-            m_useable = true;
-        }
-
-        private System.Threading.Tasks.Task StartDeserializeCommandTask(string rawCommandString)
-        {
-            Dictionary<string, string> _timingToRawCommand = DeserializeCommandRawDatas(rawCommandString);
-
-            if (_timingToRawCommand == null || _timingToRawCommand.Count <= 0)
-                return System.Threading.Tasks.Task.CompletedTask;
-
-            foreach (KeyValuePair<string, string> kvp in _timingToRawCommand)
-            {
-                string[] _commandStrings = kvp.Value.Split(';');
-                List<EffectData> _effects = new List<EffectData>();
-                for (int _commandStringIndex = 0; _commandStringIndex < _commandStrings.Length; _commandStringIndex++)
-                {
-                    if (string.IsNullOrEmpty(_commandStrings[_commandStringIndex]))
-                        continue;
-
-                    EffectData _effectData = DeserializeCommands(_commandStrings[_commandStringIndex]);
-                    if (_effectData == null)
-                    {
-                        continue;
-                    }
-
-                    _effects.Add(_effectData);
-                }
-                m_timingToEffectProcesser.Add(kvp.Key, _effects);
-            }
-
-            return System.Threading.Tasks.Task.CompletedTask;
-
-        }
-
         public void Start(EffectTimingTriggedSignal signal)
         {
             if (signal == null)
             {
-                UnityEngine.Debug.Log("returned");
                 return;
             }
-            if(!m_useable)
+
+            if (m_timingToEffectProcesser.Count <= 0)
             {
-                TimerManager.Schedule(UnityEngine.Time.deltaTime, delegate { Start(signal); });
                 return;
             }
-            if (m_timingToEffectProcesser.ContainsKey(signal.ProcessData.timing))
+
+            if (m_timingToEffectProcesser.ContainsKey(signal.Timing))
             {
-                List<EffectData> _effects = m_timingToEffectProcesser[signal.ProcessData.timing];
+                List<EffectData> _effects = m_timingToEffectProcesser[signal.Timing];
+
+                ProcessData _processData = new ProcessData
+                {
+                    caster = signal.Caster,
+                    target = signal.Target,
+                    timing = signal.Timing,
+                    skipIfCount = 0
+                };
+
                 for (int i = 0; i < _effects.Count; i++)
                 {
-                    _effects[i].command.processData = signal.ProcessData;
+                    _effects[i].SetProcessData(_processData);
                 }
 
-                signal.ProcessData.skipIfCount = 0;
                 new Processer<EffectData>(_effects.ToArray()).Start(null, null);
             }
-        }
-
-        private Dictionary<string, string> DeserializeCommandRawDatas(string rawData)
-        {
-            string _deserializeBuffer = "";
-            string _timing = "";
-            bool _startRecordCommands = false;
-            Dictionary<string, string> _timingToRawCommand = new Dictionary<string, string>();
-
-            for (int i = 0; i < rawData.Length; i++)
-            {
-                if (_startRecordCommands)
-                {
-                    if (rawData[i] == '}')
-                    {
-                        _timingToRawCommand.Add(_timing, _deserializeBuffer);
-                        _deserializeBuffer = "";
-                        _timing = "";
-                        _startRecordCommands = false;
-                        continue;
-                    }
-
-                    _deserializeBuffer += rawData[i];
-                    continue;
-                }
-
-                if (rawData[i] == '{')
-                {
-                    _startRecordCommands = true;
-                    _timing = _deserializeBuffer;
-                    _deserializeBuffer = "";
-                    continue;
-                }
-
-                _deserializeBuffer += rawData[i];
-            }
-
-            return _timingToRawCommand;
-        }
-
-        private EffectData DeserializeCommands(string commandData)
-        {
-            string _deserializeBuffer = "";
-            int _leftCounter = 0;
-            EffectData _newData = new EffectData();
-            for (int i = 0; i < commandData.Length; i++)
-            {
-                if (_leftCounter > 0)
-                {
-                    if (commandData[i] == ')')
-                    {
-                        _leftCounter--;
-                        if (_leftCounter <= 0)
-                        {
-                            int _varLeftCounter = 0;
-                            string _varBuffer = "";
-                            List<string> _varsTempList = new List<string>();
-                            for(int j = 0; j < _deserializeBuffer.Length; j++)
-                            {
-                                if (_deserializeBuffer[j] == ',' && _varLeftCounter == 0)
-                                {
-                                    _varsTempList.Add(_varBuffer);
-                                    _varBuffer = "";
-                                    continue;
-                                }
-                                _varBuffer += _deserializeBuffer[j];
-                                if(_deserializeBuffer[j] == ')')
-                                {
-                                    _varLeftCounter--;
-                                }
-                                if (_deserializeBuffer[j] == '(')
-                                {
-                                    _varLeftCounter++;
-                                }
-                                if(j == _deserializeBuffer.Length - 1)
-                                {
-                                    _varsTempList.Add(_varBuffer);
-                                }
-                            }
-
-                            _newData.vars = _varsTempList.ToArray();
-                            return _newData;
-                        }
-                    }
-
-                    _deserializeBuffer += commandData[i];
-                    if (commandData[i] == '(')
-                    {
-                        _leftCounter++;
-                    }
-                    continue;
-                }
-
-                if (commandData[i] == '(')
-                {
-                    _newData.command = m_effectCommandFactoryContainer.GetEffectCommand(_deserializeBuffer);
-                    if (_newData.command != null)
-                    {
-                        _leftCounter++;
-                        _deserializeBuffer = "";
-                        continue;
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }
-                _deserializeBuffer += commandData[i];
-            }
-
-            return null;
         }
     }
 }

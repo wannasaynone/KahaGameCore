@@ -2,11 +2,15 @@ namespace KahaGameCore.EffectCommand
 {
     public class EffectTimingTriggedSignal
     {
-        public EffectProcesser.ProcessData ProcessData { get; private set; }
+        public CombatUnit Caster { get; private set; }
+        public CombatUnit Target { get; private set; }
+        public string Timing { get; private set; }
 
-        public EffectTimingTriggedSignal(EffectProcesser.ProcessData processData)
+        public EffectTimingTriggedSignal(CombatUnit caster, CombatUnit target, string timing)
         {
-            ProcessData = processData;
+            Caster = caster;
+            Target = target;
+            Timing = timing;
         }
     }
 }
