@@ -1,10 +1,10 @@
 {
-    "name": "KahaGameCore.EffectCommand",
+    "name": "KahaGameCore.Combat.Processor.EffectProcessor",
     "rootNamespace": "",
     "references": [
         "GUID:0d8beb7f090555447a6cf5ce9e54dbb4",
-        "GUID:78e33aeab4e3964429dd4e6a9fb4cd7e",
-        "GUID:0de0e73d9f123444dabd0d1375d42c3a"
+        "GUID:0de0e73d9f123444dabd0d1375d42c3a",
+        "GUID:af1f68da6c2f6fb44981fe6383f87169"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

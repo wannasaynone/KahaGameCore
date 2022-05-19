@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace KahaGameCore.EffectCommand
+namespace KahaGameCore.Combat.Processor.EffectProcessor
 {
     public class EffectCommandFactoryContainer
     {

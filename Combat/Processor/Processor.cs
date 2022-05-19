@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace KahaGameCore.Processer
+namespace KahaGameCore.Processor
 {
-    public class Processer<T> where T : IProcessable
+    public class Processor<T> where T : IProcessable
     {
         private readonly T[] m_processableItems = null;
 
@@ -10,7 +10,7 @@ namespace KahaGameCore.Processer
         private Action m_onForceQuit = null;
         private int m_currentIndex = -1;
 
-        public Processer(T[] items)
+        public Processor(T[] items)
         {
             m_processableItems = items;
         }

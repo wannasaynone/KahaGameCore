@@ -1,23 +1,14 @@
-﻿using KahaGameCore.Common;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using KahaGameCore.Processer;
+using KahaGameCore.Processor;
 
-namespace KahaGameCore.EffectCommand
+namespace KahaGameCore.Combat.Processor.EffectProcessor
 {
-    public class EffectProcesser
+    public class EffectProcessor
     {
-        public class Facotry : Zenject.PlaceholderFactory<EffectProcesser>
+        public class Facotry : Zenject.PlaceholderFactory<EffectProcessor>
         {
 
-        }
-
-        public class ProcessData
-        {
-            public string timing = "";
-            public CombatUnit caster = null;
-            public CombatUnit target = null;
-            public int skipIfCount = 0;
         }
 
         public class EffectData : IProcessable
@@ -57,14 +48,30 @@ namespace KahaGameCore.EffectCommand
 
         private Dictionary<string, List<EffectData>> m_timingToEffectProcesser = new Dictionary<string, List<EffectData>>();
 
-        public EffectProcesser(Zenject.SignalBus signalBus)
+        public event Action OnProcessEnded;
+        public event Action OnProcessQuitted;
+        public event Action<ProcessData> OnProcessDataUpdated;
+
+        private Dictionary<string, Processor<EffectData>> m_timingToProcesser = new Dictionary<string, Processor<EffectData>>();
+
+        private readonly Zenject.SignalBus m_signalBus;
+
+        public EffectProcessor(Zenject.SignalBus signalBus)
         {
-            signalBus.Subscribe<EffectTimingTriggedSignal>(Start);
+            m_signalBus = signalBus;
+            m_signalBus.Subscribe<EffectTimingTriggedSignal>(Start);
         }
 
         public void SetUp(Dictionary<string, List<EffectData>> timingToEffectProcesser)
         {
             m_timingToEffectProcesser = timingToEffectProcesser;
+            foreach(KeyValuePair<string, List<EffectData>> keyValuePair in m_timingToEffectProcesser)
+            {
+                for (int i = 0; i < keyValuePair.Value.Count; i++)
+                {
+                    OnProcessDataUpdated += keyValuePair.Value[i].SetProcessData;
+                }
+            }
         }
             
         public void Start(EffectTimingTriggedSignal signal)
@@ -81,8 +88,6 @@ namespace KahaGameCore.EffectCommand
 
             if (m_timingToEffectProcesser.ContainsKey(signal.Timing))
             {
-                List<EffectData> _effects = m_timingToEffectProcesser[signal.Timing];
-
                 ProcessData _processData = new ProcessData
                 {
                     caster = signal.Caster,
@@ -91,13 +96,28 @@ namespace KahaGameCore.EffectCommand
                     skipIfCount = 0
                 };
 
-                for (int i = 0; i < _effects.Count; i++)
+                OnProcessDataUpdated?.Invoke(_processData);
+
+                if (!m_timingToProcesser.ContainsKey(signal.Timing))
                 {
-                    _effects[i].SetProcessData(_processData);
+                    List<EffectData> _effects = m_timingToEffectProcesser[signal.Timing];
+                    m_timingToProcesser.Add(signal.Timing, new Processor<EffectData>(_effects.ToArray()));
                 }
 
-                new Processer<EffectData>(_effects.ToArray()).Start(null, null);
+                m_timingToProcesser[signal.Timing].Start(OnProcessEnded, OnProcessQuitted);
             }
+        }
+
+        public void Dispose()
+        {
+            foreach (KeyValuePair<string, List<EffectData>> keyValuePair in m_timingToEffectProcesser)
+            {
+                for (int i = 0; i < keyValuePair.Value.Count; i++)
+                {
+                    OnProcessDataUpdated -= keyValuePair.Value[i].SetProcessData;
+                }
+            }
+            m_signalBus.Unsubscribe<EffectTimingTriggedSignal>(Start);
         }
     }
 }

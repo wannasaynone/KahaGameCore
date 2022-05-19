@@ -9,13 +9,13 @@ namespace KahaGameCore.GameData
     {
         private Dictionary<Type, IGameData[]> m_gameData = new Dictionary<Type, IGameData[]>();
 
-        public void Load<T>(IGameData[] gameDatas, bool isForceUpdate = false) where T : IGameData
+        public void Add<T>(IGameData[] gameDatas, bool isForceUpdate = false) where T : IGameData
         {
             if (m_gameData.ContainsKey(typeof(T)))
             {
                 if (isForceUpdate)
                 {
-                    Unload<T>();
+                    Remove<T>();
                     RememberWithNewArray<T>(gameDatas);
                 }
                 else
@@ -26,6 +26,48 @@ namespace KahaGameCore.GameData
             else
             {
                 RememberWithNewArray<T>(gameDatas);
+            }
+        }
+
+        public void Add<T>(IGameStaticDataHandler handler, bool isForceUpdate = false) where T : IGameData
+        {
+            if (m_gameData.ContainsKey(typeof(T)))
+            {
+                if (isForceUpdate)
+                {
+                    Remove<T>();
+                    RememberWithNewArray<T>(handler.Load<T>() as IGameData[]);
+                }
+                else
+                {
+                    Debug.Log(nameof(T) + " is loaded, use Unload first or set isForceUpdate=true");
+                }
+            }
+            else
+            {
+                RememberWithNewArray<T>(handler.Load<T>() as IGameData[]);
+            }
+        }
+
+        public async System.Threading.Tasks.Task AddAsync<T>(IGameStaticDataHandler handler, bool isForceUpdate = false) where T : IGameData
+        {
+            if (m_gameData.ContainsKey(typeof(T)))
+            {
+                if (isForceUpdate)
+                {
+                    Remove<T>();
+                    T[] _data = await handler.LoadAsync<T>();
+                    RememberWithNewArray<T>(_data as IGameData[]);
+                }
+                else
+                {
+                    Debug.Log(nameof(T) + " is loaded, use Unload first or set isForceUpdate=true");
+                }
+            }
+            else
+            {
+                T[] _data = await handler.LoadAsync<T>();
+                RememberWithNewArray<T>(_data as IGameData[]);
             }
         }
 
@@ -40,7 +82,7 @@ namespace KahaGameCore.GameData
             m_gameData.Add(typeof(T), newArray);
         }
 
-        public void Unload<T>() where T : IGameData
+        public void Remove<T>() where T : IGameData
         {
             if (m_gameData.ContainsKey(typeof(T)))
             {

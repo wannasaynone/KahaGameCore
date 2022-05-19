@@ -1,4 +1,4 @@
-﻿namespace KahaGameCore.Processer
+﻿namespace KahaGameCore.Processor
 {
     public interface IProcessable
     {

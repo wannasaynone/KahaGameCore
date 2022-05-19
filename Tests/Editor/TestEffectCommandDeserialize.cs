@@ -1,5 +1,5 @@
 using System;
-using KahaGameCore.EffectCommand;
+using KahaGameCore.Combat.Processor.EffectProcessor;
 using NUnit.Framework;
 
 namespace KahaGameCore.Tests
@@ -19,6 +19,7 @@ namespace KahaGameCore.Tests
             public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
             {
                 UnityEngine.Debug.Log(vars[0]);
+                onCompleted?.Invoke();
             }
         }
 
@@ -44,7 +45,7 @@ namespace KahaGameCore.Tests
             EffectCommandFactoryContainer effectCommandFactoryContainer = new EffectCommandFactoryContainer();
             effectCommandFactoryContainer.RegisterFactory("DebugLog", new DebugLogEffectCommandFatory());
 
-            System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcesser.EffectData>> timingToEffectDatas
+            System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas
                 = new EffectCommandDeserializer(effectCommandFactoryContainer).Deserialize(testData);
 
             Assert.AreEqual(2, timingToEffectDatas.Count);
@@ -72,7 +73,7 @@ namespace KahaGameCore.Tests
             EffectCommandFactoryContainer effectCommandFactoryContainer = new EffectCommandFactoryContainer();
             effectCommandFactoryContainer.RegisterFactory("DebugLog", new DebugLogEffectCommandFatory());
 
-            System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcesser.EffectData>> timingToEffectDatas
+            System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas
                 = new EffectCommandDeserializer(effectCommandFactoryContainer).Deserialize(testData);
 
             UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Error, "[EffectProcesser][GetEffectCommand] Invaild command=Test2{DebugLog");
@@ -98,7 +99,7 @@ namespace KahaGameCore.Tests
             EffectCommandFactoryContainer effectCommandFactoryContainer = new EffectCommandFactoryContainer();
             effectCommandFactoryContainer.RegisterFactory("DebugLog", new DebugLogEffectCommandFatory());
 
-            System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcesser.EffectData>> timingToEffectDatas
+            System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas
                 = new EffectCommandDeserializer(effectCommandFactoryContainer).Deserialize(testData);
 
             Assert.AreEqual(1, timingToEffectDatas["Test"].Count);

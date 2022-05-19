@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace KahaGameCore.EffectCommand
+namespace KahaGameCore.Combat.Processor.EffectProcessor
 {
     public class EffectCommandDeserializer
     {
@@ -11,11 +11,11 @@ namespace KahaGameCore.EffectCommand
             m_effectCommandFactoryContainer = factoryContainer;
         }
 
-        public async System.Threading.Tasks.Task<Dictionary<string, List<EffectProcesser.EffectData>>> DeserializeAsync(string rawCommandString)
+        public async System.Threading.Tasks.Task<Dictionary<string, List<EffectProcessor.EffectData>>> DeserializeAsync(string rawCommandString)
         {
             if (string.IsNullOrEmpty(rawCommandString))
             {
-                return new Dictionary<string, List<EffectProcesser.EffectData>>();
+                return new Dictionary<string, List<EffectProcessor.EffectData>>();
             }
 
             rawCommandString = rawCommandString.Replace(" ", "").Replace("\n", "").Replace("\t", "").Replace("\r", "");
@@ -23,11 +23,11 @@ namespace KahaGameCore.EffectCommand
             return await DeserializeCommandToKvp(rawCommandString);
         }
 
-        public Dictionary<string, List<EffectProcesser.EffectData>> Deserialize(string rawCommandString)
+        public Dictionary<string, List<EffectProcessor.EffectData>> Deserialize(string rawCommandString)
         {
             if (string.IsNullOrEmpty(rawCommandString))
             {
-                return new Dictionary<string, List<EffectProcesser.EffectData>>();
+                return new Dictionary<string, List<EffectProcessor.EffectData>>();
             }
 
             rawCommandString = rawCommandString.Replace(" ", "").Replace("\n", "").Replace("\t", "").Replace("\r", "");
@@ -35,19 +35,19 @@ namespace KahaGameCore.EffectCommand
             return DeserializeCommandToKvp(rawCommandString).Result;
         }
 
-        private System.Threading.Tasks.Task<Dictionary<string, List<EffectProcesser.EffectData>>> DeserializeCommandToKvp(string rawCommandString)
+        private System.Threading.Tasks.Task<Dictionary<string, List<EffectProcessor.EffectData>>> DeserializeCommandToKvp(string rawCommandString)
         {
             Dictionary<string, string> _timingToRawCommand = DeserializeRawDataIntoTimingToLines(rawCommandString);
 
             if (_timingToRawCommand == null || _timingToRawCommand.Count <= 0)
-                return System.Threading.Tasks.Task.FromResult(new Dictionary<string, List<EffectProcesser.EffectData>>());
+                return System.Threading.Tasks.Task.FromResult(new Dictionary<string, List<EffectProcessor.EffectData>>());
 
-            Dictionary<string, List<EffectProcesser.EffectData>> _timingToEffectDatas = new Dictionary<string, List<EffectProcesser.EffectData>>();
+            Dictionary<string, List<EffectProcessor.EffectData>> _timingToEffectDatas = new Dictionary<string, List<EffectProcessor.EffectData>>();
 
             foreach (KeyValuePair<string, string> kvp in _timingToRawCommand)
             {
                 string[] _commandStrings = kvp.Value.Split(';');
-                List<EffectProcesser.EffectData> _effects = new List<EffectProcesser.EffectData>();
+                List<EffectProcessor.EffectData> _effects = new List<EffectProcessor.EffectData>();
                 for (int _commandStringIndex = 0; _commandStringIndex < _commandStrings.Length; _commandStringIndex++)
                 {
                     if (string.IsNullOrEmpty(_commandStrings[_commandStringIndex]))
@@ -55,7 +55,7 @@ namespace KahaGameCore.EffectCommand
                         continue;
                     }
 
-                    EffectProcesser.EffectData _effectData = DeserializeCommandLineToEffectData(_commandStrings[_commandStringIndex]);
+                    EffectProcessor.EffectData _effectData = DeserializeCommandLineToEffectData(_commandStrings[_commandStringIndex]);
                     if (_effectData == null)
                     {
                         UnityEngine.Debug.Log("[EffectCommandDeserializer][DeserializeCommandToKvp] invail line=" + _commandStrings[_commandStringIndex] + ", continued");
@@ -108,7 +108,7 @@ namespace KahaGameCore.EffectCommand
             return _timingToRawCommand;
         }
 
-        private EffectProcesser.EffectData DeserializeCommandLineToEffectData(string commandData)
+        private EffectProcessor.EffectData DeserializeCommandLineToEffectData(string commandData)
         {
             EffectCommandBase _tempCommand = null;
             string _deserializeBuffer = "";
@@ -148,7 +148,7 @@ namespace KahaGameCore.EffectCommand
                                 }
                             }
 
-                            return new EffectProcesser.EffectData(_tempCommand, _varsTempList.ToArray());
+                            return new EffectProcessor.EffectData(_tempCommand, _varsTempList.ToArray());
                         }
                     }
 

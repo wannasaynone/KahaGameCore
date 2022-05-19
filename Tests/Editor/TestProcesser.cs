@@ -12,7 +12,7 @@ namespace KahaGameCore.Tests
 
         // make a processser that add a value each
         // if value reaches 0, force quit
-        private class TestProcessStep : Processer.IProcessable
+        private class TestProcessStep : Processor.IProcessable
         {
             private TestProcesserTarget m_target;
             private int m_add;
@@ -53,7 +53,7 @@ namespace KahaGameCore.Tests
                     new TestProcessStep(target, 100)
                 };
 
-            Processer.Processer<TestProcessStep> processer = new Processer.Processer<TestProcessStep>(steps);
+            Processor.Processor<TestProcessStep> processer = new Processor.Processor<TestProcessStep>(steps);
             processer.Start(delegate { Assert.AreEqual(400, target.value); }, delegate { UnityEngine.Debug.LogError("should not go here"); });
 
             target = new TestProcesserTarget { value = 100 };
@@ -64,7 +64,7 @@ namespace KahaGameCore.Tests
                     new TestProcessStep(target, -100)
                 };
 
-            processer = new Processer.Processer<TestProcessStep>(steps);
+            processer = new Processor.Processor<TestProcessStep>(steps);
             processer.Start(delegate { UnityEngine.Debug.LogError("should not go here"); }, delegate { Assert.AreEqual(0, target.value); });
         }
     }

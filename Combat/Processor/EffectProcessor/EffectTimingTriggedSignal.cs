@@ -1,4 +1,4 @@
-namespace KahaGameCore.EffectCommand
+namespace KahaGameCore.Combat.Processor.EffectProcessor
 {
     public class EffectTimingTriggedSignal
     {

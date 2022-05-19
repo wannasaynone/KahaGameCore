@@ -1,6 +1,6 @@
 using Zenject;
 
-namespace KahaGameCore.EffectCommand
+namespace KahaGameCore.Combat.Processor.EffectProcessor
 {
     public class KahaGameCoreEffectCommandInstaller : MonoInstaller
     {
@@ -8,12 +8,12 @@ namespace KahaGameCore.EffectCommand
         {
             SignalBusInstaller.Install(Container);
 
-            Container.Bind<EffectProcesser>().AsTransient();
+            Container.Bind<EffectProcessor>().AsTransient();
             Container.Bind<EffectCommandFactoryContainer>().AsSingle();
             Container.Bind<EffectCommandDeserializer>().AsSingle();
 
             Container.DeclareSignal<EffectTimingTriggedSignal>();
-            Container.BindFactory<EffectProcesser, EffectProcesser.Facotry>();
+            Container.BindFactory<EffectProcessor, EffectProcessor.Facotry>();
         }
     }
 }
