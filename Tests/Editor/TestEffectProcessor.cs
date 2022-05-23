@@ -84,5 +84,44 @@ namespace KahaGameCore.Tests
         {
             Assert.IsTrue(false);
         }
+
+        private class TestIfEffectCommand : EffectCommandBase
+        {
+            public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
+            {
+                processData.skipIfCount++;
+                onCompleted?.Invoke();
+            }
+        }
+
+        [Test]
+        public void IfCommandTest()
+        {
+            DiContainer container = new DiContainer();
+            SignalBusInstaller.Install(container);
+            container.Resolve<SignalBus>().DeclareSignal<EffectTimingTriggedSignal>();
+
+            System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>>
+            {
+                {
+                    "Test", new System.Collections.Generic.List<EffectProcessor.EffectData>
+                            {
+                                new EffectProcessor.EffectData(new TestIfEffectCommand(), new string[0]),
+                                new EffectProcessor.EffectData(new DebugLogEffectCommand(), new string[] { "TestMsg", "0" })
+                            }
+                }
+            };
+
+            EffectProcessor effectProcessor = new EffectProcessor(container.Resolve<SignalBus>());
+            effectProcessor.OnProcessEnded += EffectProcessor_OnProcessEnded2;
+
+            effectProcessor.SetUp(timingToEffectDatas);
+            effectProcessor.Start(new EffectTimingTriggedSignal(null, null, "Test"));
+        }
+
+        private void EffectProcessor_OnProcessEnded2()
+        {
+            UnityEngine.TestTools.LogAssert.NoUnexpectedReceived();
+        }
     }
 }
