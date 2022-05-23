@@ -2,15 +2,16 @@
 
 namespace KahaGameCore.Combat
 {
-    public static class CombatUtility
+    public static class Calculator
     {
+        private static Dictionary<string, float> m_tagToValue = new Dictionary<string, float>();
+
         public class CalculateData
         {
             public CombatUnit caster = null;
             public CombatUnit target = null;
-            public ProcessData processData = null;
             public string formula = "";
-            public bool useRawValue = false;
+            public bool useBaseValue = false;
         }
         public static float Calculate(CalculateData data)
         {
@@ -104,33 +105,27 @@ namespace KahaGameCore.Combat
             return _result;
         }
 
-        public static int GetCombatFieldStatus(string statusName)
+        public static void Remember(string tag, float value)
         {
-            switch(statusName)
+            if (m_tagToValue.ContainsKey(tag))
             {
-                default:
-                    {
-                        UnityEngine.Debug.LogError("[CombatUtility][GetCombatFieldStatus] Invaild statusName=" + statusName);
-                        return 0;
-                    }
+                m_tagToValue[tag] = value;
+            }
+            else
+            {
+                m_tagToValue.Add(tag, value);
             }
         }
 
-        public static int GetStatusValue(CombatUnit unit, string statusName, bool useRawValue)
+        private static int GetStatsValue(CombatUnit unit, string statsName, bool useBaseValue)
         {
             if (unit == null)
             {
                 UnityEngine.Debug.LogError("[CombatUtility][GetStatusValue] unit == null");
                 return 0;
             }
-            switch(statusName.Trim())
-            {
-                default:
-                    {
-                        UnityEngine.Debug.LogError("[CombatUtility][GetStatusValue] Invaild statusName=" + statusName);
-                        return 0;
-                    }
-            }
+
+            return unit.GetTotal(statsName, useBaseValue);
         }
 
         private static int GetValueByCommand(CalculateData data, string command, string paraString)
@@ -153,9 +148,14 @@ namespace KahaGameCore.Combat
                         else
                             return UnityEngine.Random.Range(_min, _max);
                     }
+                case "Read":
+                    {
+                        return System.Convert.ToInt32(m_tagToValue[paraString]);
+                    }
                 default:
                     {
-                        throw new System.Exception("[CombatUtility][GetValueByCommand] Invaild command=" + command);
+                        UnityEngine.Debug.LogError("[CombatUtility][GetValueByCommand] Invaild command=" + command);
+                        return 0;
                     }
             }
         }
@@ -184,24 +184,6 @@ namespace KahaGameCore.Combat
                         _getValueTarget = data.target;
                         break;
                     }
-                case "CombatField":
-                    {
-                        if (_minus)
-                            return -GetCombatFieldStatus(_getValueData[1]);
-                        else
-                            return GetCombatFieldStatus(_getValueData[1]);
-                    }
-                case "Random":
-                    {
-                        string _value = paraString.Replace(" ", "").Replace("\n", "").Replace("\r", "").Replace("\t", "").Replace("Random", "");
-                        _value = paraString.Replace("(", "");
-                        _value = paraString.Replace(")", "");
-                        string[] _valueParts = _value.Split(',');
-                        int _min = int.Parse(_valueParts[0]);
-                        int _max = int.Parse(_valueParts[1]);
-
-                        return UnityEngine.Random.Range(_min, _max);
-                    }
                 default:
                     {
                         throw new System.Exception("[CombatUtility][GetValueByParaString] Invaild target=" + _getValueData[0]);
@@ -209,9 +191,9 @@ namespace KahaGameCore.Combat
             }
 
             if (_minus)
-                return -GetStatusValue(_getValueTarget, _getValueData[1], data.useRawValue);
+                return -GetStatsValue(_getValueTarget, _getValueData[1], data.useBaseValue);
             else
-                return GetStatusValue(_getValueTarget, _getValueData[1], data.useRawValue);
+                return GetStatsValue(_getValueTarget, _getValueData[1], data.useBaseValue);
         }
 
         private static string Arithmetic(CalculateData data, string arithmeticString)
