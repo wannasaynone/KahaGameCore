@@ -18,16 +18,28 @@ namespace KahaGameCore.Common
 
             current += each;
 
-            if(current >= target)
+            if (each >= 0f)
             {
-                current = target;
+                if (current >= target)
+                {
+                    current = target;
+                }
+            }
+            else
+            {
+                if (current <= target)
+                {
+                    current = target;
+                }
             }
 
             onAdd?.Invoke(current);
 
             time -= _delta;
-            if(time <= 0f)
+            if (time <= 0f)
             {
+                current = target;
+                onAdd?.Invoke(current);
                 onDone?.Invoke();
                 yield break;
             }
