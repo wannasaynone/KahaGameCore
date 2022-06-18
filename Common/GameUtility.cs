@@ -35,7 +35,7 @@ namespace KahaGameCore.Common
             onAdd?.Invoke(current);
 
             time -= Time.deltaTime;
-            Debug.Log("time=" + time);
+
             if (time <= 0f)
             {
                 current = target;
