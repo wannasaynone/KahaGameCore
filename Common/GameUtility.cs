@@ -8,16 +8,19 @@ namespace KahaGameCore.Common
     {
         public static void RunNunber(float from, float to, float time, Action<float> onAdd, Action onDone)
         {
-            float _delta = Time.deltaTime;
-            float _each = (to - from) / (time / _delta);
-            GeneralCoroutineRunner.Instance.StartCoroutine(IENumberRunner(from, to, _each, time, onAdd, onDone));
+            GeneralCoroutineRunner.Instance.StartCoroutine(IENumberRunner(from, to, time, onAdd, onDone));
         }
 
-        private static IEnumerator IENumberRunner(float current, float target, float each, float time, Action<float> onAdd, Action onDone)
+        private static IEnumerator IENumberRunner(float current, float target, float time, Action<float> onAdd, Action onDone)
         {
-            current += each;
+            float _delta = Time.deltaTime;
+            float _gap = target - current;
+            float _updateTimes = time / _delta;
+            float _each = _gap / _updateTimes;
 
-            if (each >= 0f)
+            current += _each;
+
+            if (_each >= 0f)
             {
                 if (current >= target)
                 {
@@ -39,13 +42,12 @@ namespace KahaGameCore.Common
             if (time <= 0f)
             {
                 current = target;
-                onAdd?.Invoke(current);
                 onDone?.Invoke();
                 yield break;
             }
             yield return null;
 
-            GeneralCoroutineRunner.Instance.StartCoroutine(IENumberRunner(current, target, each, time, onAdd, onDone));
+            GeneralCoroutineRunner.Instance.StartCoroutine(IENumberRunner(current, target, time, onAdd, onDone));
         }
 
         public static void CheckConnection(Action<bool> onChecked)
