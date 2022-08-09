@@ -2,7 +2,7 @@ using NUnit.Framework;
 
 namespace KahaGameCore.Tests
 {
-    public class TestGameDataSerializer 
+    public class GameDataSerializerImplementTest
     {
         public class TestData
         {
@@ -10,9 +10,9 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void GameDataSerializerTest()
+        public void serialize()
         {
-            GameData.GameStaticDataSerializer serializer = new GameData.GameStaticDataSerializer();
+            GameData.Implement.GameStaticDataSerializer serializer = new GameData.Implement.GameStaticDataSerializer();
 
             string json = serializer.Write(new TestData { SomeValue = 100 });
 

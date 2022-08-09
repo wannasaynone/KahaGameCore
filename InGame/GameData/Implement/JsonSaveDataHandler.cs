@@ -1,7 +1,7 @@
 using System.IO;
 using UnityEngine;
 
-namespace KahaGameCore.GameData
+namespace KahaGameCore.GameData.Implement
 {
     public class JsonSaveDataHandler
     {

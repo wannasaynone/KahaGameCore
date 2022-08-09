@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace KahaGameCore.Tests
 {
-    public class TestProcesser
+    public class ProcesserTest
     {
         private class TestProcesserTarget
         {
@@ -43,7 +43,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void ProcesserTest()
+        public void process()
         {
             TestProcesserTarget target = new TestProcesserTarget { value = 100 };
             TestProcessStep[] steps = new TestProcessStep[]

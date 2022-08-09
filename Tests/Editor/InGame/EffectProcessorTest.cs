@@ -5,7 +5,7 @@ using Zenject;
 
 namespace KahaGameCore.Tests
 {
-    public class TestEffectProcessor 
+    public class EffectProcessorTest
     {
         private class DebugLogEffectCommand : EffectCommandBase
         {
@@ -24,7 +24,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void EffectProcessorTest()
+        public void process()
         {
             DiContainer container = new DiContainer();
             SignalBusInstaller.Install(container);
@@ -55,7 +55,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void EffectProcessorQuitTest()
+        public void quit()
         {
             DiContainer container = new DiContainer();
             SignalBusInstaller.Install(container);
@@ -95,7 +95,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void IfCommandTest()
+        public void process_with_special_command_if()
         {
             DiContainer container = new DiContainer();
             SignalBusInstaller.Install(container);

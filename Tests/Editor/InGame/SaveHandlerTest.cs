@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace KahaGameCore.Tests
 {
-    public class TestSaveHandler : MonoBehaviour
+    public class SaveHandlerTest : MonoBehaviour
     {
         private class TestGameSave
         {
@@ -17,11 +17,11 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void SaveAndLoadTest()
+        public void save_and_load()
         {
             // GameStaticDataSerializer and GameStaticDataDeserializer have its own test
             // make sure they are all correct before run this test
-            GameData.JsonSaveDataHandler saveDataHandler = new GameData.JsonSaveDataHandler(new GameData.GameStaticDataSerializer(), new GameData.GameStaticDataDeserializer());
+            GameData.Implement.JsonSaveDataHandler saveDataHandler = new GameData.Implement.JsonSaveDataHandler(new GameData.Implement.GameStaticDataSerializer(), new GameData.Implement.GameStaticDataDeserializer());
 
             TestGameSave testSave = new TestGameSave(System.Guid.NewGuid().ToString());
 

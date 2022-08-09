@@ -1,11 +1,12 @@
 ﻿using System.Threading.Tasks;
 using KahaGameCore.GameData;
+using KahaGameCore.GameData.Implement;
 using NUnit.Framework;
 
 namespace KahaGameCore.Tests
 {
     [TestFixture]
-    public class TestGameDataManager
+    public class GameDataManagerImplementTest
     {
         private class TestData : IGameData
         {
@@ -23,7 +24,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void LoadDataTest()
+        public void load_data()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
 
@@ -46,7 +47,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void LoadDataWithForceUpdateTest()
+        public void load_data_with_force_update()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
 
@@ -94,7 +95,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void LoadWithHandlerTest()
+        public void load_data_with_handler()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
             TestLoadHandler testLoadHandler = new TestLoadHandler();
@@ -104,7 +105,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public async void LoadWithHandlerAsyncTest()
+        public async void load_data_with_async()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
             TestLoadHandler testLoadHandler = new TestLoadHandler();
@@ -114,7 +115,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void GetDataTest()
+        public void get_data()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
 
@@ -141,7 +142,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void UnloadDataTest()
+        public void unload_data()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
 

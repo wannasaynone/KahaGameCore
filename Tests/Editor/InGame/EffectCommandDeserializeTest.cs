@@ -4,7 +4,7 @@ using NUnit.Framework;
 
 namespace KahaGameCore.Tests
 {
-    public class TestEffectCommandDeserialize
+    public class EffectCommandDeserializeTest
     {
         private class DebugLogEffectCommandFatory : EffectCommandFactoryBase
         {
@@ -24,7 +24,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void EffectCommandDeserializeTest()
+        public void deserialize()
         {
             Zenject.DiContainer container = new Zenject.DiContainer();
             Zenject.SignalBusInstaller.Install(container);
@@ -53,7 +53,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void EffectCommandDeserializeErrorTest_MissBlock()
+        public void deserialize_if_miss_block()
         {
             Zenject.DiContainer container = new Zenject.DiContainer();
             Zenject.SignalBusInstaller.Install(container);
@@ -82,7 +82,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void EffectCommandDeserializeErrorTest_MissSemicolon()
+        public void deserialize_if_miss_semicolon()
         {
             Zenject.DiContainer container = new Zenject.DiContainer();
             Zenject.SignalBusInstaller.Install(container);

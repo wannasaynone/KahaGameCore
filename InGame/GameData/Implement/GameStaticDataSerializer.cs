@@ -1,4 +1,4 @@
-namespace KahaGameCore.GameData
+namespace KahaGameCore.GameData.Implement
 {
     public class GameStaticDataSerializer : IJsonWriter
     {

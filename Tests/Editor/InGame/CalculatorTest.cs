@@ -3,10 +3,10 @@ using KahaGameCore.Combat;
 
 namespace KahaGameCore.Tests
 {
-    public class TestCalculator 
+    public class CalculatorTest 
     {
         [Test]
-        public void CalculatorTest()
+        public void calculate()
         {
             CombatUnit caster = new CombatUnit(new ValueObject[]
             {
@@ -30,7 +30,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void CalculatorTypoTest()
+        public void calculate_if_typo()
         {
             CombatUnit caster = new CombatUnit(new ValueObject[]
             {
@@ -54,7 +54,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void CalculatorRandomTest()
+        public void special_command_random()
         {
             float result = Calculator.Calculate(new Calculator.CalculateData
             {
@@ -65,7 +65,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void CalculatorCommandTypoTest()
+        public void spciaial_command_random_when_typo()
         {
             float result = Calculator.Calculate(new Calculator.CalculateData
             {
@@ -76,7 +76,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void CalculatorRememberTest()
+        public void special_command_remember_read()
         {
             Calculator.Remember("Test", 100f);
             float result = Calculator.Calculate(new Calculator.CalculateData
@@ -88,7 +88,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void CalculatorDoubleRememberTest()
+        public void special_command_remember_twice_then_read()
         {
             Calculator.Remember("Test", 0f);
             Calculator.Remember("Test", 100f);

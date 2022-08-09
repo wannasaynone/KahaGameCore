@@ -3,10 +3,10 @@ using KahaGameCore.Combat;
 
 namespace KahaGameCore.Tests
 {
-    public class TestValueObject
+    public class ValueObjectTest
     {
         [Test]
-        public void CreateValueObjectTest()
+        public void create()
         {
             ValueObject valueObjectA = new ValueObject("Test", 100);
             ValueObject valueObjectB = new ValueObject("Test", 100);
@@ -15,7 +15,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void AddTest()
+        public void add()
         {
             ValueObject valueObject = new ValueObject("Test", 100);
             valueObject.Add(100);
@@ -24,7 +24,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void AddMinMaxTest()
+        public void add_with_min_max()
         {
             ValueObject valueObject = new ValueObject("Test", 0);
             valueObject.Add(100, 10);
@@ -35,7 +35,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void MutiplyTest()
+        public void mutiply()
         {
             ValueObject valueObject = new ValueObject("Test", 100);
             valueObject.Mutiply(10f);
@@ -44,7 +44,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void MutiplyMinMax()
+        public void mutiply_with_max_min()
         {
             ValueObject valueObject = new ValueObject("Test", 100);
             valueObject.Mutiply(10f, 100);

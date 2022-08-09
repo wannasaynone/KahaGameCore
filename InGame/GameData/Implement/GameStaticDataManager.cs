@@ -3,7 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace KahaGameCore.GameData
+namespace KahaGameCore.GameData.Implement
 {
     public class GameStaticDataManager
     {

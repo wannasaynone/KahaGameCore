@@ -2,10 +2,10 @@ using NUnit.Framework;
 
 namespace KahaGameCore.Tests
 {
-    public class TestCombatUnit
+    public class CombatUnitTest
     {
         [Test]
-        public void GetTotalTest()
+        public void add_stats_and_get_total_value()
         {
             Combat.CombatUnit combatUnit = new Combat.CombatUnit(new Combat.ValueObject[]
                 {
@@ -19,7 +19,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void RemoveStatsTest()
+        public void remove_stats()
         {
             Combat.CombatUnit combatUnit = new Combat.CombatUnit(new Combat.ValueObject[]
                 {

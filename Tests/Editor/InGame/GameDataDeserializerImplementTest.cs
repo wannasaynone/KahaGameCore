@@ -2,7 +2,7 @@ using NUnit.Framework;
 
 namespace KahaGameCore.Tests
 {
-    public class TestGameDataDeserializer
+    public class GameDataDeserializerImplementTest
     {
         private readonly string testJson = "[\n" +
                                                  "{ " +
@@ -27,9 +27,9 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void GameDataDeserializerTest()
+        public void deserialize()
         {
-            GameData.GameStaticDataDeserializer deserializer = new GameData.GameStaticDataDeserializer();
+            GameData.Implement.GameStaticDataDeserializer deserializer = new GameData.Implement.GameStaticDataDeserializer();
             TestData[] datas = deserializer.Read<TestData[]>(testJson);
 
             Assert.IsNotNull(datas);
