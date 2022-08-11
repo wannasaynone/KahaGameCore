@@ -5,12 +5,12 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "KahaGameCore.Common",
-        "Zenject",
         "KahaGameCore.GameData",
         "KahaGameCore.Combat.Processor",
         "KahaGameCore.Combat.Processor.EffectProcessor",
         "KahaGameCore.Combat",
-        "Input"
+        "KahaGameCore.Input",
+        "KahaGameCore.Combat.InGameEvent"
     ],
     "includePlatforms": [
         "Editor"

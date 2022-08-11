@@ -1,11 +1,7 @@
 {
-    "name": "KahaGameCore.Combat.Processor.EffectProcessor",
+    "name": "KahaGameCore.Combat.InGameEvent",
     "rootNamespace": "",
-    "references": [
-        "GUID:0de0e73d9f123444dabd0d1375d42c3a",
-        "GUID:af1f68da6c2f6fb44981fe6383f87169",
-        "GUID:efb8d89f570e8f9478d03557ddebd465"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

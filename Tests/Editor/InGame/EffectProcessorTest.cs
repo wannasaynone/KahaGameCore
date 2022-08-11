@@ -1,7 +1,6 @@
 using KahaGameCore.Combat.Processor.EffectProcessor;
 using NUnit.Framework;
 using System;
-using Zenject;
 
 namespace KahaGameCore.Tests
 {
@@ -26,16 +25,12 @@ namespace KahaGameCore.Tests
         [Test]
         public void process()
         {
-            DiContainer container = new DiContainer();
-            SignalBusInstaller.Install(container);
-            container.Resolve<SignalBus>().DeclareSignal<EffectTimingTriggedSignal>();
-
             System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>>
             {
                 { "Test", new System.Collections.Generic.List<EffectProcessor.EffectData> { new EffectProcessor.EffectData(new DebugLogEffectCommand(), new string[] { "TestMsg", "0" }) } }
             };
 
-            EffectProcessor effectProcessor = new EffectProcessor(container.Resolve<SignalBus>());
+            EffectProcessor effectProcessor = new EffectProcessor();
             effectProcessor.OnProcessEnded += EffectProcessor_OnProcessEnded;
             effectProcessor.OnProcessQuitted += EffectProcessor_OnProcessQuitted;
             effectProcessor.Start(new EffectTimingTriggedSignal(null, null, "Test"));
@@ -57,16 +52,12 @@ namespace KahaGameCore.Tests
         [Test]
         public void quit()
         {
-            DiContainer container = new DiContainer();
-            SignalBusInstaller.Install(container);
-            container.Resolve<SignalBus>().DeclareSignal<EffectTimingTriggedSignal>();
-
             System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>>
             {
                 { "Test", new System.Collections.Generic.List<EffectProcessor.EffectData> { new EffectProcessor.EffectData(new DebugLogEffectCommand(), new string[] { "TestMsg" }) } }
             };
 
-            EffectProcessor effectProcessor = new EffectProcessor(container.Resolve<SignalBus>());
+            EffectProcessor effectProcessor = new EffectProcessor();
             effectProcessor.OnProcessEnded += EffectProcessor_OnProcessEnded1;
             effectProcessor.OnProcessQuitted += EffectProcessor_OnProcessQuitted1; ;
 
@@ -97,10 +88,6 @@ namespace KahaGameCore.Tests
         [Test]
         public void process_with_special_command_if()
         {
-            DiContainer container = new DiContainer();
-            SignalBusInstaller.Install(container);
-            container.Resolve<SignalBus>().DeclareSignal<EffectTimingTriggedSignal>();
-
             System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>>
             {
                 {
@@ -112,7 +99,7 @@ namespace KahaGameCore.Tests
                 }
             };
 
-            EffectProcessor effectProcessor = new EffectProcessor(container.Resolve<SignalBus>());
+            EffectProcessor effectProcessor = new EffectProcessor();
             effectProcessor.OnProcessEnded += EffectProcessor_OnProcessEnded2;
 
             effectProcessor.SetUp(timingToEffectDatas);

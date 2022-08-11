@@ -6,11 +6,6 @@ namespace KahaGameCore.Combat.Processor.EffectProcessor
 {
     public class EffectProcessor
     {
-        public class Facotry : Zenject.PlaceholderFactory<EffectProcessor>
-        {
-
-        }
-
         public class EffectData : IProcessable
         {
             private readonly EffectCommandBase command;
@@ -54,20 +49,12 @@ namespace KahaGameCore.Combat.Processor.EffectProcessor
 
         private Dictionary<string, Processor<EffectData>> m_timingToProcesser = new Dictionary<string, Processor<EffectData>>();
 
-        private readonly Zenject.SignalBus m_signalBus;
-
-        public EffectProcessor(Zenject.SignalBus signalBus)
-        {
-            m_signalBus = signalBus;
-            m_signalBus.Subscribe<EffectTimingTriggedSignal>(Start);
-        }
-
         public void SetUp(Dictionary<string, List<EffectData>> timingToEffectProcesser)
         {
             m_timingToEffectProcesser = timingToEffectProcesser;
             foreach(KeyValuePair<string, List<EffectData>> keyValuePair in m_timingToEffectProcesser)
             {
-                for (int i = 0; i < keyValuePair.Value.Count; i++)
+                for (int i = 0; i < keyValuePair.Value.Count; i++)//
                 {
                     OnProcessDataUpdated += keyValuePair.Value[i].SetProcessData;
                 }
@@ -117,7 +104,7 @@ namespace KahaGameCore.Combat.Processor.EffectProcessor
                     OnProcessDataUpdated -= keyValuePair.Value[i].SetProcessData;
                 }
             }
-            m_signalBus.Unsubscribe<EffectTimingTriggedSignal>(Start);
+            InGameEvent.InGameEventCenter.Unregister<EffectTimingTriggedSignal>(Start);
         }
     }
 }

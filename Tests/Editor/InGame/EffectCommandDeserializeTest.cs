@@ -26,11 +26,6 @@ namespace KahaGameCore.Tests
         [Test]
         public void deserialize()
         {
-            Zenject.DiContainer container = new Zenject.DiContainer();
-            Zenject.SignalBusInstaller.Install(container);
-
-            container.Resolve<Zenject.SignalBus>().DeclareSignal<EffectTimingTriggedSignal>();
-
             string testData = 
                   "Test" +
                   " { " +
@@ -55,11 +50,6 @@ namespace KahaGameCore.Tests
         [Test]
         public void deserialize_if_miss_block()
         {
-            Zenject.DiContainer container = new Zenject.DiContainer();
-            Zenject.SignalBusInstaller.Install(container);
-
-            container.Resolve<Zenject.SignalBus>().DeclareSignal<EffectTimingTriggedSignal>();
-
             string testData = 
                   "Test" +
                   " { " +
@@ -84,11 +74,6 @@ namespace KahaGameCore.Tests
         [Test]
         public void deserialize_if_miss_semicolon()
         {
-            Zenject.DiContainer container = new Zenject.DiContainer();
-            Zenject.SignalBusInstaller.Install(container);
-
-            container.Resolve<Zenject.SignalBus>().DeclareSignal<EffectTimingTriggedSignal>();
-
             string testData =
                   "Test" +
                   " { " +

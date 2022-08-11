@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using KahaGameCore.GameData;
-using KahaGameCore.GameData.Implement;
+using KahaGameCore.GameData.Implemented;
 using NUnit.Framework;
 
 namespace KahaGameCore.Tests

@@ -21,7 +21,7 @@ namespace KahaGameCore.Tests
         {
             // GameStaticDataSerializer and GameStaticDataDeserializer have its own test
             // make sure they are all correct before run this test
-            GameData.Implement.JsonSaveDataHandler saveDataHandler = new GameData.Implement.JsonSaveDataHandler(new GameData.Implement.GameStaticDataSerializer(), new GameData.Implement.GameStaticDataDeserializer());
+            GameData.Implemented.JsonSaveDataHandler saveDataHandler = new GameData.Implemented.JsonSaveDataHandler(new GameData.Implemented.GameStaticDataSerializer(), new GameData.Implemented.GameStaticDataDeserializer());
 
             TestGameSave testSave = new TestGameSave(System.Guid.NewGuid().ToString());
 

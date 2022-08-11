@@ -1,6 +1,6 @@
 namespace KahaGameCore.Combat.Processor.EffectProcessor
 {
-    public class EffectTimingTriggedSignal
+    public class EffectTimingTriggedSignal : InGameEvent.InGameEventCenter.InGameEvent
     {
         public CombatUnit Caster { get; private set; }
         public CombatUnit Target { get; private set; }
