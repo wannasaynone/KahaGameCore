@@ -1,5 +1,5 @@
 {
-    "name": "Tests",
+    "name": "KahaGameCore.Tests",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
@@ -19,7 +19,10 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "nunit.framework.dll"
+        "nunit.framework.dll",
+        "NSubstitute.dll",
+        "Castle.Core.dll",
+        "System.Threading.Tasks.Extensions.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

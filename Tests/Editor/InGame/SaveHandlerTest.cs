@@ -17,7 +17,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void save_and_load()
+        public void Save_and_load()
         {
             // GameStaticDataSerializer and GameStaticDataDeserializer have its own test
             // make sure they are all correct before run this test

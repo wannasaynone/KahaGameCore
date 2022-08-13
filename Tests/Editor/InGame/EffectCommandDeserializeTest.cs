@@ -24,7 +24,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void deserialize()
+        public void Deserialize()
         {
             string testData = 
                   "Test" +
@@ -48,7 +48,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void deserialize_if_miss_block()
+        public void Deserialize_if_miss_block()
         {
             string testData = 
                   "Test" +
@@ -72,7 +72,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void deserialize_if_miss_semicolon()
+        public void Deserialize_if_miss_semicolon()
         {
             string testData =
                   "Test" +

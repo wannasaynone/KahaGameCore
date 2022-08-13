@@ -10,7 +10,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void serialize()
+        public void Serialize()
         {
             GameData.Implemented.GameStaticDataSerializer serializer = new GameData.Implemented.GameStaticDataSerializer();
 

@@ -6,7 +6,7 @@ namespace KahaGameCore.Tests
     public class ValueObjectTest
     {
         [Test]
-        public void create()
+        public void Create()
         {
             ValueObject valueObjectA = new ValueObject("Test", 100);
             ValueObject valueObjectB = new ValueObject("Test", 100);
@@ -15,7 +15,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void add()
+        public void Add()
         {
             ValueObject valueObject = new ValueObject("Test", 100);
             valueObject.Add(100);
@@ -24,7 +24,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void add_with_min_max()
+        public void Add_with_min_max()
         {
             ValueObject valueObject = new ValueObject("Test", 0);
             valueObject.Add(100, 10);
@@ -35,7 +35,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void mutiply()
+        public void Mutiply()
         {
             ValueObject valueObject = new ValueObject("Test", 100);
             valueObject.Mutiply(10f);
@@ -44,7 +44,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void mutiply_with_max_min()
+        public void Mutiply_with_max_min()
         {
             ValueObject valueObject = new ValueObject("Test", 100);
             valueObject.Mutiply(10f, 100);

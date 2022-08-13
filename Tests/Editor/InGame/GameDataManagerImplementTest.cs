@@ -24,7 +24,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void load_data()
+        public void Load_data()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
 
@@ -47,7 +47,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void load_data_with_force_update()
+        public void Load_data_with_force_update()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
 
@@ -95,7 +95,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void load_data_with_handler()
+        public void Load_data_with_handler()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
             TestLoadHandler testLoadHandler = new TestLoadHandler();
@@ -105,7 +105,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public async void load_data_with_async()
+        public async void Load_data_with_async()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
             TestLoadHandler testLoadHandler = new TestLoadHandler();
@@ -115,7 +115,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void get_data()
+        public void Get_data()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
 
@@ -142,7 +142,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void unload_data()
+        public void Unload_data()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
 

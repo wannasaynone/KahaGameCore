@@ -27,7 +27,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void deserialize()
+        public void Deserialize()
         {
             GameData.Implemented.GameStaticDataDeserializer deserializer = new GameData.Implemented.GameStaticDataDeserializer();
             TestData[] datas = deserializer.Read<TestData[]>(testJson);

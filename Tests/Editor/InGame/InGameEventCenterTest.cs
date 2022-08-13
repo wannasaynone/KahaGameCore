@@ -10,7 +10,7 @@ namespace KahaGameCore.Tests
         private class TestEvent : InGameEventCenter.InGameEvent { }
 
         [Test]
-        public void register_and_publish()
+        public void Register_and_publish()
         {
             int count = 0;
             InGameEventCenter.Register<TestEvent>(delegate
@@ -22,7 +22,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void unregister()
+        public void Unregister()
         {
             int count = 0;
             Action<TestEvent> testAction = delegate

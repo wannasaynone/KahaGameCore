@@ -5,7 +5,7 @@ namespace KahaGameCore.Tests
     public class CombatUnitTest
     {
         [Test]
-        public void add_stats_and_get_total_value()
+        public void Add_stats_and_get_total_value()
         {
             Combat.CombatUnit combatUnit = new Combat.CombatUnit(new Combat.ValueObject[]
                 {
@@ -19,7 +19,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void remove_stats()
+        public void Remove_stats()
         {
             Combat.CombatUnit combatUnit = new Combat.CombatUnit(new Combat.ValueObject[]
                 {

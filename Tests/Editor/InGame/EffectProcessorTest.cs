@@ -23,7 +23,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void process()
+        public void Process()
         {
             System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>>
             {
@@ -50,7 +50,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void quit()
+        public void Quit()
         {
             System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>>
             {
@@ -86,7 +86,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void process_with_special_command_if()
+        public void Process_with_special_command_if()
         {
             System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>> timingToEffectDatas = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<EffectProcessor.EffectData>>
             {

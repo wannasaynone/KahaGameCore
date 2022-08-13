@@ -6,7 +6,7 @@ namespace KahaGameCore.Tests
     public class InputEventHandlerTest
     {
         [Test]
-        public void singal_tap()
+        public void Singal_tap()
         {
             int counter = 0;
             InputEventHanlder.OnSingleTapped += delegate
@@ -18,7 +18,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void pressing()
+        public void Pressing()
         {
             int counter = 0;
             InputEventHanlder.OnPressing += delegate
@@ -30,7 +30,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void swipe()
+        public void Swipe()
         {
             UnityEngine.Vector2 direction = default;
             InputEventHanlder.OnSwiped += delegate(UnityEngine.Vector2 dir)
@@ -42,7 +42,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void drag()
+        public void Drag()
         {
             UnityEngine.Vector2 direction = default;
             InputEventHanlder.OnDrag += delegate (UnityEngine.Vector2 dir)
@@ -54,7 +54,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void double_tap()
+        public void Double_tap()
         {
             int counter = 0;
             InputEventHanlder.OnDoubleTapped += delegate

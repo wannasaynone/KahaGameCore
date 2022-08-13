@@ -6,7 +6,7 @@ namespace KahaGameCore.Tests
     public class CalculatorTest 
     {
         [Test]
-        public void calculate()
+        public void Calculate()
         {
             CombatUnit caster = new CombatUnit(new ValueObject[]
             {
@@ -30,7 +30,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void calculate_if_typo()
+        public void Calculate_if_typo()
         {
             CombatUnit caster = new CombatUnit(new ValueObject[]
             {
@@ -54,7 +54,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void special_command_random()
+        public void Special_command_random()
         {
             float result = Calculator.Calculate(new Calculator.CalculateData
             {
@@ -65,7 +65,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void spciaial_command_random_when_typo()
+        public void Spciaial_command_random_when_typo()
         {
             float result = Calculator.Calculate(new Calculator.CalculateData
             {
@@ -76,7 +76,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void special_command_remember_read()
+        public void Special_command_remember_read()
         {
             Calculator.Remember("Test", 100f);
             float result = Calculator.Calculate(new Calculator.CalculateData
@@ -88,7 +88,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void special_command_remember_twice_then_read()
+        public void Special_command_remember_twice_then_read()
         {
             Calculator.Remember("Test", 0f);
             Calculator.Remember("Test", 100f);

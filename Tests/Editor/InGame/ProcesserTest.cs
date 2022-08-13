@@ -15,7 +15,7 @@ namespace KahaGameCore.Tests
         private class TestProcessStep : Processor.IProcessable
         {
             private TestProcesserTarget m_target;
-            private int m_add;
+            private readonly int m_add;
 
             public TestProcessStep(TestProcesserTarget target, int add)
             {
@@ -43,7 +43,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void process()
+        public void Process()
         {
             TestProcesserTarget target = new TestProcesserTarget { value = 100 };
             TestProcessStep[] steps = new TestProcessStep[]
