@@ -61,37 +61,24 @@ namespace KahaGameCore.Combat.Processor.EffectProcessor
             }
         }
             
-        public void Start(EffectTimingTriggedSignal signal)
+        public void Start(ProcessData processData)
         {
-            if (signal == null)
-            {
-                return;
-            }
-
             if (m_timingToEffectProcesser.Count <= 0)
             {
                 return;
             }
 
-            if (m_timingToEffectProcesser.ContainsKey(signal.Timing))
+            if (m_timingToEffectProcesser.ContainsKey(processData.timing))
             {
-                ProcessData _processData = new ProcessData
-                {
-                    caster = signal.Caster,
-                    target = signal.Target,
-                    timing = signal.Timing,
-                    skipIfCount = 0
-                };
+                OnProcessDataUpdated?.Invoke(processData);
 
-                OnProcessDataUpdated?.Invoke(_processData);
-
-                if (!m_timingToProcesser.ContainsKey(signal.Timing))
+                if (!m_timingToProcesser.ContainsKey(processData.timing))
                 {
-                    List<EffectData> _effects = m_timingToEffectProcesser[signal.Timing];
-                    m_timingToProcesser.Add(signal.Timing, new Processor<EffectData>(_effects.ToArray()));
+                    List<EffectData> _effects = m_timingToEffectProcesser[processData.timing];
+                    m_timingToProcesser.Add(processData.timing, new Processor<EffectData>(_effects.ToArray()));
                 }
 
-                m_timingToProcesser[signal.Timing].Start(OnProcessEnded, OnProcessQuitted);
+                m_timingToProcesser[processData.timing].Start(OnProcessEnded, OnProcessQuitted);
             }
         }
 
@@ -104,7 +91,6 @@ namespace KahaGameCore.Combat.Processor.EffectProcessor
                     OnProcessDataUpdated -= keyValuePair.Value[i].SetProcessData;
                 }
             }
-            InGameEvent.InGameEventCenter.Unregister<EffectTimingTriggedSignal>(Start);
         }
     }
 }
