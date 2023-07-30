@@ -2,7 +2,7 @@
 
 namespace KahaGameCore.Combat
 {
-    public class CombatUnit
+    public class CombatUnit : IValueContainer
     {
         private List<ValueObject> m_baseStats;
         private List<ValueObject> m_tempStats = new List<ValueObject>();
