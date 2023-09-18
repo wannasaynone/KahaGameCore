@@ -14,8 +14,8 @@ namespace KahaGameCore.Tests
 
             combatUnit.Add(new Combat.ValueObject("Attack", 100));
 
-            Assert.AreEqual(200, combatUnit.GetTotal("Attack"));
-            Assert.AreEqual(100, combatUnit.GetTotal("Attack", true));
+            Assert.AreEqual(200, combatUnit.Stats.GetTotal("Attack", false));
+            Assert.AreEqual(100, combatUnit.Stats.GetTotal("Attack", true));
         }
 
         [Test]
@@ -28,9 +28,9 @@ namespace KahaGameCore.Tests
             Combat.ValueObject temp = new Combat.ValueObject("Attack", 100);
             combatUnit.Add(temp);
 
-            Assert.AreEqual(200, combatUnit.GetTotal("Attack"));
+            Assert.AreEqual(200, combatUnit.Stats.GetTotal("Attack", false));
             combatUnit.Remove(temp);
-            Assert.AreEqual(100, combatUnit.GetTotal("Attack"));
+            Assert.AreEqual(100, combatUnit.Stats.GetTotal("Attack", false));
         }
     }
 }

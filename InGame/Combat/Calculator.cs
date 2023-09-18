@@ -8,8 +8,8 @@ namespace KahaGameCore.Combat
 
         public class CalculateData
         {
-            public IValueContainer caster = null;
-            public IValueContainer target = null;
+            public IActor caster = null;
+            public IActor target = null;
             public string formula = "";
             public bool useBaseValue = false;
         }
@@ -170,18 +170,18 @@ namespace KahaGameCore.Combat
             }
 
             string[] _getValueData = paraString.Split('.');
-            IValueContainer _getValueTarget = data.caster;
+            IValueContainer _getValueTarget = data.caster.Stats;
 
             switch (_getValueData[0].Trim())
             {
                 case "Caster":
                     {
-                        _getValueTarget = data.caster;
+                        _getValueTarget = data.caster.Stats;
                         break;
                     }
                 case "Target":
                     {
-                        _getValueTarget = data.target;
+                        _getValueTarget = data.target.Stats;
                         break;
                     }
                 default:

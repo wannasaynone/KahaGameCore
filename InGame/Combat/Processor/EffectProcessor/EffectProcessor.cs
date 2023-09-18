@@ -41,7 +41,7 @@ namespace KahaGameCore.Combat.Processor.EffectProcessor
             }
         }
 
-        private Dictionary<string, List<EffectData>> m_timingToEffectProcesser = new Dictionary<string, List<EffectData>>();
+        private Dictionary<string, List<EffectData>> m_timingToData = new Dictionary<string, List<EffectData>>();
 
         public event Action OnProcessEnded;
         public event Action OnProcessQuitted;
@@ -49,32 +49,37 @@ namespace KahaGameCore.Combat.Processor.EffectProcessor
 
         private Dictionary<string, Processor<EffectData>> m_timingToProcesser = new Dictionary<string, Processor<EffectData>>();
 
-        public void SetUp(Dictionary<string, List<EffectData>> timingToEffectProcesser)
+        public void SetUp(Dictionary<string, List<EffectData>> timingToData)
         {
-            m_timingToEffectProcesser = timingToEffectProcesser;
-            foreach(KeyValuePair<string, List<EffectData>> keyValuePair in m_timingToEffectProcesser)
+            m_timingToData = timingToData;
+            foreach(KeyValuePair<string, List<EffectData>> keyValuePair in m_timingToData)
             {
-                for (int i = 0; i < keyValuePair.Value.Count; i++)//
+                for (int i = 0; i < keyValuePair.Value.Count; i++)
                 {
                     OnProcessDataUpdated += keyValuePair.Value[i].SetProcessData;
                 }
             }
         }
+
+        public bool HasTiming(string timing)
+        {
+            return m_timingToData.ContainsKey(timing);
+        }
             
         public void Start(ProcessData processData)
         {
-            if (m_timingToEffectProcesser.Count <= 0)
+            if (m_timingToData.Count <= 0)
             {
                 return;
             }
 
-            if (m_timingToEffectProcesser.ContainsKey(processData.timing))
+            if (m_timingToData.ContainsKey(processData.timing))
             {
                 OnProcessDataUpdated?.Invoke(processData);
 
                 if (!m_timingToProcesser.ContainsKey(processData.timing))
                 {
-                    List<EffectData> _effects = m_timingToEffectProcesser[processData.timing];
+                    List<EffectData> _effects = m_timingToData[processData.timing];
                     m_timingToProcesser.Add(processData.timing, new Processor<EffectData>(_effects.ToArray()));
                 }
 
@@ -84,7 +89,7 @@ namespace KahaGameCore.Combat.Processor.EffectProcessor
 
         public void Dispose()
         {
-            foreach (KeyValuePair<string, List<EffectData>> keyValuePair in m_timingToEffectProcesser)
+            foreach (KeyValuePair<string, List<EffectData>> keyValuePair in m_timingToData)
             {
                 for (int i = 0; i < keyValuePair.Value.Count; i++)
                 {

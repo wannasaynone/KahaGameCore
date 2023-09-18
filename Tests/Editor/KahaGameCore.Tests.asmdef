@@ -9,8 +9,7 @@
         "KahaGameCore.Combat.Processor",
         "KahaGameCore.Combat.Processor.EffectProcessor",
         "KahaGameCore.Combat",
-        "KahaGameCore.Input",
-        "KahaGameCore.Combat.InGameEvent"
+        "KahaGameCore.Input"
     ],
     "includePlatforms": [
         "Editor"
@@ -21,8 +20,7 @@
     "precompiledReferences": [
         "nunit.framework.dll",
         "NSubstitute.dll",
-        "Castle.Core.dll",
-        "System.Threading.Tasks.Extensions.dll"
+        "Castle.Core.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

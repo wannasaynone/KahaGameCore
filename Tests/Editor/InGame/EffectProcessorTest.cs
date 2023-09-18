@@ -33,9 +33,9 @@ namespace KahaGameCore.Tests
             EffectProcessor effectProcessor = new EffectProcessor();
             effectProcessor.OnProcessEnded += EffectProcessor_OnProcessEnded;
             effectProcessor.OnProcessQuitted += EffectProcessor_OnProcessQuitted;
-            effectProcessor.Start(new Combat.ProcessData { caster = null, skipIfCount = 0, target = null, timing = "Test" });
+            effectProcessor.Start(new Combat.ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" });
             effectProcessor.SetUp(timingToEffectDatas);
-            effectProcessor.Start(new Combat.ProcessData { caster = null, skipIfCount = 0, target = null, timing = "Test" });
+            effectProcessor.Start(new Combat.ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" });
             UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Log, "TestMsg");
         }
 
@@ -62,7 +62,7 @@ namespace KahaGameCore.Tests
             effectProcessor.OnProcessQuitted += EffectProcessor_OnProcessQuitted1; ;
 
             effectProcessor.SetUp(timingToEffectDatas);
-            effectProcessor.Start(new Combat.ProcessData { caster = null, skipIfCount = 0, target = null, timing = "Test" });
+            effectProcessor.Start(new Combat.ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" });
             UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Log, "TestMsg");
         }
 
@@ -103,7 +103,7 @@ namespace KahaGameCore.Tests
             effectProcessor.OnProcessEnded += EffectProcessor_OnProcessEnded2;
 
             effectProcessor.SetUp(timingToEffectDatas);
-            effectProcessor.Start(new Combat.ProcessData { caster = null, skipIfCount = 0, target = null, timing = "Test" });
+            effectProcessor.Start(new Combat.ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" });
         }
 
         private void EffectProcessor_OnProcessEnded2()
