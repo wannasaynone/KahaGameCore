@@ -1,22 +1,54 @@
 using NUnit.Framework;
 using KahaGameCore.Combat;
+using System;
 
 namespace KahaGameCore.Tests
 {
     public class CalculatorTest 
     {
+        private class TestCombatUnit : IActor
+        {
+            private class TestValueContainer : IValueContainer
+            {
+                public void AddBase(string tag, int value)
+                {
+                }
+
+                public Guid Add(string tag, int value)
+                {
+                    return Guid.Empty;
+                }
+
+                public int GetTotal(string tag, bool baseOnly)
+                {
+                    if (tag == "Attack")
+                        return 100;
+                    else
+                        return 0;
+                }
+
+                public void SetBase(string tag, int value)
+                {
+                }
+
+                public void SetTemp(Guid guid, int value)
+                {
+                }
+
+                public void AddToTemp(Guid guid, int value)
+                {
+                }
+            }
+
+            public IValueContainer Stats { get; private set; } = new TestValueContainer();
+            public ISkillTrigger SkillTrigger => throw new NotImplementedException();
+        }
+
         [Test]
         public void Calculate()
         {
-            CombatUnit caster = new CombatUnit(new ValueObject[]
-            {
-                new ValueObject("Attack", 100)
-            });
-
-            CombatUnit target = new CombatUnit(new ValueObject[]
-            {
-                new ValueObject("Attack", 100)
-            });
+            TestCombatUnit caster = new TestCombatUnit();
+            TestCombatUnit target = new TestCombatUnit();
 
             float result = Calculator.Calculate(new Calculator.CalculateData
             {
@@ -32,15 +64,8 @@ namespace KahaGameCore.Tests
         [Test]
         public void Calculate_if_typo()
         {
-            CombatUnit caster = new CombatUnit(new ValueObject[]
-            {
-                new ValueObject("Attack", 100)
-            });
-
-            CombatUnit target = new CombatUnit(new ValueObject[]
-            {
-                new ValueObject("Attack", 100)
-            });
+            TestCombatUnit caster = new TestCombatUnit();
+            TestCombatUnit target = new TestCombatUnit();
 
             float result = Calculator.Calculate(new Calculator.CalculateData
             {
