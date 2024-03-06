@@ -1,16 +1,15 @@
+using System.Collections.Generic;
 using System.IO;
-
 using System.Net;
-
 using UnityEditor;
 using UnityEngine;
 
-namespace KahaGameCore.EditorTool
+namespace Minidragon.EditorTool
 {
     [CustomEditor(typeof(GoogleSheet2JsonSetting))]
     public class GoogleSheet2JsonSettingEditor : Editor
     {
-        private const string GET_DATA_URL = "http://172-105-200-91.ip.linodeusercontent.com:8080/api/v1/sheetData/?id={0}&name={1}&pretty=1";
+        private const string GET_DATA_URL = "https://sheets.googleapis.com/v4/spreadsheets/{0}/values/{1}?key=AIzaSyCPmWzKOWFJRYWa7V8eg5FenzIHL2IxFEE";
 
         private SerializedProperty m_sheetIDSerializedProperty;
         private SerializedProperty m_sheetNamesSerializedProperty;
@@ -28,7 +27,7 @@ namespace KahaGameCore.EditorTool
             string _sheetID = m_sheetIDSerializedProperty.stringValue;
             System.Collections.Generic.List<string> _sheetNames = new System.Collections.Generic.List<string>();
 
-            if (string.IsNullOrEmpty(_sheetID) || m_sheetIDSerializedProperty.arraySize <= 0)
+            if(string.IsNullOrEmpty(_sheetID) || m_sheetIDSerializedProperty.arraySize <= 0)
             {
                 EditorGUILayout.HelpBox("Need input datas in setting", MessageType.Warning);
                 return;
@@ -75,6 +74,7 @@ namespace KahaGameCore.EditorTool
                 {
                     using StreamReader sr = new StreamReader(response.GetResponseStream());
                     result = sr.ReadToEnd();
+                    result = Convert(result);
                 }
 
                 string _outputFilePath = _path + "/" + names[i] + ".txt";
@@ -96,5 +96,75 @@ namespace KahaGameCore.EditorTool
             AssetDatabase.Refresh();
         }
 
+        [System.Serializable]
+        private class RawData
+        {
+            public string range;
+            public string majorDimension;
+            public List<List<string>> values;
+        }
+
+        private static string Convert(string csvData)
+        {
+            RawData rawData = JsonFx.Json.JsonReader.Deserialize<RawData>(csvData);
+            List<string> keys = rawData.values[0];
+
+            List<Dictionary<string, object>> modifiers = new List<Dictionary<string, object>>();
+
+            for (int i = 1; i < rawData.values.Count; i++)
+            {
+                List<string> values = rawData.values[i];
+
+                if (values == null || values.Count <= 0)
+                    continue;
+
+                Dictionary<string, object> modifier = new Dictionary<string, object>();
+
+                for (int j = 0; j < keys.Count; j++)
+                {
+                    if (string.IsNullOrEmpty(keys[j]))
+                    {
+                        continue;
+                    }
+
+                    if (keys[j].Contains("NOEX_"))
+                    {
+                        continue;
+                    }
+
+                    if (j >= values.Count)
+                    {
+                        continue;
+                    }
+
+                    if (string.IsNullOrEmpty(values[j]))
+                    {
+                        continue;
+                    }
+
+                    if (int.TryParse(values[j], System.Globalization.NumberStyles.None | System.Globalization.NumberStyles.AllowLeadingSign, null, out int intValue))
+                    {
+                        modifier.Add(keys[j], intValue);
+                    }
+                    else if (long.TryParse(values[j], System.Globalization.NumberStyles.None | System.Globalization.NumberStyles.AllowLeadingSign, null, out long longValue))
+                    {
+                        modifier.Add(keys[j], longValue);
+                    }
+                    else if (float.TryParse(values[j], System.Globalization.NumberStyles.None | System.Globalization.NumberStyles.AllowLeadingSign | System.Globalization.NumberStyles.AllowDecimalPoint, null, out float floatValue))
+                    {
+                        modifier.Add(keys[j], floatValue);
+                    }
+                    else
+                    {
+                        modifier.Add(keys[j], values[j]);
+                    }
+                }
+
+                if (modifier.Count > 0)
+                    modifiers.Add(modifier);
+            }
+
+            return JsonFx.Json.JsonWriter.Serialize(modifiers);
+        }
     }
 }
