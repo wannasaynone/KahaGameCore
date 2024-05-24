@@ -4,7 +4,7 @@ using System.Net;
 using UnityEditor;
 using UnityEngine;
 
-namespace Minidragon.EditorTool
+namespace KahaGameCore.EditorTool
 {
     [CustomEditor(typeof(GoogleSheet2JsonSetting))]
     public class GoogleSheet2JsonSettingEditor : Editor
@@ -27,7 +27,7 @@ namespace Minidragon.EditorTool
             string _sheetID = m_sheetIDSerializedProperty.stringValue;
             System.Collections.Generic.List<string> _sheetNames = new System.Collections.Generic.List<string>();
 
-            if(string.IsNullOrEmpty(_sheetID) || m_sheetIDSerializedProperty.arraySize <= 0)
+            if (string.IsNullOrEmpty(_sheetID) || m_sheetIDSerializedProperty.arraySize <= 0)
             {
                 EditorGUILayout.HelpBox("Need input datas in setting", MessageType.Warning);
                 return;
