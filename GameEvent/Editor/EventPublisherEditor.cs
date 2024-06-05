@@ -3,12 +3,15 @@ using UnityEditor;
 using System;
 using System.Linq;
 using System.Reflection;
-using UnityEngine.AI;
+using System.Collections.Generic;
 
 namespace KahaGameCore.GameEvent.Editor
 {
     public class EventPublisherEditor : EditorWindow
     {
+        private Dictionary<Type, Dictionary<string, object>> eventParams = new Dictionary<Type, Dictionary<string, object>>();
+        private Vector2 scrollPosition;
+
         [MenuItem("Tools/Game Event Publisher")]
         public static void ShowWindow()
         {
@@ -17,27 +20,62 @@ namespace KahaGameCore.GameEvent.Editor
 
         private void OnGUI()
         {
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition);
             GUILayout.Label("Publish Game Events", EditorStyles.boldLabel);
 
-            // 獲取ProjectMIL.GameEvent命名空間中所有繼承自GameEventBase的類
+            // 獲取 ProjectMIL.GameEvent 命名空間中所有繼承自 GameEventBase 的類
             var gameEventTypes = Assembly.GetAssembly(typeof(GameEventBase))
                                          .GetTypes()
                                          .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(GameEventBase)) && t.Namespace == "ProjectMIL.GameEvent");
 
             foreach (Type type in gameEventTypes)
             {
+                GUILayout.Label(type.Name, EditorStyles.boldLabel);
+
+                if (!eventParams.ContainsKey(type))
+                {
+                    eventParams[type] = new Dictionary<string, object>();
+                }
+
+                // 動態生成 UI 來輸入參數
+                foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    if (field.FieldType == typeof(int))
+                    {
+                        eventParams[type][field.Name] = EditorGUILayout.IntField(field.Name, eventParams[type].ContainsKey(field.Name) ? (int)eventParams[type][field.Name] : 0);
+                    }
+                    else if (field.FieldType == typeof(float))
+                    {
+                        eventParams[type][field.Name] = EditorGUILayout.FloatField(field.Name, eventParams[type].ContainsKey(field.Name) ? (float)eventParams[type][field.Name] : 0f);
+                    }
+                    else if (field.FieldType == typeof(Vector3))
+                    {
+                        eventParams[type][field.Name] = EditorGUILayout.Vector3Field(field.Name, eventParams[type].ContainsKey(field.Name) ? (Vector3)eventParams[type][field.Name] : Vector3.zero);
+                    }
+                    else if (field.FieldType == typeof(string))
+                    {
+                        eventParams[type][field.Name] = EditorGUILayout.TextField(field.Name, eventParams[type].ContainsKey(field.Name) ? (string)eventParams[type][field.Name] : "");
+                    }
+                    // 根據需要添加更多類型
+                }
+
                 if (GUILayout.Button("Publish " + type.Name))
                 {
-                    // 使用反射來創建對應類的實例並發送事件
+                    // 創建事件實例並設置參數
                     var instance = Activator.CreateInstance(type);
+                    foreach (var param in eventParams[type])
+                    {
+                        type.GetField(param.Key).SetValue(instance, param.Value);
+                    }
+
+                    // 使用反射來發佈事件
                     typeof(EventBus)
                         .GetMethod("Publish")
                         .MakeGenericMethod(type)
                         .Invoke(null, new object[] { instance });
                 }
             }
-
-            HorizontalLine();
+            GUILayout.EndScrollView();
         }
 
         private static void HorizontalLine()
@@ -57,6 +95,7 @@ namespace KahaGameCore.GameEvent.Editor
 
             GUILayout.Space(10);
         }
+
     }
 }
 
