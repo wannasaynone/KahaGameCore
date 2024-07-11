@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.SubSystem.DialogueSystem
 {
     public class DialogueManager
     {
@@ -16,11 +16,12 @@ namespace KahaGameCore.DialogueSystem
             }
         }
         private static DialogueManager instance;
-        public static void Initialize(DialogueData[] allDialogueDatas)
+        public static void Initialize(DialogueData[] allDialogueDatas, IDialogueFactory dialogueFactory)
         {
             instance = new DialogueManager
             {
-                allDialogueDatas = allDialogueDatas
+                allDialogueDatas = allDialogueDatas,
+                dialogueFactory = dialogueFactory
             };
         }
 
@@ -29,6 +30,7 @@ namespace KahaGameCore.DialogueSystem
         private DialogueProcesser dialogueProcesser;
         private IDialogueView currentUsingDialogueView;
         private DialogueData[] allDialogueDatas;
+        private IDialogueFactory dialogueFactory;
 
         private List<int> pendingDialogueIDs = new List<int>();
 
@@ -37,7 +39,7 @@ namespace KahaGameCore.DialogueSystem
             if (dialogueProcesser == null)
             {
                 currentUsingDialogueView = dialogueView;
-                dialogueProcesser = new DialogueProcesser(id, dialogueView, allDialogueDatas);
+                dialogueProcesser = new DialogueProcesser(id, dialogueView, allDialogueDatas, dialogueFactory);
                 dialogueProcesser.Process(OnDialogueEnded, OnDialogueEnded);
             }
             else

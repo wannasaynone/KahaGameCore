@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.SubSystem.DialogueSystem.DialogueCommand
 {
     public class DialogueCommand_SetCharacter : DialogueCommandBase
     {

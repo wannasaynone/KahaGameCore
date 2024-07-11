@@ -1,4 +1,4 @@
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.SubSystem.DialogueSystem
 {
     public interface IDialogueOptionButton
     {
