@@ -13,7 +13,7 @@ namespace KahaGameCore.Tests
             {
                 counter++;
             };
-            InputEventHanlder.SendOnSingleTapped();
+            InputEventHanlder.RiseSingleTapped();
             Assert.AreEqual(1, counter);
         }
 
@@ -25,7 +25,7 @@ namespace KahaGameCore.Tests
             {
                 counter++;
             };
-            InputEventHanlder.SendOnPressing();
+            InputEventHanlder.RisePressing();
             Assert.AreEqual(1, counter);
         }
 
@@ -33,11 +33,11 @@ namespace KahaGameCore.Tests
         public void Swipe()
         {
             UnityEngine.Vector2 direction = default;
-            InputEventHanlder.OnSwiped += delegate(UnityEngine.Vector2 dir)
+            InputEventHanlder.OnSwiped += delegate (UnityEngine.Vector2 dir)
             {
                 direction = dir;
             };
-            InputEventHanlder.SendOnSwiped(new UnityEngine.Vector2(1f, 1f));
+            InputEventHanlder.RiseSwiped(new UnityEngine.Vector2(1f, 1f));
             Assert.IsTrue(direction != default);
         }
 
@@ -49,7 +49,7 @@ namespace KahaGameCore.Tests
             {
                 direction = dir;
             };
-            InputEventHanlder.SendOnDraged(new UnityEngine.Vector2(1f, 1f));
+            InputEventHanlder.RiseDrag(new UnityEngine.Vector2(1f, 1f));
             Assert.IsTrue(direction != default);
         }
 
@@ -61,7 +61,127 @@ namespace KahaGameCore.Tests
             {
                 counter++;
             };
-            InputEventHanlder.SendOnDoubleTapped();
+            InputEventHanlder.RiseDoubleTapped();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void IsMovingUp()
+        {
+            int counter = 0;
+            InputEventHanlder.IsMovingUp += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseMovingUp();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void IsMovingDown()
+        {
+            int counter = 0;
+            InputEventHanlder.IsMovingDown += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseMovingDown();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void IsMovingLeft()
+        {
+            int counter = 0;
+            InputEventHanlder.IsMovingLeft += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseMovingLeft();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void IsMovingRight()
+        {
+            int counter = 0;
+            InputEventHanlder.IsMovingRight += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseMovingRight();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void IsInteracting()
+        {
+            int counter = 0;
+            InputEventHanlder.IsInteracting += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseInteracting();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void SelectedOptionInView()
+        {
+            int counter = 0;
+            InputEventHanlder.OnOptionInViewSelected += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseOptionInViewSelected();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void MoveToPreviousOptionInView()
+        {
+            int counter = 0;
+            InputEventHanlder.OnMoveToPreviousOptionInView += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseMoveToPreviousOptionInView();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void MoveToNextOptionInView()
+        {
+            int counter = 0;
+            InputEventHanlder.MoveToNextOptionInView += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseMoveToNextOptionInView();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void InventoryCalled()
+        {
+            int counter = 0;
+            InputEventHanlder.OnInventoryCalled += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseInventoryCalled();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void HideInventoryCalled()
+        {
+            int counter = 0;
+            InputEventHanlder.OnHideInventoryCalled += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.RiseHideInventoryCalled();
             Assert.AreEqual(1, counter);
         }
     }
