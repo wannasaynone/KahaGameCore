@@ -29,17 +29,21 @@ namespace KahaGameCore.DialogueSystem
         private void OnEnable()
         {
             Clear();
-            Input.InputEventHanlder.OnMoveToPreviousOptionInView += OnMoveToPreviousOptionInView;
-            Input.InputEventHanlder.MoveToNextOptionInView += OnMoveToNextOptionInView;
-            Input.InputEventHanlder.OnOptionInViewSelected += OnOptionInViewSelected;
+            Input.InputEventHanlder.UserInterface.OnMoveToPreviousOptionInView += OnMoveToPreviousOptionInView;
+            Input.InputEventHanlder.UserInterface.MoveToNextOptionInView += OnMoveToNextOptionInView;
+            Input.InputEventHanlder.UserInterface.OnOptionInViewSelected += OnOptionInViewSelected;
+            Input.InputEventHanlder.UserInterface.OnOptionInViewSelected += OnPressedSelectButton;
+            Input.InputEventHanlder.Mouse.OnSingleTapped += OnPressedSelectButton;
         }
 
         private void OnDisable()
         {
             Clear();
-            Input.InputEventHanlder.OnMoveToPreviousOptionInView -= OnMoveToPreviousOptionInView;
-            Input.InputEventHanlder.MoveToNextOptionInView -= OnMoveToNextOptionInView;
-            Input.InputEventHanlder.OnOptionInViewSelected -= OnOptionInViewSelected;
+            Input.InputEventHanlder.UserInterface.OnMoveToPreviousOptionInView -= OnMoveToPreviousOptionInView;
+            Input.InputEventHanlder.UserInterface.MoveToNextOptionInView -= OnMoveToNextOptionInView;
+            Input.InputEventHanlder.UserInterface.OnOptionInViewSelected -= OnOptionInViewSelected;
+            Input.InputEventHanlder.UserInterface.OnOptionInViewSelected -= OnPressedSelectButton;
+            Input.InputEventHanlder.Mouse.OnSingleTapped -= OnPressedSelectButton;
         }
 
         private void OnOptionInViewSelected()
@@ -361,8 +365,6 @@ namespace KahaGameCore.DialogueSystem
         private System.Collections.IEnumerator IEWaitInputCoroutine(string text, Action onInput)
         {
             isSelectButtonPressed = false;
-            Input.InputEventHanlder.OnOptionInViewSelected += OnPressedSelectButton;
-            Input.InputEventHanlder.OnSingleTapped += OnPressedSelectButton;
 
             yield return null; // for skip one time input
 
@@ -376,8 +378,6 @@ namespace KahaGameCore.DialogueSystem
                 yield return null;
             }
 
-            Input.InputEventHanlder.OnOptionInViewSelected -= OnPressedSelectButton;
-            Input.InputEventHanlder.OnSingleTapped -= OnPressedSelectButton;
             onInput?.Invoke();
         }
 

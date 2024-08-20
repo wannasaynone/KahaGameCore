@@ -15,7 +15,9 @@ public class DemoDialogueTrigger : MonoBehaviour
 
         gameStaticDataManager.Add<DialogueData>(gameStaticDataDeserializer.Read<DialogueData[]>(dialogueDataSource.text));
 
-        DialogueManager.Initialize(gameStaticDataManager.GetAllGameData<DialogueData>(), new KahaGameCore.DialogueSystem.DialogueCommand.DialogueCommandFactory());
+        KahaGameCore.DialogueSystem.DialogueCommand.DialogueCommandFactory dialogueCommandFactory = new KahaGameCore.DialogueSystem.DialogueCommand.DialogueCommandFactory(true);
+
+        DialogueManager.Initialize(gameStaticDataManager.GetAllGameData<DialogueData>(), dialogueCommandFactory);
     }
 
     public void TriggerDialogue(int id)

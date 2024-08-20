@@ -15,22 +15,22 @@ namespace KahaGameCore.Input.Mono
         {
             if (UnityEngine.Input.GetKeyUp(KeyCode.Return) || UnityEngine.Input.GetKeyUp(KeyCode.KeypadEnter) || UnityEngine.Input.GetKeyUp(KeyCode.Space))
             {
-                InputEventHanlder.RiseOptionInViewSelected();
+                InputEventHanlder.UserInterface.RiseOptionInViewSelected();
             }
 
             if (UnityEngine.Input.GetKeyUp(KeyCode.W) || UnityEngine.Input.GetKeyUp(KeyCode.UpArrow))
             {
-                InputEventHanlder.RiseMoveToPreviousOptionInView();
+                InputEventHanlder.UserInterface.RiseMoveToPreviousOptionInView();
             }
 
             if (UnityEngine.Input.GetKeyUp(KeyCode.S) || UnityEngine.Input.GetKeyUp(KeyCode.DownArrow))
             {
-                InputEventHanlder.RiseMoveToNextOptionInView();
+                InputEventHanlder.UserInterface.RiseMoveToNextOptionInView();
             }
 
             if (UnityEngine.Input.GetKeyUp(KeyCode.Escape) || UnityEngine.Input.GetKeyUp(KeyCode.I))
             {
-                InputEventHanlder.RiseHideInventoryCalled();
+                InputEventHanlder.UserInterface.RiseHideInventoryCalled();
             }
         }
 
@@ -38,37 +38,37 @@ namespace KahaGameCore.Input.Mono
         {
             if (UnityEngine.Input.GetMouseButtonUp(0))
             {
-                InputEventHanlder.RiseSingleTapped();
+                InputEventHanlder.Mouse.RiseSingleTapped();
             }
 
             if (UnityEngine.Input.GetKey(KeyCode.W) || UnityEngine.Input.GetKey(KeyCode.UpArrow))
             {
-                InputEventHanlder.RiseMovingUp();
+                InputEventHanlder.Movement.RiseMovingUp();
             }
 
             if (UnityEngine.Input.GetKey(KeyCode.S) || UnityEngine.Input.GetKey(KeyCode.DownArrow))
             {
-                InputEventHanlder.RiseMovingDown();
+                InputEventHanlder.Movement.RiseMovingDown();
             }
 
             if (UnityEngine.Input.GetKey(KeyCode.A) || UnityEngine.Input.GetKey(KeyCode.LeftArrow))
             {
-                InputEventHanlder.RiseMovingLeft();
+                InputEventHanlder.Movement.RiseMovingLeft();
             }
 
             if (UnityEngine.Input.GetKey(KeyCode.D) || UnityEngine.Input.GetKey(KeyCode.RightArrow))
             {
-                InputEventHanlder.RiseMovingRight();
+                InputEventHanlder.Movement.RiseMovingRight();
             }
 
             if (UnityEngine.Input.GetKeyUp(KeyCode.Space))
             {
-                InputEventHanlder.RiseInteracting();
+                InputEventHanlder.Movement.RiseInteracting();
             }
 
             if (UnityEngine.Input.GetKeyUp(KeyCode.I))
             {
-                InputEventHanlder.RiseInventoryCalled();
+                InputEventHanlder.UserInterface.RiseInventoryCalled();
             }
         }
     }

@@ -1,27 +1,50 @@
+using System.Collections.Generic;
+using UnityEngine;
+
 namespace KahaGameCore.DialogueSystem.DialogueCommand
 {
     public class DialogueCommandFactory : IDialogueFactory
     {
-        DialogueCommandBase IDialogueFactory.CreateDialogueCommand(DialogueData dialogueData, IDialogueView dialogueView)
+        private readonly Dictionary<string, System.Type> commandTypeMap = new Dictionary<string, System.Type>();
+
+        public DialogueCommandFactory(bool withDefaultCommandTypes)
         {
-            switch (dialogueData.Command)
+            if (withDefaultCommandTypes)
             {
-                case "Say":
-                    return new DialogueCommand_Say(dialogueData, dialogueView);
-                case "SetCharacter":
-                    return new DialogueCommand_SetCharacter(dialogueData, dialogueView);
-                case "AddOption":
-                    return new DialogueCommand_AddOption(dialogueData, dialogueView);
-                case "ShowCG":
-                    return new DialogueCommand_ShowCG(dialogueData, dialogueView);
-                case "HideCG":
-                    return new DialogueCommand_HideCG(dialogueData, dialogueView);
-                case "GoTo":
-                    return new DialogueCommand_GoTo(dialogueData, dialogueView);
-                default:
-                    return null;
+                RegisterDefaultCommandTypes();
             }
+        }
+
+        private void RegisterDefaultCommandTypes()
+        {
+            RegisterCommandType("Log", typeof(DialogueCommand_Log));
+            RegisterCommandType("Say", typeof(DialogueCommand_Say));
+            RegisterCommandType("AddOption", typeof(DialogueCommand_AddOption));
+            RegisterCommandType("GoTo", typeof(DialogueCommand_GoTo));
+            RegisterCommandType("SetCharacter", typeof(DialogueCommand_SetCharacter));
+            RegisterCommandType("ShowCG", typeof(DialogueCommand_ShowCG));
+            RegisterCommandType("HideCG", typeof(DialogueCommand_HideCG));
+        }
+
+        public void RegisterCommandType(string command, System.Type type)
+        {
+            if (commandTypeMap.ContainsKey(command))
+            {
+                Debug.LogError("Command " + command + " is already registered.");
+                return;
+            }
+
+            commandTypeMap.Add(command, type);
+        }
+
+        public DialogueCommandBase CreateDialogueCommand(DialogueData dialogueData, IDialogueView dialogueView)
+        {
+            if (commandTypeMap.TryGetValue(dialogueData.Command, out System.Type type))
+            {
+                return System.Activator.CreateInstance(type, new object[] { dialogueData, dialogueView }) as DialogueCommandBase;
+            }
+
+            return new DialogueCommand_Log(dialogueData, dialogueView);
         }
     }
 }
-
