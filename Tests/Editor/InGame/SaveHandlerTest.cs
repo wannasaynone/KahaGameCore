@@ -25,17 +25,17 @@ namespace KahaGameCore.Tests
 
             TestGameSave testSave = new TestGameSave(System.Guid.NewGuid().ToString());
 
-            TestGameSave loadSave = saveDataHandler.LoadSave<TestGameSave>();
+            TestGameSave loadSave = saveDataHandler.LoadSave<TestGameSave>(0);
             Assert.IsNull(loadSave);
 
-            saveDataHandler.Save(testSave);
-            loadSave = saveDataHandler.LoadSave<TestGameSave>();
+            saveDataHandler.Save(testSave, 0);
+            loadSave = saveDataHandler.LoadSave<TestGameSave>(0);
 
             Assert.IsNotNull(loadSave);
             Assert.AreEqual(testSave.UID, loadSave.UID);
 
-            Assert.IsTrue(saveDataHandler.DeleteSave<TestGameSave>());
-            loadSave = saveDataHandler.LoadSave<TestGameSave>();
+            Assert.IsTrue(saveDataHandler.DeleteSave<TestGameSave>(0));
+            loadSave = saveDataHandler.LoadSave<TestGameSave>(0);
             Assert.IsNull(loadSave);
         }
     }
