@@ -1,4 +1,4 @@
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.Package.DialogueSystem
 {
     public interface IDialogueFactory
     {

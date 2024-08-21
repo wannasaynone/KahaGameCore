@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace KahaGameCore.Input.Mono
@@ -34,6 +35,15 @@ namespace KahaGameCore.Input.Mono
             }
         }
 
+        private enum MoveDirection
+        {
+            Up,
+            Down,
+            Left,
+            Right,
+            None
+        }
+        private List<MoveDirection> moveDirectionInputOrder = new List<MoveDirection>();
         private void UpdateNormalInput()
         {
             if (UnityEngine.Input.GetMouseButtonUp(0))
@@ -41,25 +51,81 @@ namespace KahaGameCore.Input.Mono
                 InputEventHanlder.Mouse.RiseSingleTapped();
             }
 
-            if (UnityEngine.Input.GetKey(KeyCode.W) || UnityEngine.Input.GetKey(KeyCode.UpArrow))
+            if (UnityEngine.Input.GetKeyDown(KeyCode.W) || UnityEngine.Input.GetKeyDown(KeyCode.UpArrow))
             {
-                InputEventHanlder.Movement.RiseMovingUp();
+                moveDirectionInputOrder.Add(MoveDirection.Up);
             }
 
-            if (UnityEngine.Input.GetKey(KeyCode.S) || UnityEngine.Input.GetKey(KeyCode.DownArrow))
+            if (UnityEngine.Input.GetKeyDown(KeyCode.S) || UnityEngine.Input.GetKeyDown(KeyCode.DownArrow))
             {
-                InputEventHanlder.Movement.RiseMovingDown();
+                moveDirectionInputOrder.Add(MoveDirection.Down);
             }
 
-            if (UnityEngine.Input.GetKey(KeyCode.A) || UnityEngine.Input.GetKey(KeyCode.LeftArrow))
+            if (UnityEngine.Input.GetKeyDown(KeyCode.A) || UnityEngine.Input.GetKeyDown(KeyCode.LeftArrow))
             {
-                InputEventHanlder.Movement.RiseMovingLeft();
+                moveDirectionInputOrder.Add(MoveDirection.Left);
             }
 
-            if (UnityEngine.Input.GetKey(KeyCode.D) || UnityEngine.Input.GetKey(KeyCode.RightArrow))
+            if (UnityEngine.Input.GetKeyDown(KeyCode.D) || UnityEngine.Input.GetKeyDown(KeyCode.RightArrow))
             {
-                InputEventHanlder.Movement.RiseMovingRight();
+                moveDirectionInputOrder.Add(MoveDirection.Right);
             }
+
+            if (UnityEngine.Input.GetKeyUp(KeyCode.W) || UnityEngine.Input.GetKeyUp(KeyCode.UpArrow))
+            {
+                moveDirectionInputOrder.Remove(MoveDirection.Up);
+                if (moveDirectionInputOrder.Count == 0)
+                {
+                    InputEventHanlder.Movement.RiseReleased();
+                }
+            }
+
+            if (UnityEngine.Input.GetKeyUp(KeyCode.S) || UnityEngine.Input.GetKeyUp(KeyCode.DownArrow))
+            {
+                moveDirectionInputOrder.Remove(MoveDirection.Down);
+                if (moveDirectionInputOrder.Count == 0)
+                {
+                    InputEventHanlder.Movement.RiseReleased();
+                }
+            }
+
+            if (UnityEngine.Input.GetKeyUp(KeyCode.A) || UnityEngine.Input.GetKeyUp(KeyCode.LeftArrow))
+            {
+                moveDirectionInputOrder.Remove(MoveDirection.Left);
+                if (moveDirectionInputOrder.Count == 0)
+                {
+                    InputEventHanlder.Movement.RiseReleased();
+                }
+            }
+
+            if (UnityEngine.Input.GetKeyUp(KeyCode.D) || UnityEngine.Input.GetKeyUp(KeyCode.RightArrow))
+            {
+                moveDirectionInputOrder.Remove(MoveDirection.Right);
+                if (moveDirectionInputOrder.Count == 0)
+                {
+                    InputEventHanlder.Movement.RiseReleased();
+                }
+            }
+
+            if (moveDirectionInputOrder.Count > 0)
+                switch (moveDirectionInputOrder[moveDirectionInputOrder.Count - 1])
+                {
+                    case MoveDirection.Up:
+                        InputEventHanlder.Movement.RiseMovingUp();
+                        break;
+                    case MoveDirection.Down:
+                        InputEventHanlder.Movement.RiseMovingDown();
+                        break;
+                    case MoveDirection.Left:
+                        InputEventHanlder.Movement.RiseMovingLeft();
+                        break;
+                    case MoveDirection.Right:
+                        InputEventHanlder.Movement.RiseMovingRight();
+                        break;
+                    case MoveDirection.None:
+                        InputEventHanlder.Movement.RiseReleased();
+                        break;
+                }
 
             if (UnityEngine.Input.GetKeyUp(KeyCode.Space))
             {

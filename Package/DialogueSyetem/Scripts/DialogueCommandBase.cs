@@ -1,7 +1,7 @@
 using System;
 using KahaGameCore.Processor;
 
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.Package.DialogueSystem
 {
     public abstract class DialogueCommandBase : IProcessable
     {

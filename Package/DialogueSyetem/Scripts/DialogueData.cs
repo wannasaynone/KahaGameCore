@@ -1,6 +1,6 @@
 using KahaGameCore.GameData;
 
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.Package.DialogueSystem
 {
     public class DialogueData : IGameData
     {

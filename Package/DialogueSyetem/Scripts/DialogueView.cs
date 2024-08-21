@@ -4,7 +4,7 @@ using TMPro;
 using System;
 using DG.Tweening;
 
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.Package.DialogueSystem
 {
     public class DialogueView : MonoBehaviour, IDialogueView
     {

@@ -54,22 +54,48 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void Double_tap()
+        public void Lock_Mouse()
         {
+            object locker = new object();
+            InputEventHanlder.LockMouse(locker);
             int counter = 0;
-            InputEventHanlder.Mouse.OnDoubleTapped += delegate
+            InputEventHanlder.Mouse.OnSingleTapped += delegate
             {
                 counter++;
             };
-            InputEventHanlder.Mouse.RiseDoubleTapped();
-            Assert.AreEqual(1, counter);
+            InputEventHanlder.Mouse.OnPressing += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.Mouse.OnSwiped += delegate (UnityEngine.Vector2 dir)
+            {
+                counter++;
+            };
+            InputEventHanlder.Mouse.OnDrag += delegate (UnityEngine.Vector2 dir)
+            {
+                counter++;
+            };
+            InputEventHanlder.Mouse.RiseSingleTapped();
+            InputEventHanlder.Mouse.RisePressing();
+            InputEventHanlder.Mouse.RiseSwiped(new UnityEngine.Vector2(1f, 1f));
+            InputEventHanlder.Mouse.RiseDrag(new UnityEngine.Vector2(1f, 1f));
+            Assert.AreEqual(0, counter);
+
+            InputEventHanlder.UnlockMouse(locker);
+
+            InputEventHanlder.Mouse.RiseSingleTapped();
+            InputEventHanlder.Mouse.RisePressing();
+            InputEventHanlder.Mouse.RiseSwiped(new UnityEngine.Vector2(1f, 1f));
+            InputEventHanlder.Mouse.RiseDrag(new UnityEngine.Vector2(1f, 1f));
+            Assert.AreEqual(4, counter);
         }
+
 
         [Test]
         public void IsMovingUp()
         {
             int counter = 0;
-            InputEventHanlder.Movement.IsMovingUp += delegate
+            InputEventHanlder.Movement.OnMovingUp += delegate
             {
                 counter++;
             };
@@ -81,7 +107,7 @@ namespace KahaGameCore.Tests
         public void IsMovingDown()
         {
             int counter = 0;
-            InputEventHanlder.Movement.IsMovingDown += delegate
+            InputEventHanlder.Movement.OnMovingDown += delegate
             {
                 counter++;
             };
@@ -93,7 +119,7 @@ namespace KahaGameCore.Tests
         public void IsMovingLeft()
         {
             int counter = 0;
-            InputEventHanlder.Movement.IsMovingLeft += delegate
+            InputEventHanlder.Movement.OnMovingLeft += delegate
             {
                 counter++;
             };
@@ -105,7 +131,7 @@ namespace KahaGameCore.Tests
         public void IsMovingRight()
         {
             int counter = 0;
-            InputEventHanlder.Movement.IsMovingRight += delegate
+            InputEventHanlder.Movement.OnMovingRight += delegate
             {
                 counter++;
             };
@@ -117,12 +143,73 @@ namespace KahaGameCore.Tests
         public void IsInteracting()
         {
             int counter = 0;
-            InputEventHanlder.Movement.IsInteracting += delegate
+            InputEventHanlder.Movement.OnInteracting += delegate
             {
                 counter++;
             };
             InputEventHanlder.Movement.RiseInteracting();
             Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void Released()
+        {
+            int counter = 0;
+            InputEventHanlder.Movement.OnReleased += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.Movement.RiseReleased();
+            Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void Lock_Movement()
+        {
+            object locker = new object();
+            InputEventHanlder.LockMovement(locker);
+            int counter = 0;
+            InputEventHanlder.Movement.OnMovingUp += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.Movement.OnMovingDown += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.Movement.OnMovingLeft += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.Movement.OnMovingRight += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.Movement.OnInteracting += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.Movement.OnReleased += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.Movement.RiseMovingUp();
+            InputEventHanlder.Movement.RiseMovingDown();
+            InputEventHanlder.Movement.RiseMovingLeft();
+            InputEventHanlder.Movement.RiseMovingRight();
+            InputEventHanlder.Movement.RiseInteracting();
+            InputEventHanlder.Movement.RiseReleased();
+            Assert.AreEqual(0, counter);
+
+            InputEventHanlder.UnlockMovement(locker);
+
+            InputEventHanlder.Movement.RiseMovingUp();
+            InputEventHanlder.Movement.RiseMovingDown();
+            InputEventHanlder.Movement.RiseMovingLeft();
+            InputEventHanlder.Movement.RiseMovingRight();
+            InputEventHanlder.Movement.RiseInteracting();
+            InputEventHanlder.Movement.RiseReleased();
+            Assert.AreEqual(6, counter);
         }
 
         [Test]
@@ -183,6 +270,49 @@ namespace KahaGameCore.Tests
             };
             InputEventHanlder.UserInterface.RiseHideInventoryCalled();
             Assert.AreEqual(1, counter);
+        }
+
+        [Test]
+        public void Lock_UserInterface()
+        {
+            object locker = new object();
+            InputEventHanlder.LockUserInterface(locker);
+            int counter = 0;
+            InputEventHanlder.UserInterface.OnOptionInViewSelected += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.UserInterface.OnMoveToPreviousOptionInView += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.UserInterface.MoveToNextOptionInView += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.UserInterface.OnInventoryCalled += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.UserInterface.OnHideInventoryCalled += delegate
+            {
+                counter++;
+            };
+            InputEventHanlder.UserInterface.RiseOptionInViewSelected();
+            InputEventHanlder.UserInterface.RiseMoveToPreviousOptionInView();
+            InputEventHanlder.UserInterface.RiseMoveToNextOptionInView();
+            InputEventHanlder.UserInterface.RiseInventoryCalled();
+            InputEventHanlder.UserInterface.RiseHideInventoryCalled();
+            Assert.AreEqual(0, counter);
+
+            InputEventHanlder.UnlockUserInterface(locker);
+
+            InputEventHanlder.UserInterface.RiseOptionInViewSelected();
+            InputEventHanlder.UserInterface.RiseMoveToPreviousOptionInView();
+            InputEventHanlder.UserInterface.RiseMoveToNextOptionInView();
+            InputEventHanlder.UserInterface.RiseInventoryCalled();
+            InputEventHanlder.UserInterface.RiseHideInventoryCalled();
+            Assert.AreEqual(5, counter);
         }
     }
 }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace KahaGameCore.DialogueSystem.DialogueCommand
+namespace KahaGameCore.Package.DialogueSystem.DialogueCommand
 {
     public class DialogueCommandFactory : IDialogueFactory
     {

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using KahaGameCore.Processor;
 
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.Package.DialogueSystem
 {
     public class DialogueProcesser
     {

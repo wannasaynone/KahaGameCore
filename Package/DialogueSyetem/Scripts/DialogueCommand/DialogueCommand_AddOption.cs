@@ -1,6 +1,6 @@
 using System;
 
-namespace KahaGameCore.DialogueSystem.DialogueCommand
+namespace KahaGameCore.Package.DialogueSystem.DialogueCommand
 {
     public class DialogueCommand_AddOption : DialogueCommandBase
     {

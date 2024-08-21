@@ -7,18 +7,19 @@ namespace KahaGameCore.Input
     {
         public static class Movement
         {
-            public static event Action IsMovingUp;
-            public static event Action IsMovingDown;
-            public static event Action IsMovingLeft;
-            public static event Action IsMovingRight;
-            public static event Action IsInteracting;
+            public static event Action OnMovingUp;
+            public static event Action OnMovingDown;
+            public static event Action OnMovingLeft;
+            public static event Action OnMovingRight;
+            public static event Action OnInteracting;
+            public static event Action OnReleased;
 
             public static void RiseMovingUp()
             {
                 if (movementLocker.Count > 0)
                     return;
 
-                IsMovingUp?.Invoke();
+                OnMovingUp?.Invoke();
             }
 
             public static void RiseMovingDown()
@@ -26,7 +27,7 @@ namespace KahaGameCore.Input
                 if (movementLocker.Count > 0)
                     return;
 
-                IsMovingDown?.Invoke();
+                OnMovingDown?.Invoke();
             }
 
             public static void RiseMovingLeft()
@@ -34,7 +35,7 @@ namespace KahaGameCore.Input
                 if (movementLocker.Count > 0)
                     return;
 
-                IsMovingLeft?.Invoke();
+                OnMovingLeft?.Invoke();
             }
 
             public static void RiseMovingRight()
@@ -42,7 +43,7 @@ namespace KahaGameCore.Input
                 if (movementLocker.Count > 0)
                     return;
 
-                IsMovingRight?.Invoke();
+                OnMovingRight?.Invoke();
             }
 
             public static void RiseInteracting()
@@ -50,14 +51,21 @@ namespace KahaGameCore.Input
                 if (movementLocker.Count > 0)
                     return;
 
-                IsInteracting?.Invoke();
+                OnInteracting?.Invoke();
+            }
+
+            public static void RiseReleased()
+            {
+                if (movementLocker.Count > 0)
+                    return;
+
+                OnReleased?.Invoke();
             }
         }
 
         public static class Mouse
         {
             public static event Action OnSingleTapped;
-            public static event Action OnDoubleTapped;
             public static event Action OnPressing;
             public static event Action<UnityEngine.Vector2> OnSwiped;
             public static event Action<UnityEngine.Vector2> OnDrag;
@@ -68,14 +76,6 @@ namespace KahaGameCore.Input
                     return;
 
                 OnSingleTapped?.Invoke();
-            }
-
-            public static void RiseDoubleTapped()
-            {
-                if (mouseLocker.Count > 0)
-                    return;
-
-                OnDoubleTapped?.Invoke();
             }
 
             public static void RisePressing()

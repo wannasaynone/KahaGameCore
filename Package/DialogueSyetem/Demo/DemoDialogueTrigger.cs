@@ -1,5 +1,6 @@
 using System;
-using KahaGameCore.DialogueSystem;
+using KahaGameCore.Package.DialogueSystem;
+using KahaGameCore.Package.DialogueSystem.DialogueCommand;
 using UnityEngine;
 
 public class DemoDialogueTrigger : MonoBehaviour
@@ -15,7 +16,7 @@ public class DemoDialogueTrigger : MonoBehaviour
 
         gameStaticDataManager.Add<DialogueData>(gameStaticDataDeserializer.Read<DialogueData[]>(dialogueDataSource.text));
 
-        KahaGameCore.DialogueSystem.DialogueCommand.DialogueCommandFactory dialogueCommandFactory = new KahaGameCore.DialogueSystem.DialogueCommand.DialogueCommandFactory(true);
+        DialogueCommandFactory dialogueCommandFactory = new DialogueCommandFactory(true);
 
         DialogueManager.Initialize(gameStaticDataManager.GetAllGameData<DialogueData>(), dialogueCommandFactory);
     }

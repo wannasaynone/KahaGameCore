@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.Package.DialogueSystem
 {
     public interface IDialogueView
     {

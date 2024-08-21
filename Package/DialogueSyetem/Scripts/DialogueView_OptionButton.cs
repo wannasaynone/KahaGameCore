@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace KahaGameCore.DialogueSystem
+namespace KahaGameCore.Package.DialogueSystem
 {
     public class DialogueView_OptionButton : MonoBehaviour, IDialogueOptionButton, IPointerEnterHandler
     {
