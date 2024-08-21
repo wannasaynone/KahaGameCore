@@ -9,7 +9,8 @@
         "KahaGameCore.Combat.Processor",
         "KahaGameCore.Combat.Processor.EffectProcessor",
         "KahaGameCore.Combat",
-        "KahaGameCore.Input"
+        "KahaGameCore.Input",
+        "KahaGameCore.Actor"
     ],
     "includePlatforms": [
         "Editor"

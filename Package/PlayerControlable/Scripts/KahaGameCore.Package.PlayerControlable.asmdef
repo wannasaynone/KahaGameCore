@@ -1,0 +1,18 @@
+{
+    "name": "KahaGameCore.Package.PlayerControlable",
+    "rootNamespace": "",
+    "references": [
+        "GUID:b60007ad2ca63324298c68969207645c",
+        "GUID:ed339a495f13a4d44b03055703f6e1c1",
+        "GUID:b20c716d3f86ccf4e90aa1e5a46ebde6"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

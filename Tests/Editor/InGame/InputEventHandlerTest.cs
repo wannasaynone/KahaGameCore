@@ -240,7 +240,7 @@ namespace KahaGameCore.Tests
         public void MoveToNextOptionInView()
         {
             int counter = 0;
-            InputEventHanlder.UserInterface.MoveToNextOptionInView += delegate
+            InputEventHanlder.UserInterface.OnMoveToNextOptionInView += delegate
             {
                 counter++;
             };
@@ -286,7 +286,7 @@ namespace KahaGameCore.Tests
             {
                 counter++;
             };
-            InputEventHanlder.UserInterface.MoveToNextOptionInView += delegate
+            InputEventHanlder.UserInterface.OnMoveToNextOptionInView += delegate
             {
                 counter++;
             };

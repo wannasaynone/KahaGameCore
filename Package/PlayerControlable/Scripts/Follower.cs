@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace KahaGameCore.Package.GameActor
+namespace KahaGameCore.Package.PlayerControlable
 {
     public class Follower : MonoBehaviour
     {

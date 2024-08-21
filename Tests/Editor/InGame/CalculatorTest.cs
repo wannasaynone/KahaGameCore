@@ -1,10 +1,10 @@
 using NUnit.Framework;
-using KahaGameCore.Combat;
 using System;
+using KahaGameCore.Actor;
 
 namespace KahaGameCore.Tests
 {
-    public class CalculatorTest 
+    public class CalculatorTest
     {
         private class TestCombatUnit : IActor
         {
@@ -41,7 +41,6 @@ namespace KahaGameCore.Tests
             }
 
             public IValueContainer Stats { get; private set; } = new TestValueContainer();
-            public ISkillTrigger SkillTrigger => throw new NotImplementedException();
         }
 
         [Test]

@@ -30,7 +30,7 @@ namespace KahaGameCore.Package.DialogueSystem
         {
             Clear();
             Input.InputEventHanlder.UserInterface.OnMoveToPreviousOptionInView += OnMoveToPreviousOptionInView;
-            Input.InputEventHanlder.UserInterface.MoveToNextOptionInView += OnMoveToNextOptionInView;
+            Input.InputEventHanlder.UserInterface.OnMoveToNextOptionInView += OnMoveToNextOptionInView;
             Input.InputEventHanlder.UserInterface.OnOptionInViewSelected += OnOptionInViewSelected;
             Input.InputEventHanlder.UserInterface.OnOptionInViewSelected += OnPressedSelectButton;
             Input.InputEventHanlder.Mouse.OnSingleTapped += OnPressedSelectButton;
@@ -40,7 +40,7 @@ namespace KahaGameCore.Package.DialogueSystem
         {
             Clear();
             Input.InputEventHanlder.UserInterface.OnMoveToPreviousOptionInView -= OnMoveToPreviousOptionInView;
-            Input.InputEventHanlder.UserInterface.MoveToNextOptionInView -= OnMoveToNextOptionInView;
+            Input.InputEventHanlder.UserInterface.OnMoveToNextOptionInView -= OnMoveToNextOptionInView;
             Input.InputEventHanlder.UserInterface.OnOptionInViewSelected -= OnOptionInViewSelected;
             Input.InputEventHanlder.UserInterface.OnOptionInViewSelected -= OnPressedSelectButton;
             Input.InputEventHanlder.Mouse.OnSingleTapped -= OnPressedSelectButton;

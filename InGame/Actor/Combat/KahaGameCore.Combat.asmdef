@@ -1,0 +1,16 @@
+{
+    "name": "KahaGameCore.Combat",
+    "rootNamespace": "",
+    "references": [
+        "GUID:b20c716d3f86ccf4e90aa1e5a46ebde6"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

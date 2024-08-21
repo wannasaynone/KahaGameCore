@@ -1,10 +1,8 @@
-using System;
 using UnityEngine;
-using UnityEngine.XR;
 
-namespace KahaGameCore.Package.GameActor
+namespace KahaGameCore.Package.PlayerControlable
 {
-    public class GameActorAnimationPlayer : MonoBehaviour
+    public class SpriteSheetAnimationPlayer : MonoBehaviour
     {
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private int idleSpriteIndex = 1;

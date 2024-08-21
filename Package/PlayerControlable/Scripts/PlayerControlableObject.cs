@@ -1,10 +1,10 @@
 using System;
 using UnityEngine;
 
-namespace KahaGameCore.Package.GameActor
+namespace KahaGameCore.Package.PlayerControlable
 {
     [RequireComponent(typeof(Rigidbody2D))]
-    public class PlayerActor : MonoBehaviour
+    public class PlayerControlableObject : MonoBehaviour
     {
         [SerializeField] private float speed = 5f;
         [SerializeField] private float maxInteractDistance = 1.5f;

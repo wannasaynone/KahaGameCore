@@ -1,6 +1,6 @@
-namespace KahaGameCore.Combat
+namespace KahaGameCore.Actor
 {
-    public interface IValueContainer 
+    public interface IValueContainer
     {
         int GetTotal(string tag, bool baseOnly);
         System.Guid Add(string tag, int value);

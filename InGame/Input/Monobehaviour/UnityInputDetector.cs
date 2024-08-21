@@ -8,8 +8,8 @@ namespace KahaGameCore.Input.Mono
     {
         private void Update()
         {
-            UpdateNormalInput();
             UpdateInViewInput();
+            UpdateNormalInput();
         }
 
         private void UpdateInViewInput()

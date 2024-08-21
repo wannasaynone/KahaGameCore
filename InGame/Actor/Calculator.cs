@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace KahaGameCore.Combat
+namespace KahaGameCore.Actor
 {
     public static class Calculator
     {
@@ -25,7 +25,7 @@ namespace KahaGameCore.Combat
                     continue;
                 }
 
-                if(i == data.formula.Length - 1 && data.formula[i] != ')')
+                if (i == data.formula.Length - 1 && data.formula[i] != ')')
                 {
                     _buffer[_buffer.Count - 1] += data.formula[i];
                 }
@@ -40,9 +40,9 @@ namespace KahaGameCore.Combat
                         if (_blockResult.Contains(",") || !_blockResult.Contains(".") && !int.TryParse(_blockResult, out int r))
                         {
                             string _commandBuffer = ""; // start get command
-                            for(int j = _buffer[_buffer.Count - 2].Length - 1; j >= 0; j--)
+                            for (int j = _buffer[_buffer.Count - 2].Length - 1; j >= 0; j--)
                             {
-                                if(_buffer[_buffer.Count - 2][j] != '+'
+                                if (_buffer[_buffer.Count - 2][j] != '+'
                                     && _buffer[_buffer.Count - 2][j] != '-'
                                     && _buffer[_buffer.Count - 2][j] != '*'
                                     && _buffer[_buffer.Count - 2][j] != '/'
@@ -74,7 +74,7 @@ namespace KahaGameCore.Combat
                             continue;
                         }
 
-                        if(int.TryParse(_blockResult, out int _blockValue))
+                        if (int.TryParse(_blockResult, out int _blockValue))
                         {
                             _buffer[_buffer.Count - 2] += _blockValue;
                         }
@@ -163,7 +163,7 @@ namespace KahaGameCore.Combat
         private static int GetValueByParaString(CalculateData data, string paraString)
         {
             bool _minus = false;
-            if(paraString.StartsWith("-"))
+            if (paraString.StartsWith("-"))
             {
                 paraString = paraString.Remove(0, 1);
                 _minus = true;
@@ -315,7 +315,7 @@ namespace KahaGameCore.Combat
             {
                 if (_mathString[_mathStringIndex] == '+' || _mathString[_mathStringIndex] == '-')
                 {
-                    if(_mathStringIndex == 0)
+                    if (_mathStringIndex == 0)
                     {
                         continue;
                     }
@@ -333,7 +333,7 @@ namespace KahaGameCore.Combat
                             break;
                         }
 
-                        if(_mathString[_recordIndex] == '-')
+                        if (_mathString[_recordIndex] == '-')
                         {
                             if (_recordIndex == 0)
                             {

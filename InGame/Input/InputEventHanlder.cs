@@ -107,7 +107,7 @@ namespace KahaGameCore.Input
         {
             public static event Action OnOptionInViewSelected;
             public static event Action OnMoveToPreviousOptionInView;
-            public static event Action MoveToNextOptionInView;
+            public static event Action OnMoveToNextOptionInView;
             public static event Action OnInventoryCalled;
             public static event Action OnHideInventoryCalled;
 
@@ -132,7 +132,7 @@ namespace KahaGameCore.Input
                 if (userInterfaceLocker.Count > 0)
                     return;
 
-                MoveToNextOptionInView?.Invoke();
+                OnMoveToNextOptionInView?.Invoke();
             }
 
             public static void RiseInventoryCalled()
