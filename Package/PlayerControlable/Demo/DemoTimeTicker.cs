@@ -7,23 +7,6 @@ public class DemoTimeTicker : MonoBehaviour
     public int day;
     public int time;
 
-    public float tickTimer = 0f;
-
-    private void Update()
-    {
-        tickTimer += Time.deltaTime;
-        if (tickTimer >= 1f)
-        {
-            tickTimer = 0f;
-            time += 1;
-            if (time >= 24)
-            {
-                time = 0;
-                day += 1;
-            }
-        }
-    }
-
     private void LateUpdate()
     {
         if (interactState == InteractState.WaitOneFrame)
@@ -74,6 +57,11 @@ public class DemoTimeTicker : MonoBehaviour
 
         string returnString = interactManager.Interact(interactingObject.InteractTargetTag, actionTypes[selectingActionIndex], generalActor, day, time);
         Debug.Log("returnString=" + returnString);
+
+        if (returnString == "Get A")
+        {
+            generalActor.Stats.Add("A", 1);
+        }
 
         KahaGameCore.Input.InputEventHanlder.UnlockMovement(this);
 
