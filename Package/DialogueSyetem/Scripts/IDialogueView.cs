@@ -9,6 +9,8 @@ namespace KahaGameCore.Package.DialogueSystem
         void SetLeftCharacterImage(string spriteName, Action onCompleted = null);
         void SetRightCharacterImage(Sprite sprite, Action onCompleted = null);
         void SetRightCharacterImage(string spriteName, Action onCompleted = null);
+        void SetCenterCharacterImage(Sprite sprite, Action onCompleted = null);
+        void SetCenterCharacterImage(string spriteName, Action onCompleted = null);
         void HighlightLeftCharacterImage(Action onCompleted = null);
         void HighlightRightCharacterImage(Action onCompleted = null);
         void HighlightAllCharacterImage(Action onCompleted = null);

@@ -34,6 +34,18 @@ namespace KahaGameCore.Package.DialogueSystem.DialogueCommand
                     DialogueView.SetRightCharacterImage(DialogueData.Arg2, onCompleted);
                 }
             }
+            else if (DialogueData.Arg1 == "Center")
+            {
+                if (DialogueData.Arg3 == "NoWait")
+                {
+                    DialogueView.SetCenterCharacterImage(DialogueData.Arg2);
+                    onCompleted?.Invoke();
+                }
+                else
+                {
+                    DialogueView.SetCenterCharacterImage(DialogueData.Arg2, onCompleted);
+                }
+            }
             else
             {
                 Debug.LogError("Invalid Arg1: " + DialogueData.Arg1);

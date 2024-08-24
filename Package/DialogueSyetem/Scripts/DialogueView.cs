@@ -12,6 +12,8 @@ namespace KahaGameCore.Package.DialogueSystem
         [SerializeField] private Image leftCharacterImage;
         [SerializeField] private Transform rightCharacterTransform;
         [SerializeField] private Image rightCharacterImage;
+        [SerializeField] private Transform centerCharacterTransform;
+        [SerializeField] private Image centerCharacterImage;
         [SerializeField] private GameObject dialoguePanelRoot;
         [SerializeField] private GameObject cgDialoguePanelRoot;
         [SerializeField] private TextMeshProUGUI contentText;
@@ -105,7 +107,18 @@ namespace KahaGameCore.Package.DialogueSystem
 
         public void SetLeftCharacterImage(string spriteName, Action onCompleted = null)
         {
-            SetLeftCharacterImage(Resources.Load<Sprite>($"Character/{spriteName}"), onCompleted);
+            SetLeftCharacterImage(Resources.Load<Sprite>(spriteName), onCompleted);
+        }
+
+        public void SetCenterCharacterImage(Sprite sprite, Action onCompleted = null)
+        {
+            centerCharacterImage.sprite = sprite;
+            ShowCharacterImage(centerCharacterImage, centerCharacterTransform, Vector3.zero, onCompleted);
+        }
+
+        public void SetCenterCharacterImage(string spriteName, Action onCompleted = null)
+        {
+            SetCenterCharacterImage(Resources.Load<Sprite>(spriteName), onCompleted);
         }
 
         private void ShowCharacterImage(Image image, Transform root, Vector3 add, Action onShown)
@@ -146,7 +159,7 @@ namespace KahaGameCore.Package.DialogueSystem
 
         public void SetRightCharacterImage(string spriteName, Action onCompleted = null)
         {
-            SetRightCharacterImage(Resources.Load<Sprite>($"Character/{spriteName}"), onCompleted);
+            SetRightCharacterImage(Resources.Load<Sprite>($"{spriteName}"), onCompleted);
         }
 
         public void SetContentText(string text, Action onCompleted = null)
@@ -211,12 +224,16 @@ namespace KahaGameCore.Package.DialogueSystem
         {
             public Sprite leftCharacterSprite;
             public Sprite rightCharacterSprite;
+            public Sprite centerCharacterSprite;
             public Color leftCharacterColor;
             public Color rightCharacterColor;
+            public Color centerCharacterColor;
             public bool leftCharacterImageEnabled;
             public bool rightCharacterImageEnabled;
+            public bool centerCharacterImageEnabled;
             public Vector3 leftCharacterImagePosition;
             public Vector3 rightCharacterImagePosition;
+            public Vector3 centerCharacterImagePosition;
         }
 
         private ResumeData resumeData;
@@ -267,7 +284,7 @@ namespace KahaGameCore.Package.DialogueSystem
 
         public void ShowCGImage(string spriteName, Action onCompleted = null)
         {
-            Sprite sprite = Resources.Load<Sprite>($"CG/{spriteName}");
+            Sprite sprite = Resources.Load<Sprite>($"{spriteName}");
             ShowCGImage(sprite, onCompleted);
         }
 
@@ -309,12 +326,16 @@ namespace KahaGameCore.Package.DialogueSystem
             {
                 leftCharacterSprite = leftCharacterImage.sprite,
                 rightCharacterSprite = rightCharacterImage.sprite,
+                centerCharacterSprite = centerCharacterImage.sprite,
                 leftCharacterColor = leftCharacterImage.color,
                 rightCharacterColor = rightCharacterImage.color,
+                centerCharacterColor = centerCharacterImage.color,
                 leftCharacterImageEnabled = leftCharacterImage.enabled,
                 rightCharacterImageEnabled = rightCharacterImage.enabled,
+                centerCharacterImageEnabled = centerCharacterImage.enabled,
                 leftCharacterImagePosition = leftCharacterImage.transform.localPosition,
-                rightCharacterImagePosition = rightCharacterImage.transform.localPosition
+                rightCharacterImagePosition = rightCharacterImage.transform.localPosition,
+                centerCharacterImagePosition = centerCharacterImage.transform.localPosition
             };
         }
 
@@ -322,12 +343,16 @@ namespace KahaGameCore.Package.DialogueSystem
         {
             leftCharacterImage.sprite = resumeData.leftCharacterSprite;
             rightCharacterImage.sprite = resumeData.rightCharacterSprite;
+            centerCharacterImage.sprite = resumeData.centerCharacterSprite;
             leftCharacterImage.color = resumeData.leftCharacterColor;
             rightCharacterImage.color = resumeData.rightCharacterColor;
+            centerCharacterImage.color = resumeData.centerCharacterColor;
             leftCharacterImage.enabled = resumeData.leftCharacterImageEnabled;
             rightCharacterImage.enabled = resumeData.rightCharacterImageEnabled;
+            centerCharacterImage.enabled = resumeData.centerCharacterImageEnabled;
             leftCharacterImage.transform.localPosition = resumeData.leftCharacterImagePosition;
             rightCharacterImage.transform.localPosition = resumeData.rightCharacterImagePosition;
+            centerCharacterImage.transform.localPosition = resumeData.centerCharacterImagePosition;
         }
 
         public void ClearOptions()
@@ -344,6 +369,7 @@ namespace KahaGameCore.Package.DialogueSystem
         {
             leftCharacterImage.enabled = false;
             rightCharacterImage.enabled = false;
+            centerCharacterImage.enabled = false;
             contentText.text = string.Empty;
             nameText.text = string.Empty;
             contentText_CG.text = string.Empty;
