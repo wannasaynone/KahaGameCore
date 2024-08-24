@@ -163,6 +163,16 @@ namespace KahaGameCore.Package.DialogueSystem
         {
             nameText.text = text;
             nameText_CG.text = text;
+            if (string.IsNullOrEmpty(text))
+            {
+                nameText.transform.parent.gameObject.SetActive(false);
+                nameText_CG.transform.parent.gameObject.SetActive(false);
+            }
+            else
+            {
+                nameText.transform.parent.gameObject.SetActive(true);
+                nameText_CG.transform.parent.gameObject.SetActive(true);
+            }
         }
 
         public IDialogueOptionButton AddOptionButton()
