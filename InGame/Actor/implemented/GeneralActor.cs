@@ -5,7 +5,13 @@ namespace KahaGameCore.Actor
 {
     public class GeneralValueContainer : IValueContainer
     {
-        private Dictionary<string, int> baseStats = new Dictionary<string, int>();
+        private class BaseStat
+        {
+            public string tag;
+            public int value;
+        }
+
+        private List<BaseStat> baseStats = new List<BaseStat>();
 
         private class TempStat
         {
@@ -31,13 +37,19 @@ namespace KahaGameCore.Actor
 
         public void AddBase(string tag, int value)
         {
-            if (baseStats.ContainsKey(tag))
+            BaseStat baseStat = baseStats.Find(x => x.tag == tag);
+            if (baseStat != null)
             {
-                baseStats[tag] += value;
+                baseStat.value += value;
             }
             else
             {
-                baseStats.Add(tag, value);
+                baseStat = new BaseStat
+                {
+                    tag = tag,
+                    value = value
+                };
+                baseStats.Add(baseStat);
             }
         }
 
@@ -53,9 +65,11 @@ namespace KahaGameCore.Actor
         public int GetTotal(string tag, bool baseOnly)
         {
             int total = 0;
-            if (baseStats.ContainsKey(tag))
+
+            BaseStat baseStat = baseStats.Find(x => x.tag == tag);
+            if (baseStat != null)
             {
-                total += baseStats[tag];
+                total += baseStat.value;
             }
 
             if (!baseOnly)
@@ -74,13 +88,10 @@ namespace KahaGameCore.Actor
 
         public void SetBase(string tag, int value)
         {
-            if (baseStats.ContainsKey(tag))
+            BaseStat baseStat = baseStats.Find(x => x.tag == tag);
+            if (baseStat != null)
             {
-                baseStats[tag] = value;
-            }
-            else
-            {
-                baseStats.Add(tag, value);
+                baseStat.value = value;
             }
         }
 
