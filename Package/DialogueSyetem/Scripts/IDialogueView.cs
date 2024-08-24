@@ -14,6 +14,8 @@ namespace KahaGameCore.Package.DialogueSystem
         void HighlightLeftCharacterImage(Action onCompleted = null);
         void HighlightRightCharacterImage(Action onCompleted = null);
         void HighlightAllCharacterImage(Action onCompleted = null);
+        void HighlightCenterCharacterImage(Action onCompleted = null);
+        void DehighlightCenterCharacterImage(Action onCompleted = null);
         void DehighlightLeftCharacterImage(Action onCompleted = null);
         void DehighlightRightCharacterImage(Action onCompleted = null);
         void DehighlightAllCharacterImage(Action onCompleted = null);

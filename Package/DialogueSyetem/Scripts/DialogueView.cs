@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System;
 using DG.Tweening;
+using UnityEngine.AI;
 
 namespace KahaGameCore.Package.DialogueSystem
 {
@@ -101,6 +102,12 @@ namespace KahaGameCore.Package.DialogueSystem
 
         public void SetLeftCharacterImage(Sprite sprite, Action onCompleted = null)
         {
+            if (sprite == null)
+            {
+                HideCharacterImage(leftCharacterImage, Vector3.zero, onCompleted);
+                return;
+            }
+
             leftCharacterImage.sprite = sprite;
             ShowCharacterImage(leftCharacterImage, leftCharacterTransform, Vector3.left * 300f, onCompleted);
         }
@@ -112,6 +119,12 @@ namespace KahaGameCore.Package.DialogueSystem
 
         public void SetCenterCharacterImage(Sprite sprite, Action onCompleted = null)
         {
+            if (sprite == null)
+            {
+                HideCharacterImage(centerCharacterImage, Vector3.zero, onCompleted);
+                return;
+            }
+
             centerCharacterImage.sprite = sprite;
             ShowCharacterImage(centerCharacterImage, centerCharacterTransform, Vector3.zero, onCompleted);
         }
@@ -124,6 +137,13 @@ namespace KahaGameCore.Package.DialogueSystem
         private void ShowCharacterImage(Image image, Transform root, Vector3 add, Action onShown)
         {
             gameObject.SetActive(true);
+
+            if (image.sprite == null)
+            {
+                image.enabled = false;
+                onShown?.Invoke();
+                return;
+            }
 
             if (image.enabled)
             {
@@ -140,7 +160,7 @@ namespace KahaGameCore.Package.DialogueSystem
             root.DOLocalMove(curPos, 0.5f).OnComplete(() => onShown?.Invoke());
         }
 
-        private void HideCharacterImage(Image image, Vector3 add)
+        private void HideCharacterImage(Image image, Vector3 add, Action onHidden = null)
         {
             Vector3 originPos = image.transform.localPosition;
             image.DOFade(0f, 0.5f);
@@ -148,11 +168,18 @@ namespace KahaGameCore.Package.DialogueSystem
             {
                 image.enabled = false;
                 image.transform.localPosition = originPos;
+                onHidden?.Invoke();
             });
         }
 
         public void SetRightCharacterImage(Sprite sprite, Action onCompleted = null)
         {
+            if (sprite == null)
+            {
+                HideCharacterImage(rightCharacterImage, Vector3.zero, onCompleted);
+                return;
+            }
+
             rightCharacterImage.sprite = sprite;
             ShowCharacterImage(rightCharacterImage, rightCharacterTransform, Vector3.right * 300f, onCompleted);
         }
@@ -468,6 +495,7 @@ namespace KahaGameCore.Package.DialogueSystem
         public void HighlightAllCharacterImage(Action onCompleted = null)
         {
             HighlightCharacterImage(leftCharacterImage, leftCharacterTransform, null);
+            HighlightCharacterImage(centerCharacterImage, centerCharacterTransform, null);
             HighlightCharacterImage(rightCharacterImage, rightCharacterTransform, onCompleted);
         }
 
@@ -490,7 +518,18 @@ namespace KahaGameCore.Package.DialogueSystem
         public void DehighlightAllCharacterImage(Action onCompleted = null)
         {
             DehighlightCharacterImage(leftCharacterImage, leftCharacterTransform, null);
-            DehighlightCharacterImage(rightCharacterImage, rightCharacterTransform, onCompleted);
+            DehighlightCharacterImage(rightCharacterImage, rightCharacterTransform, null);
+            DehighlightCharacterImage(centerCharacterImage, centerCharacterTransform, onCompleted);
+        }
+
+        public void HighlightCenterCharacterImage(Action onCompleted = null)
+        {
+            HighlightCharacterImage(centerCharacterImage, centerCharacterTransform, onCompleted);
+        }
+
+        public void DehighlightCenterCharacterImage(Action onCompleted = null)
+        {
+            DehighlightCharacterImage(centerCharacterImage, centerCharacterTransform, onCompleted);
         }
     }
 }

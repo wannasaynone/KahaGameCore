@@ -16,12 +16,21 @@ namespace KahaGameCore.Package.DialogueSystem.DialogueCommand
                     {
                         DialogueView.HighlightLeftCharacterImage();
                         DialogueView.DehighlightRightCharacterImage();
+                        DialogueView.DehighlightCenterCharacterImage();
                         break;
                     }
                 case "Right":
                     {
                         DialogueView.HighlightRightCharacterImage();
                         DialogueView.DehighlightLeftCharacterImage();
+                        DialogueView.DehighlightCenterCharacterImage();
+                        break;
+                    }
+                case "Center":
+                    {
+                        DialogueView.HighlightCenterCharacterImage();
+                        DialogueView.DehighlightLeftCharacterImage();
+                        DialogueView.DehighlightRightCharacterImage();
                         break;
                     }
                 case "None":
@@ -30,9 +39,12 @@ namespace KahaGameCore.Package.DialogueSystem.DialogueCommand
                         break;
                     }
                 case "All":
-                default:
                     {
                         DialogueView.HighlightAllCharacterImage();
+                        break;
+                    }
+                default:
+                    {
                         break;
                     }
             }
