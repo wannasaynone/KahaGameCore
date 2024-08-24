@@ -103,10 +103,98 @@ namespace KahaGameCore.Actor
                 tempStat.value = value;
             }
         }
+
+        public void Remove(Guid guid)
+        {
+            tempStats.RemoveAll(x => x.guid == guid);
+        }
+
+        public class SavableObject
+        {
+            public class BaseStat
+            {
+                public string tag;
+                public int value;
+            }
+
+            public List<BaseStat> baseStats = new List<BaseStat>();
+
+            public class TempStat
+            {
+                public string guid;
+                public string tag;
+                public int value;
+            }
+
+            public List<TempStat> tempStats = new List<TempStat>();
+        }
+
+        public SavableObject Convert()
+        {
+            SavableObject savableObject = new SavableObject();
+
+            foreach (var baseStat in baseStats)
+            {
+                SavableObject.BaseStat savableBaseStat = new SavableObject.BaseStat
+                {
+                    tag = baseStat.tag,
+                    value = baseStat.value
+                };
+                savableObject.baseStats.Add(savableBaseStat);
+            }
+
+            foreach (var tempStat in tempStats)
+            {
+                SavableObject.TempStat savableTempStat = new SavableObject.TempStat
+                {
+                    guid = tempStat.guid.ToString(),
+                    tag = tempStat.tag,
+                    value = tempStat.value
+                };
+                savableObject.tempStats.Add(savableTempStat);
+            }
+
+            return savableObject;
+        }
+
+        public void Load(SavableObject savableObject)
+        {
+            baseStats.Clear();
+            tempStats.Clear();
+
+            foreach (var baseStat in savableObject.baseStats)
+            {
+                baseStats.Add(new BaseStat
+                {
+                    tag = baseStat.tag,
+                    value = baseStat.value
+                });
+            }
+
+            foreach (var tempStat in savableObject.tempStats)
+            {
+                tempStats.Add(new TempStat
+                {
+                    guid = Guid.Parse(tempStat.guid),
+                    tag = tempStat.tag,
+                    value = tempStat.value
+                });
+            }
+        }
     }
 
     public class GeneralActor : IActor
     {
         public IValueContainer Stats { get; private set; } = new GeneralValueContainer();
+
+        public GeneralValueContainer.SavableObject GetSavableObject()
+        {
+            return (Stats as GeneralValueContainer).Convert();
+        }
+
+        public void Load(GeneralValueContainer.SavableObject savableObject)
+        {
+            (Stats as GeneralValueContainer).Load(savableObject);
+        }
     }
 }

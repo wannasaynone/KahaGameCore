@@ -38,6 +38,10 @@ namespace KahaGameCore.Tests
                 public void AddToTemp(Guid guid, int value)
                 {
                 }
+
+                public void Remove(Guid guid)
+                {
+                }
             }
 
             public IValueContainer Stats { get; private set; } = new TestValueContainer();

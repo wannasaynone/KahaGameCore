@@ -8,5 +8,6 @@ namespace KahaGameCore.Actor
         void SetTemp(System.Guid guid, int value);
         void AddBase(string tag, int value);
         void SetBase(string tag, int value);
+        void Remove(System.Guid guid);
     }
 }
