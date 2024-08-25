@@ -278,13 +278,13 @@ namespace KahaGameCore.Package.PlayerControlable
                         }
                         break;
                     case ValueComparer.CompareType.Greater:
-                        if (value < valueComparer.compareValue)
+                        if (value <= valueComparer.compareValue)
                         {
                             return false;
                         }
                         break;
                     case ValueComparer.CompareType.Less:
-                        if (value > valueComparer.compareValue)
+                        if (value >= valueComparer.compareValue)
                         {
                             return false;
                         }
