@@ -22,7 +22,7 @@ namespace KahaGameCore.Package.GameFlowSystem
         }
         private static GameManager instance;
 
-        public static void Initialize(InitializeFlowBase[] initializeFlowBases, Action onComplete)
+        public static void Initialize(InitializeFlowBase[] initializeFlowBases, Action onComplete, DialogueSystem.DialogueCommand.DialogueCommandFactory dialogueCommandFactory = null)
         {
             if (instance != null)
             {
@@ -34,8 +34,14 @@ namespace KahaGameCore.Package.GameFlowSystem
             Processor<InitializeFlowBase> initializeProcessor = new Processor<InitializeFlowBase>(initializeFlowBases);
             initializeProcessor.Start(delegate
             {
-                DialogueManager.Initialize(SharedRepoditory.gameStaticDataManager.GetAllGameData<DialogueData>(), new DialogueSystem.DialogueCommand.DialogueCommandFactory(true));
+                if (dialogueCommandFactory == null)
+                {
+                    dialogueCommandFactory = new DialogueSystem.DialogueCommand.DialogueCommandFactory(true);
+                }
+
+                DialogueManager.Initialize(SharedRepoditory.gameStaticDataManager.GetAllGameData<DialogueData>(), dialogueCommandFactory);
                 PlayerControlable.InteractManager.Initialize(SharedRepoditory.gameStaticDataManager.GetAllGameData<PlayerControlable.InteractData>());
+
                 onComplete?.Invoke();
             }, instance.OnInitializeForceQuit);
         }

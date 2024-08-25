@@ -1,4 +1,5 @@
 using System;
+using KahaGameCore.Package.DialogueSystem.DialogueCommand;
 using KahaGameCore.Package.GameFlowSystem;
 using UnityEngine;
 
@@ -15,11 +16,15 @@ public class GameStartMenu : MonoBehaviour
 
     public void StartGame()
     {
+        DialogueCommandFactory dialogueCommandFactory = new DialogueCommandFactory(true);
+        dialogueCommandFactory.RegisterCommandType("AddValue", typeof(DialogueCommand_AddValue));
+        dialogueCommandFactory.RegisterCommandType("SetValue", typeof(DialogueCommand_SetValue));
+
         GameManager.Initialize(new InitializeFlowBase[]
         {
             new InitializeFlow_ReadData(dialogueData, interactData),
             new InitializeFlow_RegisterUserInterface()
-        }, OnInitialCompleted);
+        }, OnInitialCompleted, dialogueCommandFactory);
 
         gameObject.SetActive(false);
     }

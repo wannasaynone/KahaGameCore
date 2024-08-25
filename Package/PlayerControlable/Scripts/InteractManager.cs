@@ -268,6 +268,7 @@ namespace KahaGameCore.Package.PlayerControlable
             {
                 ValueComparer valueComparer = valueComparers[i];
                 int value = actor.Stats.GetTotal(valueComparer.valueName, false);
+
                 switch (valueComparer.compareType)
                 {
                     case ValueComparer.CompareType.Equal:
@@ -277,13 +278,13 @@ namespace KahaGameCore.Package.PlayerControlable
                         }
                         break;
                     case ValueComparer.CompareType.Greater:
-                        if (value <= valueComparer.compareValue)
+                        if (value < valueComparer.compareValue)
                         {
                             return false;
                         }
                         break;
                     case ValueComparer.CompareType.Less:
-                        if (value >= valueComparer.compareValue)
+                        if (value > valueComparer.compareValue)
                         {
                             return false;
                         }

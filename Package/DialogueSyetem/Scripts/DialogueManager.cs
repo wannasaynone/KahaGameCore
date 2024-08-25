@@ -76,6 +76,7 @@ namespace KahaGameCore.Package.DialogueSystem
                 {
                     dialogueProcesser = null;
                     pendingOnAllCompleted.ForEach((onAllCompleted) => onAllCompleted?.Invoke());
+                    pendingOnAllCompleted.Clear();
                 });
             }
         }

@@ -31,7 +31,14 @@ namespace KahaGameCore.Package.DialogueSystem
 
         private void OnEnable()
         {
-            Clear();
+            leftCharacterImage.enabled = false;
+            rightCharacterImage.enabled = false;
+            centerCharacterImage.enabled = false;
+            cgImage.enabled = false;
+            lowerBlackScreen.enabled = false;
+            higherBlackScreen.enabled = false;
+            dialoguePanelRoot.SetActive(false);
+            cgDialoguePanelRoot.SetActive(false);
         }
 
         private bool isListeningInput = false;
