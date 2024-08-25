@@ -9,6 +9,7 @@ namespace KahaGameCore.Package.DialogueSystem
 {
     public class DialogueView : MonoBehaviour, IDialogueView
     {
+        [SerializeField] private Image background;
         [SerializeField] private Transform leftCharacterTransform;
         [SerializeField] private Image leftCharacterImage;
         [SerializeField] private Transform rightCharacterTransform;
@@ -31,14 +32,7 @@ namespace KahaGameCore.Package.DialogueSystem
 
         private void OnEnable()
         {
-            leftCharacterImage.enabled = false;
-            rightCharacterImage.enabled = false;
-            centerCharacterImage.enabled = false;
-            cgImage.enabled = false;
-            lowerBlackScreen.enabled = false;
-            higherBlackScreen.enabled = false;
-            dialoguePanelRoot.SetActive(false);
-            cgDialoguePanelRoot.SetActive(false);
+            Clear();
         }
 
         private bool isListeningInput = false;
@@ -414,13 +408,14 @@ namespace KahaGameCore.Package.DialogueSystem
 
         public void Clear()
         {
+            background.enabled = false;
             leftCharacterImage.enabled = false;
             rightCharacterImage.enabled = false;
             centerCharacterImage.enabled = false;
-            contentText.text = string.Empty;
-            nameText.text = string.Empty;
-            contentText_CG.text = string.Empty;
-            nameText_CG.text = string.Empty;
+            // contentText.text = string.Empty;
+            // nameText.text = string.Empty;
+            // contentText_CG.text = string.Empty;
+            // nameText_CG.text = string.Empty;
             cgImage.enabled = false;
             lowerBlackScreen.enabled = false;
             higherBlackScreen.enabled = false;
@@ -568,6 +563,24 @@ namespace KahaGameCore.Package.DialogueSystem
         public void DehighlightCenterCharacterImage(Action onCompleted = null)
         {
             DehighlightCharacterImage(centerCharacterImage, centerCharacterTransform, onCompleted);
+        }
+
+        public void HideBG()
+        {
+            background.enabled = false;
+        }
+
+        public void SetBG(string spriteName)
+        {
+            Sprite sprite = Resources.Load<Sprite>(spriteName);
+            SetBG(sprite);
+        }
+
+        public void SetBG(Sprite sprite)
+        {
+            gameObject.SetActive(true);
+            background.sprite = sprite;
+            background.enabled = true;
         }
     }
 }

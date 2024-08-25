@@ -28,5 +28,8 @@ namespace KahaGameCore.Package.DialogueSystem
         void HideCGImage(Action onCompleted = null);
         void ClearOptions();
         void Hide(Action onCompleted = null);
+        void HideBG();
+        void SetBG(Sprite sprite);
+        void SetBG(string spriteName);
     }
 }

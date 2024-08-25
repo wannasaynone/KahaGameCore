@@ -24,6 +24,8 @@ namespace KahaGameCore.Package.DialogueSystem.DialogueCommand
             RegisterCommandType("SetCharacter", typeof(DialogueCommand_SetCharacter));
             RegisterCommandType("ShowCG", typeof(DialogueCommand_ShowCG));
             RegisterCommandType("HideCG", typeof(DialogueCommand_HideCG));
+            RegisterCommandType("SetBG", typeof(DialogueCommand_SetBG));
+            RegisterCommandType("HideBG", typeof(DialogueCommand_HideBG));
         }
 
         public void RegisterCommandType(string command, System.Type type)
