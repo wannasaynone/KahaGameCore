@@ -80,11 +80,6 @@ public class GameFlow_SelectAction : GameFlowBase
         }
         else
         {
-            if (SharedRepoditory.playerInstance.Stats.GetTotal("Time", true) >= 10 && SharedRepoditory.playerInstance.Stats.GetTotal("Time", true) <= 11)
-            {
-                SharedRepoditory.playerInstance.Stats.SetBase("DidWork", 0);
-            }
-
             GameManager.Insatance.Save(0);
             inGameMenu.gameObject.SetActive(true);
         }

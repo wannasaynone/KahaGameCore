@@ -19,6 +19,7 @@ public class GameStartMenu : MonoBehaviour
         DialogueCommandFactory dialogueCommandFactory = new DialogueCommandFactory(true);
         dialogueCommandFactory.RegisterCommandType("AddValue", typeof(DialogueCommand_AddValue));
         dialogueCommandFactory.RegisterCommandType("SetValue", typeof(DialogueCommand_SetValue));
+        dialogueCommandFactory.RegisterCommandType("IfValue", typeof(DialogueCommand_IfValue));
 
         GameManager.Initialize(new InitializeFlowBase[]
         {
