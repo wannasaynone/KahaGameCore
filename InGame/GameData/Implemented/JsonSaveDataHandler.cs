@@ -14,7 +14,7 @@ namespace KahaGameCore.GameData.Implemented
             m_reader = reader;
         }
 
-        private string GetDefaultDataFilePath<T>(int index)
+        private static string GetDefaultDataFilePath<T>(int index)
         {
             string filePath = GetDefaultDataFolderPath();
 
@@ -26,6 +26,12 @@ namespace KahaGameCore.GameData.Implemented
             string fileName = GetFileName<T>();
 
             return filePath + index + "/" + fileName;
+        }
+
+        public static bool IsSaveExist<T>(int index)
+        {
+            string filePath = GetDefaultDataFilePath<T>(index);
+            return File.Exists(filePath);
         }
 
         public bool DeleteSave<T>(int index)
@@ -84,14 +90,14 @@ namespace KahaGameCore.GameData.Implemented
             Debug.Log("Saved:" + path);
         }
 
-        private string GetFileName<T>()
+        private static string GetFileName<T>()
         {
             string[] fullName = typeof(T).FullName.ToString().Split('.');
             string[] fullClassName = fullName[fullName.Length - 1].Split('+');
             return fullClassName[fullClassName.Length - 1].Replace("[]", "") + ".txt";
         }
 
-        private string GetDefaultDataFolderPath()
+        private static string GetDefaultDataFolderPath()
         {
             return Application.persistentDataPath + "/Resources/Datas/";
         }

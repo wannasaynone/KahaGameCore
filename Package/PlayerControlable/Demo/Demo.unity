@@ -154,8 +154,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   day: 0
   time: 0
-  tickTimer: 0
-  interactDataTextAsset: {fileID: 4900000, guid: 35352713e52c8af448a272da12d0ac36,
+  interactDataTextAsset: {fileID: 4900000, guid: a47499388f4622a46abd473f98ac115f,
     type: 3}
 --- !u!4 &400414393
 Transform:
@@ -530,7 +529,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 5
-  maxInteractDistance: 1.5
 --- !u!50 &881076553
 Rigidbody2D:
   serializedVersion: 4

@@ -32,6 +32,18 @@ namespace KahaGameCore.Package.DialogueSystem
         private void OnEnable()
         {
             Clear();
+        }
+
+        private bool isListeningInput = false;
+        private void StartListeningInput()
+        {
+            if (isListeningInput)
+            {
+                return;
+            }
+
+            isListeningInput = true;
+
             Input.InputEventHanlder.UserInterface.OnMoveToPreviousOptionInView += OnMoveToPreviousOptionInView;
             Input.InputEventHanlder.UserInterface.OnMoveToNextOptionInView += OnMoveToNextOptionInView;
             Input.InputEventHanlder.UserInterface.OnOptionInViewSelected += OnOptionInViewSelected;
@@ -47,6 +59,7 @@ namespace KahaGameCore.Package.DialogueSystem
             Input.InputEventHanlder.UserInterface.OnOptionInViewSelected -= OnOptionInViewSelected;
             Input.InputEventHanlder.UserInterface.OnOptionInViewSelected -= OnPressedSelectButton;
             Input.InputEventHanlder.Mouse.OnSingleTapped -= OnPressedSelectButton;
+            isListeningInput = false;
         }
 
         private void OnOptionInViewSelected()
@@ -154,7 +167,7 @@ namespace KahaGameCore.Package.DialogueSystem
             Vector3 curPos = root.localPosition;
             root.localPosition += add;
             root.localScale = new Vector3(0.9f, 0.9f, 1f);
-            image.color = Color.gray;
+            image.color = new Color(Color.gray.r, Color.gray.g, Color.gray.b, 0f);
             image.DOFade(1f, 0.5f);
 
             root.DOLocalMove(curPos, 0.5f).OnComplete(() => onShown?.Invoke());
@@ -416,10 +429,27 @@ namespace KahaGameCore.Package.DialogueSystem
 
         private System.Collections.IEnumerator IEHide(Action onCompleted = null)
         {
-            HideCharacterImage(leftCharacterImage, Vector3.left * 300f);
-            HideCharacterImage(rightCharacterImage, Vector3.right * 300f);
+            bool isShowing = leftCharacterImage.enabled || rightCharacterImage.enabled || centerCharacterImage.enabled;
+            if (leftCharacterImage.enabled)
+            {
+                HideCharacterImage(leftCharacterImage, Vector3.left * 300f);
+            }
+            if (rightCharacterImage.enabled)
+            {
+                HideCharacterImage(rightCharacterImage, Vector3.right * 300f);
+            }
+            if (centerCharacterImage.enabled)
+            {
+                HideCharacterImage(centerCharacterImage, Vector3.zero);
+            }
+
             dialoguePanelRoot.SetActive(false);
-            yield return new WaitForSeconds(0.5f);
+
+            if (isShowing)
+                yield return new WaitForSeconds(0.5f);
+            else
+                yield return null;
+
             gameObject.SetActive(false);
             onCompleted?.Invoke();
         }
@@ -458,6 +488,7 @@ namespace KahaGameCore.Package.DialogueSystem
             {
                 contentText.text += text[i];
                 contentText_CG.text += text[i];
+                StartListeningInput();
                 while (timer < 0.1f)
                 {
                     timer += Time.deltaTime;

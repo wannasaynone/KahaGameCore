@@ -430,7 +430,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0932dbe33a41c6348b76d2844f1da191, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dialogueDataSource: {fileID: 4900000, guid: 330d48223ff31b4458817404bd389714, type: 3}
+  dialogueDataSource: {fileID: 4900000, guid: 496b53e1ec3efb543b6267dbe11f202a, type: 3}
   dialogueView: {fileID: 2076177462}
   demoButtonRoot: {fileID: 2027783520}
 --- !u!1 &1665195786

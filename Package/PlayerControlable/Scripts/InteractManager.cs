@@ -5,7 +5,23 @@ namespace KahaGameCore.Package.PlayerControlable
 {
     public class InteractManager
     {
-        private readonly InteractData[] sourceDatas;
+        public static InteractManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    Debug.LogError("InteractManager is not initialized. Please call InteractManager.Initialize() first.");
+                    return null;
+                }
+                return instance;
+            }
+        }
+        private static InteractManager instance;
+
+        private InteractManager() { }
+
+        private static InteractData[] sourceDatas;
 
         private class TargetTagToInteractData
         {
@@ -21,22 +37,30 @@ namespace KahaGameCore.Package.PlayerControlable
 
         private List<TargetTagToInteractData> targetTagToInteractDatas = new List<TargetTagToInteractData>();
 
-        public InteractManager(InteractData[] interactDatas)
+        public static void Initialize(InteractData[] interactDatas)
         {
+            if (instance != null)
+            {
+                Debug.LogError("InteractManager is already initialized.");
+                return;
+            }
+
+            instance = new InteractManager();
+
             sourceDatas = interactDatas;
 
             for (int i = 0; i < sourceDatas.Length; i++)
             {
                 InteractData interactData = sourceDatas[i];
 
-                TargetTagToInteractData targetTagToInteractData = targetTagToInteractDatas.Find(x => x.targetTag == interactData.InteractTargetTag);
+                TargetTagToInteractData targetTagToInteractData = instance.targetTagToInteractDatas.Find(x => x.targetTag == interactData.InteractTargetTag);
                 if (targetTagToInteractData == null)
                 {
                     targetTagToInteractData = new TargetTagToInteractData
                     {
                         targetTag = interactData.InteractTargetTag
                     };
-                    targetTagToInteractDatas.Add(targetTagToInteractData);
+                    instance.targetTagToInteractDatas.Add(targetTagToInteractData);
                 }
 
                 ActionTypeToInteractData actionTypeToInteractData = targetTagToInteractData.actionTypeToInteractDatas.Find(x => x.actionType == interactData.ActionType);
@@ -119,7 +143,7 @@ namespace KahaGameCore.Package.PlayerControlable
             }
         }
 
-        private bool IsTriggerableInteractData(InteractData interactData, Actor.IActor actor, int day, int time)
+        private bool IsTriggerableInteractData(InteractData interactData, Actor.IActor actor, int day, int hour, int minute = 0)
         {
             string[] dayArray = string.IsNullOrEmpty(interactData.RequireDayArrayString) ? new string[0] : interactData.RequireDayArrayString.Split(';');
             string[] timeArray = string.IsNullOrEmpty(interactData.RequireTimeArrayString) ? new string[0] : interactData.RequireTimeArrayString.Split(';');
@@ -146,19 +170,50 @@ namespace KahaGameCore.Package.PlayerControlable
                 if (timeArray[i].Contains("-"))
                 {
                     string[] timeRange = timeArray[i].Split('-');
-                    int start = int.Parse(timeRange[0]);
-                    int end = int.Parse(timeRange[1]);
-                    if (time >= start && time <= end)
+
+                    if (timeRange.Length != 2)
                     {
-                        isAnyTimeMatched = true;
+                        Debug.LogError("Invalid time range format: " + timeArray[i]);
+                        return false;
+                    }
+
+                    string[] startTime = timeRange[0].Split(':');
+                    string[] endTime = timeRange[1].Split(':');
+
+                    if (startTime.Length != 2)
+                    {
+                        startTime = new string[] { timeRange[0], "0" };
+                    }
+                    if (endTime.Length != 2)
+                    {
+                        endTime = new string[] { timeRange[1], "0" };
+                    }
+
+                    int startHour = int.Parse(startTime[0]);
+                    int startMinute = int.Parse(startTime[1]);
+                    int endHour = int.Parse(endTime[0]);
+                    int endMinute = int.Parse(endTime[1]);
+
+                    if (endHour < startHour)
+                    {
+                        isAnyTimeMatched = IsMatchTime(startHour, startMinute, 24, 0, hour, minute) || IsMatchTime(0, 0, endHour, endMinute, hour, minute);
+                    }
+                    else
+                    {
+                        isAnyTimeMatched = IsMatchTime(startHour, startMinute, endHour, endMinute, hour, minute);
+                    }
+
+                    if (isAnyTimeMatched)
+                    {
                         break;
                     }
                 }
                 else
                 {
-                    if (timeArray[i] == time.ToString())
+                    int time = int.Parse(timeArray[i]);
+                    isAnyTimeMatched = time == hour;
+                    if (isAnyTimeMatched)
                     {
-                        isAnyTimeMatched = true;
                         break;
                     }
                 }
@@ -237,6 +292,25 @@ namespace KahaGameCore.Package.PlayerControlable
             }
 
             return true;
+        }
+
+        private bool IsMatchTime(int startHour, int startMinute, int endHour, int endMinute, int hour, int minute)
+        {
+            if (hour >= startHour && hour <= endHour)
+            {
+                return true;
+            }
+
+            else if (hour == startHour && minute >= startMinute)
+            {
+                return true;
+            }
+            else if (hour == endHour && minute <= endMinute)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

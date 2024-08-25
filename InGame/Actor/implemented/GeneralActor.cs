@@ -93,6 +93,15 @@ namespace KahaGameCore.Actor
             {
                 baseStat.value = value;
             }
+            else
+            {
+                baseStat = new BaseStat
+                {
+                    tag = tag,
+                    value = value
+                };
+                baseStats.Add(baseStat);
+            }
         }
 
         public void SetTemp(Guid guid, int value)
@@ -101,6 +110,15 @@ namespace KahaGameCore.Actor
             if (tempStat != null)
             {
                 tempStat.value = value;
+            }
+            else
+            {
+                tempStat = new TempStat
+                {
+                    guid = guid,
+                    value = value
+                };
+                tempStats.Add(tempStat);
             }
         }
 

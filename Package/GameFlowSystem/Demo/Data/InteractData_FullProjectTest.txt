@@ -1,0 +1,1 @@
+[{"ID":1,"InteractTargetTag":"InGameMenu","ActionType":"Work","RequireTimeArrayString":"18-07","ReturnValueString":10000},{"ID":2,"InteractTargetTag":"InGameMenu","ActionType":"Street","RequireDayArrayString":1,"ReturnValueString":10001},{"ID":3,"InteractTargetTag":"InGameMenu","ActionType":"Home","RequireDayArrayString":1,"ReturnValueString":1}]

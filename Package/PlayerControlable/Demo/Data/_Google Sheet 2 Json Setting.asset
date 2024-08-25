@@ -1,17 +1,3 @@
-%YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 165d04f11249d024ebec118fd9ca94d5, type: 3}
-  m_Name: _Google Sheet 2 Json Setting
-  m_EditorClassIdentifier: 
-  sheetID: 1IctBj1vBhbtPrkJrXMU05Bs65TQTZMsFzeUX68e06Uw
-  sheetNames:
-  - InteractData
+version https://git-lfs.github.com/spec/v1
+oid sha256:208f831a50f6c597c54422ec8f93d985889d3438e23d4ae2e907bd680f4fb8aa
+size 515

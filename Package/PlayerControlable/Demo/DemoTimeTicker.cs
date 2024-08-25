@@ -17,8 +17,6 @@ public class DemoTimeTicker : MonoBehaviour
 
     [SerializeField] private TextAsset interactDataTextAsset;
 
-    private InteractManager interactManager;
-
     private enum InteractState
     {
         Idle,
@@ -39,7 +37,7 @@ public class DemoTimeTicker : MonoBehaviour
         KahaGameCore.GameData.Implemented.GameStaticDataManager gameStaticDataManager = new KahaGameCore.GameData.Implemented.GameStaticDataManager();
         KahaGameCore.GameData.Implemented.GameStaticDataDeserializer gameStaticDataDeserializer = new KahaGameCore.GameData.Implemented.GameStaticDataDeserializer();
         gameStaticDataManager.Add<InteractData>(gameStaticDataDeserializer.Read<InteractData[]>(interactDataTextAsset.text));
-        interactManager = new InteractManager(gameStaticDataManager.GetAllGameData<InteractData>());
+        InteractManager.Initialize(gameStaticDataManager.GetAllGameData<InteractData>());
 
         KahaGameCore.Input.InputEventHanlder.UserInterface.OnMoveToNextOptionInView += OnMoveToNextOptionInView;
         KahaGameCore.Input.InputEventHanlder.UserInterface.OnMoveToPreviousOptionInView += OnMoveToPreviousOptionInView;
@@ -55,7 +53,7 @@ public class DemoTimeTicker : MonoBehaviour
             return;
         }
 
-        string returnString = interactManager.Interact(interactingObject.InteractTargetTag, actionTypes[selectingActionIndex], generalActor, day, time);
+        string returnString = InteractManager.Instance.Interact(interactingObject.InteractTargetTag, actionTypes[selectingActionIndex], generalActor, day, time);
         Debug.Log("returnString=" + returnString);
 
         if (returnString == "Get A")
@@ -110,7 +108,7 @@ public class DemoTimeTicker : MonoBehaviour
         interactState = InteractState.SelectingAction;
         KahaGameCore.Input.InputEventHanlder.LockMovement(this);
 
-        actionTypes = interactManager.GetAllActionType(interactableObject.InteractTargetTag);
+        actionTypes = InteractManager.Instance.GetAllActionType(interactableObject.InteractTargetTag);
         for (int i = 0; i < actionTypes.Length; i++)
         {
             Debug.Log(actionTypes[i]);

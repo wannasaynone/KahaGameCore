@@ -7,7 +7,6 @@ namespace KahaGameCore.Package.PlayerControlable
     public class PlayerControlableObject : MonoBehaviour
     {
         [SerializeField] private float speed = 5f;
-        [SerializeField] private float maxInteractDistance = 1.5f;
 
         private Rigidbody2D rb;
 

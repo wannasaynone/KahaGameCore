@@ -1,0 +1,20 @@
+{
+    "name": "KahaGameCore.Package.GameFlowSystem",
+    "rootNamespace": "",
+    "references": [
+        "GUID:87d8edb356d6fd14db78c320c6a627e8",
+        "GUID:e449f72999f81184d94c3753e95a945c",
+        "GUID:b20c716d3f86ccf4e90aa1e5a46ebde6",
+        "GUID:ed339a495f13a4d44b03055703f6e1c1",
+        "GUID:7e952ac2b86d6864ea467d2e1d57bfb7"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
