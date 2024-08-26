@@ -16,16 +16,12 @@ public class GameStartMenu : MonoBehaviour
 
     public void StartGame()
     {
-        DialogueCommandFactory dialogueCommandFactory = new DialogueCommandFactory(true);
-        dialogueCommandFactory.RegisterCommandType("AddValue", typeof(DialogueCommand_AddValue));
-        dialogueCommandFactory.RegisterCommandType("SetValue", typeof(DialogueCommand_SetValue));
-        dialogueCommandFactory.RegisterCommandType("IfValue", typeof(DialogueCommand_IfValue));
-
         GameManager.Initialize(new InitializeFlowBase[]
         {
             new InitializeFlow_ReadData(dialogueData, interactData),
-            new InitializeFlow_RegisterUserInterface()
-        }, OnInitialCompleted, dialogueCommandFactory);
+            new InitializeFlow_RegisterUserInterface(),
+            new InitializeFlow_InitialManager()
+        }, OnInitialCompleted);
 
         gameObject.SetActive(false);
     }
