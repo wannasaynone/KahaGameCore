@@ -77,7 +77,7 @@ namespace KahaGameCore.Package.PlayerControlable
             }
         }
 
-        public string[] GetAllActionType(string interactTargetTag)
+        public string[] GetAllActionType(string interactTargetTag, Actor.IActor actor, int day, int time)
         {
             List<string> actionTypes = new List<string>();
             for (int i = 0; i < targetTagToInteractDatas.Count; i++)
@@ -87,7 +87,14 @@ namespace KahaGameCore.Package.PlayerControlable
                 {
                     for (int j = 0; j < targetTagToInteractData.actionTypeToInteractDatas.Count; j++)
                     {
-                        actionTypes.Add(targetTagToInteractData.actionTypeToInteractDatas[j].actionType);
+                        if (actionTypes.Contains(targetTagToInteractData.actionTypeToInteractDatas[j].actionType))
+                        {
+                            continue;
+                        }
+                        if (IsTriggerableInteractData(targetTagToInteractData.actionTypeToInteractDatas[j].interactDatas[0], actor, day, time))
+                        {
+                            actionTypes.Add(targetTagToInteractData.actionTypeToInteractDatas[j].actionType);
+                        }
                     }
                     break;
                 }
