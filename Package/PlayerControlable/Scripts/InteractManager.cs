@@ -118,6 +118,12 @@ namespace KahaGameCore.Package.PlayerControlable
 
             List<InteractData> matchedInteractDatas = new List<InteractData>();
             ActionTypeToInteractData actionTypeToInteractData = targetTagToInteractData.actionTypeToInteractDatas.Find(x => x.actionType == actionType);
+
+            if (actionTypeToInteractData == null)
+            {
+                return "";
+            }
+
             for (int i = 0; i < actionTypeToInteractData.interactDatas.Count; i++)
             {
                 InteractData interactData = actionTypeToInteractData.interactDatas[i];
