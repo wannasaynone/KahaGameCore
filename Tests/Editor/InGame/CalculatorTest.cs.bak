@@ -1,7 +1,6 @@
 using NUnit.Framework;
 using System;
 using KahaGameCore.Actor;
-using System.Collections.Generic;
 
 namespace KahaGameCore.Tests
 {

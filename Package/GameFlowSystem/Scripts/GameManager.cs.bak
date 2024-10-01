@@ -1,6 +1,5 @@
 using System;
 using KahaGameCore.Actor;
-using KahaGameCore.Package.DialogueSystem;
 using KahaGameCore.Processor;
 using UnityEngine;
 
@@ -27,7 +26,6 @@ namespace KahaGameCore.Package.GameFlowSystem
             if (instance != null)
             {
                 Debug.LogError("GameManager is already initialized.");
-                onComplete?.Invoke();
                 return;
             }
 
@@ -58,12 +56,6 @@ namespace KahaGameCore.Package.GameFlowSystem
                 SharedRepoditory.playerInstance = new GeneralActor();
                 SharedRepoditory.playerInstance.Load(loadedSave);
             }
-
-            DialogueParameter.SaveableObject dialogueParameterSave = jsonSaveDataHandler.LoadSave<DialogueParameter.SaveableObject>(saveIndex);
-            if (dialogueParameterSave != default)
-            {
-                DialogueParameter.Load(dialogueParameterSave);
-            }
         }
 
         public void Save(int saveIndex)
@@ -77,7 +69,6 @@ namespace KahaGameCore.Package.GameFlowSystem
             GameData.Implemented.GameStaticDataSerializer gameStaticDataSerializer = new GameData.Implemented.GameStaticDataSerializer();
             GameData.Implemented.JsonSaveDataHandler jsonSaveDataHandler = new GameData.Implemented.JsonSaveDataHandler(gameStaticDataSerializer, null);
             jsonSaveDataHandler.Save(SharedRepoditory.playerInstance.GetSavableObject(), saveIndex);
-            jsonSaveDataHandler.Save(DialogueParameter.GetSavableObject(), saveIndex);
         }
     }
 }

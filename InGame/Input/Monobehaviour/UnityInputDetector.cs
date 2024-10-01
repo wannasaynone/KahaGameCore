@@ -33,6 +33,11 @@ namespace KahaGameCore.Input.Mono
             {
                 InputEventHanlder.UserInterface.RiseHideInventoryCalled();
             }
+
+            if (UnityEngine.Input.GetKey(KeyCode.LeftControl) || UnityEngine.Input.GetKey(KeyCode.RightControl))
+            {
+                InputEventHanlder.UserInterface.RiseSkipCalled();
+            }
         }
 
         private enum MoveDirection

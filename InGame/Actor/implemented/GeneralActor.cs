@@ -11,7 +11,14 @@ namespace KahaGameCore.Actor
             public int value;
         }
 
+        private class StringKeyValuePair
+        {
+            public string key;
+            public string value;
+        }
+
         private List<BaseStat> baseStats = new List<BaseStat>();
+        private List<StringKeyValuePair> stringKeyValuePairs = new List<StringKeyValuePair>();
 
         private class TempStat
         {
@@ -145,6 +152,14 @@ namespace KahaGameCore.Actor
             }
 
             public List<TempStat> tempStats = new List<TempStat>();
+
+            public class StringKeyValuePair
+            {
+                public string key;
+                public string value;
+            }
+
+            public List<StringKeyValuePair> stringKeyValuePairs = new List<StringKeyValuePair>();
         }
 
         public SavableObject Convert()
@@ -170,6 +185,16 @@ namespace KahaGameCore.Actor
                     value = tempStat.value
                 };
                 savableObject.tempStats.Add(savableTempStat);
+            }
+
+            foreach (var stringKeyValuePair in stringKeyValuePairs)
+            {
+                SavableObject.StringKeyValuePair savableStringKeyValuePair = new SavableObject.StringKeyValuePair
+                {
+                    key = stringKeyValuePair.key,
+                    value = stringKeyValuePair.value
+                };
+                savableObject.stringKeyValuePairs.Add(savableStringKeyValuePair);
             }
 
             return savableObject;
@@ -198,6 +223,67 @@ namespace KahaGameCore.Actor
                     value = tempStat.value
                 });
             }
+        }
+
+        public void AddStringKeyValue(string key, string value)
+        {
+            StringKeyValuePair stringKeyValuePair = stringKeyValuePairs.Find(x => x.key == key);
+            if (stringKeyValuePair != null)
+            {
+                stringKeyValuePair.value = value;
+            }
+            else
+            {
+                stringKeyValuePair = new StringKeyValuePair
+                {
+                    key = key,
+                    value = value
+                };
+                stringKeyValuePairs.Add(stringKeyValuePair);
+            }
+        }
+
+        public string GetStringKeyValue(string key)
+        {
+            StringKeyValuePair stringKeyValuePair = stringKeyValuePairs.Find(x => x.key == key);
+            if (stringKeyValuePair != null)
+            {
+                return stringKeyValuePair.value;
+            }
+            return null;
+        }
+
+        public void RemoveStringKeyValue(string key)
+        {
+            stringKeyValuePairs.RemoveAll(x => x.key == key);
+        }
+
+        public void SetStringKeyValue(string key, string value)
+        {
+            StringKeyValuePair stringKeyValuePair = stringKeyValuePairs.Find(x => x.key == key);
+            if (stringKeyValuePair != null)
+            {
+                stringKeyValuePair.value = value;
+            }
+            else
+            {
+                stringKeyValuePair = new StringKeyValuePair
+                {
+                    key = key,
+                    value = value
+                };
+                stringKeyValuePairs.Add(stringKeyValuePair);
+            }
+        }
+
+        public Dictionary<string, string> GetAllStringKeyValuePairs()
+        {
+            Dictionary<string, string> keyValuePairs = new Dictionary<string, string>();
+            foreach (var stringKeyValuePair in stringKeyValuePairs)
+            {
+                keyValuePairs.Add(stringKeyValuePair.key, stringKeyValuePair.value);
+            }
+            return keyValuePairs;
         }
     }
 
