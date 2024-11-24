@@ -109,9 +109,10 @@ public class DemoTimeTicker : MonoBehaviour
         KahaGameCore.Input.InputEventHanlder.LockMovement(this);
 
         actionTypes = InteractManager.Instance.GetAllActionType(interactableObject.InteractTargetTag, generalActor, day, time);
+        Debug.Log("getting actionTypes for " + interactableObject.InteractTargetTag);
         for (int i = 0; i < actionTypes.Length; i++)
         {
-            Debug.Log(actionTypes[i]);
+            Debug.Log("available option: " + actionTypes[i]);
         }
         Debug.Log("Current selecting action: " + actionTypes[selectingActionIndex]);
     }

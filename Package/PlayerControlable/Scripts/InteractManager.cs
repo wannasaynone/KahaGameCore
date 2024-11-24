@@ -73,6 +73,7 @@ namespace KahaGameCore.Package.PlayerControlable
                     targetTagToInteractData.actionTypeToInteractDatas.Add(actionTypeToInteractData);
                 }
 
+                Debug.Log("Adding interactData: " + interactData.ID + ", targetTag=" + interactData.InteractTargetTag + ", actionType=" + interactData.ActionType);
                 actionTypeToInteractData.interactDatas.Add(interactData);
             }
         }
@@ -80,20 +81,25 @@ namespace KahaGameCore.Package.PlayerControlable
         public string[] GetAllActionType(string interactTargetTag, Actor.IActor actor, int day, int time)
         {
             List<string> actionTypes = new List<string>();
-            for (int i = 0; i < targetTagToInteractDatas.Count; i++)
+            for (int targetIndex = 0; targetIndex < targetTagToInteractDatas.Count; targetIndex++)
             {
-                TargetTagToInteractData targetTagToInteractData = targetTagToInteractDatas[i];
+                TargetTagToInteractData targetTagToInteractData = targetTagToInteractDatas[targetIndex];
                 if (targetTagToInteractData.targetTag == interactTargetTag)
                 {
-                    for (int j = 0; j < targetTagToInteractData.actionTypeToInteractDatas.Count; j++)
+                    for (int actionIndex = 0; actionIndex < targetTagToInteractData.actionTypeToInteractDatas.Count; actionIndex++)
                     {
-                        if (actionTypes.Contains(targetTagToInteractData.actionTypeToInteractDatas[j].actionType))
+                        if (actionTypes.Contains(targetTagToInteractData.actionTypeToInteractDatas[actionIndex].actionType))
                         {
                             continue;
                         }
-                        if (IsTriggerableInteractData(targetTagToInteractData.actionTypeToInteractDatas[j].interactDatas[0], actor, day, time))
+
+                        for (int dataIndex = 0; dataIndex < targetTagToInteractData.actionTypeToInteractDatas[actionIndex].interactDatas.Count; dataIndex++)
                         {
-                            actionTypes.Add(targetTagToInteractData.actionTypeToInteractDatas[j].actionType);
+                            if (IsTriggerableInteractData(targetTagToInteractData.actionTypeToInteractDatas[actionIndex].interactDatas[dataIndex], actor, day, time))
+                            {
+                                actionTypes.Add(targetTagToInteractData.actionTypeToInteractDatas[actionIndex].actionType);
+                                break;
+                            }
                         }
                     }
                     break;
@@ -158,6 +164,7 @@ namespace KahaGameCore.Package.PlayerControlable
 
         private bool IsTriggerableInteractData(InteractData interactData, Actor.IActor actor, int day, int hour, int minute = 0)
         {
+            Debug.Log("Checking interactData: " + interactData.ID);
             string[] dayArray = string.IsNullOrEmpty(interactData.RequireDayArrayString) ? new string[0] : interactData.RequireDayArrayString.Split(';');
             string[] timeArray = string.IsNullOrEmpty(interactData.RequireTimeArrayString) ? new string[0] : interactData.RequireTimeArrayString.Split(';');
             string[] valueArray = string.IsNullOrEmpty(interactData.RquireValueArrayString) ? new string[0] : interactData.RquireValueArrayString.Split(';');
@@ -172,8 +179,10 @@ namespace KahaGameCore.Package.PlayerControlable
                 }
             }
 
+            Debug.Log("isAnyDayMatched=" + isAnyDayMatched);
             if (!isAnyDayMatched)
             {
+                Debug.Log("return false");
                 return false;
             }
 
@@ -232,16 +241,21 @@ namespace KahaGameCore.Package.PlayerControlable
                 }
             }
 
+            Debug.Log("isAnyTimeMatched=" + isAnyTimeMatched);
             if (!isAnyTimeMatched)
             {
+                Debug.Log("return false");
                 return false;
             }
 
+            Debug.Log("valueArray.Length=" + valueArray.Length);
             if (valueArray.Length == 0)
             {
+                Debug.Log("return true");
                 return true;
             }
 
+            Debug.Log("actor=" + actor);
             if (!string.IsNullOrEmpty(interactData.RquireValueArrayString) && actor == null)
             {
                 return false;
@@ -282,29 +296,35 @@ namespace KahaGameCore.Package.PlayerControlable
                 ValueComparer valueComparer = valueComparers[i];
                 int value = actor.Stats.GetTotal(valueComparer.valueName, false);
 
+                Debug.Log("valueComparer.valueName=" + valueComparer.valueName + ", value=" + value + ", valueComparer.compareType=" + valueComparer.compareType + ", valueComparer.compareValue=" + valueComparer.compareValue);
+
                 switch (valueComparer.compareType)
                 {
                     case ValueComparer.CompareType.Equal:
                         if (value != valueComparer.compareValue)
                         {
+                            Debug.Log("return false");
                             return false;
                         }
                         break;
                     case ValueComparer.CompareType.Greater:
                         if (value <= valueComparer.compareValue)
                         {
+                            Debug.Log("return false");
                             return false;
                         }
                         break;
                     case ValueComparer.CompareType.Less:
                         if (value >= valueComparer.compareValue)
                         {
+                            Debug.Log("return false");
                             return false;
                         }
                         break;
                 }
             }
 
+            Debug.Log("return true");
             return true;
         }
 
