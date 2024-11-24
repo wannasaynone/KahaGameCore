@@ -39,10 +39,6 @@ public class DemoTimeTicker : MonoBehaviour
         gameStaticDataManager.Add<InteractData>(gameStaticDataDeserializer.Read<InteractData[]>(interactDataTextAsset.text));
         InteractManager.Initialize(gameStaticDataManager.GetAllGameData<InteractData>());
 
-        KahaGameCore.Input.InputEventHanlder.UserInterface.OnMoveToNextOptionInView += OnMoveToNextOptionInView;
-        KahaGameCore.Input.InputEventHanlder.UserInterface.OnMoveToPreviousOptionInView += OnMoveToPreviousOptionInView;
-        KahaGameCore.Input.InputEventHanlder.UserInterface.OnOptionInViewSelected += OnOptionInViewSelected;
-
         generalActor = new GeneralActor();
     }
 
@@ -60,8 +56,6 @@ public class DemoTimeTicker : MonoBehaviour
         {
             generalActor.Stats.Add("A", 1);
         }
-
-        KahaGameCore.Input.InputEventHanlder.UnlockMovement(this);
 
         interactState = InteractState.WaitOneFrame;
     }
@@ -106,7 +100,6 @@ public class DemoTimeTicker : MonoBehaviour
         interactingObject = interactableObject;
 
         interactState = InteractState.SelectingAction;
-        KahaGameCore.Input.InputEventHanlder.LockMovement(this);
 
         actionTypes = InteractManager.Instance.GetAllActionType(interactableObject.InteractTargetTag, generalActor, day, time);
         Debug.Log("getting actionTypes for " + interactableObject.InteractTargetTag);

@@ -29,14 +29,12 @@ namespace KahaGameCore.Package.PlayerControlable
             }
         }
 
-        private void OnEnable()
+        private void Update()
         {
-            Input.InputEventHanlder.Movement.OnInteracting += OnInteracting;
-        }
-
-        private void OnDisable()
-        {
-            Input.InputEventHanlder.Movement.OnInteracting -= OnInteracting;
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                OnInteracting();
+            }
         }
 
         private void OnInteracting()

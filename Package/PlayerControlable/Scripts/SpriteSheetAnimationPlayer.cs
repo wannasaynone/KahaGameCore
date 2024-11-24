@@ -30,11 +30,6 @@ namespace KahaGameCore.Package.PlayerControlable
         private void OnEnable()
         {
             idleSprite = walk_down[idleSpriteIndex];
-            Input.InputEventHanlder.Movement.OnMovingUp += OnMovingUp;
-            Input.InputEventHanlder.Movement.OnMovingDown += OnMovingDown;
-            Input.InputEventHanlder.Movement.OnMovingLeft += OnMovingLeft;
-            Input.InputEventHanlder.Movement.OnMovingRight += OnMovingRight;
-            Input.InputEventHanlder.Movement.OnReleased += OnReleased;
         }
 
         private void OnReleased()
@@ -112,11 +107,6 @@ namespace KahaGameCore.Package.PlayerControlable
         private void OnDisable()
         {
             spriteRenderer.sprite = idleSprite;
-            Input.InputEventHanlder.Movement.OnMovingUp -= OnMovingUp;
-            Input.InputEventHanlder.Movement.OnMovingDown -= OnMovingDown;
-            Input.InputEventHanlder.Movement.OnMovingLeft -= OnMovingLeft;
-            Input.InputEventHanlder.Movement.OnMovingRight -= OnMovingRight;
-            Input.InputEventHanlder.Movement.OnReleased -= OnReleased;
         }
 
         private void Update()

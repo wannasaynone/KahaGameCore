@@ -26,20 +26,11 @@ namespace KahaGameCore.Package.PlayerControlable
             if (rb == null)
                 rb = GetComponent<Rigidbody2D>();
 
-            Input.InputEventHanlder.Movement.OnMovingUp += OnMovingUp;
-            Input.InputEventHanlder.Movement.OnMovingDown += OnMovingDown;
-            Input.InputEventHanlder.Movement.OnMovingLeft += OnMovingLeft;
-            Input.InputEventHanlder.Movement.OnMovingRight += OnMovingRight;
-            Input.InputEventHanlder.Movement.OnReleased += OnReleased;
         }
 
         private void OnDisable()
         {
-            Input.InputEventHanlder.Movement.OnMovingUp -= OnMovingUp;
-            Input.InputEventHanlder.Movement.OnMovingDown -= OnMovingDown;
-            Input.InputEventHanlder.Movement.OnMovingLeft -= OnMovingLeft;
-            Input.InputEventHanlder.Movement.OnMovingRight -= OnMovingRight;
-            Input.InputEventHanlder.Movement.OnReleased -= OnReleased;
+
         }
 
         private void OnReleased()
