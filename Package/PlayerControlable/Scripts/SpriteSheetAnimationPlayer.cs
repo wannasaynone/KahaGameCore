@@ -4,6 +4,7 @@ namespace KahaGameCore.Package.PlayerControlable
 {
     public class SpriteSheetAnimationPlayer : MonoBehaviour
     {
+        [SerializeField] private InputDetector inputDetector;
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private int idleSpriteIndex = 1;
         [SerializeField] private float frameRate = 0.25f;
@@ -111,6 +112,27 @@ namespace KahaGameCore.Package.PlayerControlable
 
         private void Update()
         {
+            if (inputDetector.IsPressingUp)
+            {
+                OnMovingUp();
+            }
+            else if (inputDetector.IsPressingDown)
+            {
+                OnMovingDown();
+            }
+            else if (inputDetector.IsPressingLeft)
+            {
+                OnMovingLeft();
+            }
+            else if (inputDetector.IsPressingRight)
+            {
+                OnMovingRight();
+            }
+            else
+            {
+                OnReleased();
+            }
+
             switch (currentDirection)
             {
                 case Direction.Up:

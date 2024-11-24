@@ -6,6 +6,7 @@ namespace KahaGameCore.Package.PlayerControlable
     [RequireComponent(typeof(Rigidbody2D))]
     public class PlayerControlableObject : MonoBehaviour
     {
+        [SerializeField] private InputDetector inputDetector;
         [SerializeField] private float speed = 5f;
 
         private Rigidbody2D rb;
@@ -25,12 +26,30 @@ namespace KahaGameCore.Package.PlayerControlable
         {
             if (rb == null)
                 rb = GetComponent<Rigidbody2D>();
-
         }
 
-        private void OnDisable()
+        private void Update()
         {
-
+            if (inputDetector.IsPressingUp)
+            {
+                OnMovingUp();
+            }
+            else if (inputDetector.IsPressingDown)
+            {
+                OnMovingDown();
+            }
+            else if (inputDetector.IsPressingLeft)
+            {
+                OnMovingLeft();
+            }
+            else if (inputDetector.IsPressingRight)
+            {
+                OnMovingRight();
+            }
+            else
+            {
+                OnReleased();
+            }
         }
 
         private void OnReleased()

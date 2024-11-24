@@ -8,6 +8,8 @@ namespace KahaGameCore.Package.PlayerControlable
     [RequireComponent(typeof(BoxCollider2D), typeof(Rigidbody2D))]
     public class InteractableObjectTrigger : MonoBehaviour
     {
+        [SerializeField] private InputDetector inputDetector;
+
         public event Action<InteractableObject> OnInteractingWith;
         [SerializeField] private UnityEvent<InteractableObject> onInteractingEvent;
 
@@ -31,7 +33,7 @@ namespace KahaGameCore.Package.PlayerControlable
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (inputDetector.Selected)
             {
                 OnInteracting();
             }
@@ -46,6 +48,8 @@ namespace KahaGameCore.Package.PlayerControlable
 
             OnInteractingWith?.Invoke(interactableObjects[interactableObjects.Count - 1]);
             onInteractingEvent?.Invoke(interactableObjects[interactableObjects.Count - 1]);
+
+            InputDetectorStateMachine.Instance.SetState("Interacting");
         }
     }
 }

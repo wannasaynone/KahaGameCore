@@ -15,6 +15,7 @@ public class DemoTimeTicker : MonoBehaviour
         }
     }
 
+    [SerializeField] private InputDetector inputDetector;
     [SerializeField] private TextAsset interactDataTextAsset;
 
     private enum InteractState
@@ -42,6 +43,22 @@ public class DemoTimeTicker : MonoBehaviour
         generalActor = new GeneralActor();
     }
 
+    private void Update()
+    {
+        if (inputDetector.Selected)
+        {
+            OnOptionInViewSelected();
+        }
+        else if (inputDetector.IsPressedUp)
+        {
+            OnMoveToPreviousOptionInView();
+        }
+        else if (inputDetector.IsPressedDown)
+        {
+            OnMoveToNextOptionInView();
+        }
+    }
+
     private void OnOptionInViewSelected()
     {
         if (interactState != InteractState.SelectingAction)
@@ -58,6 +75,8 @@ public class DemoTimeTicker : MonoBehaviour
         }
 
         interactState = InteractState.WaitOneFrame;
+
+        InputDetectorStateMachine.Instance.SetState("Move");
     }
 
     private void OnMoveToPreviousOptionInView()
