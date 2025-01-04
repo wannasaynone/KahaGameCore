@@ -23,10 +23,19 @@ namespace KahaGameCore.GameEvent.Editor
             scrollPosition = GUILayout.BeginScrollView(scrollPosition);
             GUILayout.Label("Publish Game Events", EditorStyles.boldLabel);
 
-            // 獲取 ProjectMIL.GameEvent 命名空間中所有繼承自 GameEventBase 的類
-            var gameEventTypes = Assembly.GetAssembly(typeof(GameEventBase))
-                                         .GetTypes()
-                                         .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(GameEventBase)) && t.Namespace == "ProjectMIL.GameEvent");
+            var gameEventTypes = AppDomain.CurrentDomain.GetAssemblies()
+                                         .SelectMany(assembly =>
+                                         {
+                                             try
+                                             {
+                                                 return assembly.GetTypes();
+                                             }
+                                             catch (ReflectionTypeLoadException)
+                                             {
+                                                 return new Type[0];
+                                             }
+                                         })
+                                         .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(GameEventBase)));
 
             foreach (Type type in gameEventTypes)
             {

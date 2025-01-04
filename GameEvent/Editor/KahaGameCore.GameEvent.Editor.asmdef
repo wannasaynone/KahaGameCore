@@ -1,5 +1,5 @@
 {
-    "name": "ProjectMIL.GameEvent.Editor",
+    "name": "KahaGameCore.GameEvent.Editor",
     "rootNamespace": "",
     "references": [
         "GUID:ef82501adac90004689f3ccfd44113d8"
