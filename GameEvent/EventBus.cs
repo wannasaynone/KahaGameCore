@@ -5,46 +5,61 @@ namespace KahaGameCore.GameEvent
 {
     public static class EventBus
     {
-        private static readonly Dictionary<Type, List<Action<GameEventBase>>> _eventHandlers = new Dictionary<Type, List<Action<GameEventBase>>>();
+        private static int runningPublishCount = 0;
+
+        private static readonly Dictionary<Type, List<Action<GameEventBase>>> eventHandlers = new Dictionary<Type, List<Action<GameEventBase>>>();
         private static readonly Dictionary<int, Action<GameEventBase>> originHashCodeToWrapperHandler = new Dictionary<int, Action<GameEventBase>>();
 
         public static void ForceClearAll()
         {
-            _eventHandlers.Clear();
+            runningPublishCount = 0;
+            eventHandlers.Clear();
         }
 
         public static void Subscribe<T>(Action<T> handler) where T : GameEventBase
         {
             var eventType = typeof(T);
 
-            if (!_eventHandlers.ContainsKey(eventType))
+            if (!eventHandlers.ContainsKey(eventType))
             {
-                _eventHandlers[eventType] = new List<Action<GameEventBase>>();
+                eventHandlers[eventType] = new List<Action<GameEventBase>>();
+            }
+
+            if (waitToRemoveHandlerHashCode.Contains(handler.GetHashCode()))
+            {
+                waitToRemoveHandlerHashCode.Remove(handler.GetHashCode());
+                return;
             }
 
             Action<GameEventBase> wrapperHandler = (eventBase) => handler((T)eventBase);
             originHashCodeToWrapperHandler.Add(handler.GetHashCode(), wrapperHandler);
 
-            _eventHandlers[eventType].Add(wrapperHandler);
+            eventHandlers[eventType].Add(wrapperHandler);
         }
 
-        private static bool wasRemovedSomething = false;
+
+        private static List<int> waitToRemoveHandlerHashCode = new List<int>();
         public static void Unsubscribe<T>(Action<T> handler) where T : GameEventBase
         {
             var eventType = typeof(T);
 
-            if (!_eventHandlers.ContainsKey(eventType))
+            if (!eventHandlers.ContainsKey(eventType))
             {
                 return;
             }
 
-            for (int i = 0; i < _eventHandlers[eventType].Count; i++)
+            if (runningPublishCount > 0)
             {
-                if (originHashCodeToWrapperHandler[handler.GetHashCode()] == _eventHandlers[eventType][i])
+                waitToRemoveHandlerHashCode.Add(handler.GetHashCode());
+                return;
+            }
+
+            for (int i = 0; i < eventHandlers[eventType].Count; i++)
+            {
+                if (originHashCodeToWrapperHandler[handler.GetHashCode()] == eventHandlers[eventType][i])
                 {
-                    _eventHandlers[eventType].RemoveAt(i);
+                    eventHandlers[eventType].RemoveAt(i);
                     originHashCodeToWrapperHandler.Remove(handler.GetHashCode());
-                    wasRemovedSomething = true;
                     break;
                 }
             }
@@ -54,22 +69,41 @@ namespace KahaGameCore.GameEvent
         {
             var eventType = typeof(T);
 
-            if (!_eventHandlers.ContainsKey(eventType))
+            if (!eventHandlers.ContainsKey(eventType))
             {
                 return;
             }
 
-            for (int i = 0; i < _eventHandlers[eventType].Count; i++)
+            runningPublishCount++;
+            foreach (var handler in eventHandlers[eventType])
             {
-                _eventHandlers[eventType][i](eventToPublish);
-                if (wasRemovedSomething)
+                handler(eventToPublish);
+            }
+            runningPublishCount--;
+
+            if (runningPublishCount == 0)
+            {
+                for (int i = 0; i < waitToRemoveHandlerHashCode.Count; i++)
                 {
-                    wasRemovedSomething = false;
-                    i--;
+                    UnsubscribeWithHashKey(waitToRemoveHandlerHashCode[i]);
+                }
+                waitToRemoveHandlerHashCode.Clear();
+            }
+        }
+
+        private static void UnsubscribeWithHashKey(int hashCode)
+        {
+            Action<GameEventBase> warppedAction = originHashCodeToWrapperHandler[hashCode];
+            List<Type> eventTypes = new List<Type>(eventHandlers.Keys);
+            for (int i = 0; i < eventTypes.Count; i++)
+            {
+                if (eventHandlers[eventTypes[i]].Contains(warppedAction))
+                {
+                    eventHandlers[eventTypes[i]].Remove(warppedAction);
+                    originHashCodeToWrapperHandler.Remove(hashCode);
+                    break;
                 }
             }
-
-            wasRemovedSomething = false;
         }
     }
 

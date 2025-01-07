@@ -33,5 +33,37 @@ namespace KahaGameCore.Tests
             EventBus.Subscribe<TestGameEvent>(OnTestGameEventReceived);
             EventBus.Publish(new TestGameEvent());
         }
+
+        public class TestGameEvent2 : GameEventBase { }
+        public class TestGameEvent3 : GameEventBase { }
+        public int count = 0;
+
+        [Test]
+        public void publish_multiple()
+        {
+            EventBus.ForceClearAll();
+            count = 0;
+            EventBus.Subscribe<TestGameEvent2>(OnTestGameEventReceived2);
+            EventBus.Subscribe<TestGameEvent3>(OnTestGameEventReceived3);
+            EventBus.Publish(new TestGameEvent2());
+        }
+
+        private void OnTestGameEventReceived2(TestGameEvent2 e)
+        {
+            count++;
+            EventBus.Unsubscribe<TestGameEvent2>(OnTestGameEventReceived2);
+            EventBus.Unsubscribe<TestGameEvent3>(OnTestGameEventReceived3);
+            EventBus.Subscribe<TestGameEvent2>(OnTestGameEventReceived2);
+            EventBus.Subscribe<TestGameEvent3>(OnTestGameEventReceived3);
+            EventBus.Publish(new TestGameEvent3());
+        }
+
+        private void OnTestGameEventReceived3(TestGameEvent3 e)
+        {
+            count++;
+            EventBus.Unsubscribe<TestGameEvent2>(OnTestGameEventReceived2);
+            EventBus.Unsubscribe<TestGameEvent3>(OnTestGameEventReceived3);
+            Assert.AreEqual(2, count);
+        }
     }
 }
