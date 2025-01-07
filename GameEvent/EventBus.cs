@@ -28,6 +28,7 @@ namespace KahaGameCore.GameEvent
             _eventHandlers[eventType].Add(wrapperHandler);
         }
 
+        private static bool wasRemovedSomething = false;
         public static void Unsubscribe<T>(Action<T> handler) where T : GameEventBase
         {
             var eventType = typeof(T);
@@ -43,6 +44,7 @@ namespace KahaGameCore.GameEvent
                 {
                     _eventHandlers[eventType].RemoveAt(i);
                     originHashCodeToWrapperHandler.Remove(handler.GetHashCode());
+                    wasRemovedSomething = true;
                     break;
                 }
             }
@@ -57,10 +59,17 @@ namespace KahaGameCore.GameEvent
                 return;
             }
 
-            foreach (var handler in _eventHandlers[eventType])
+            for (int i = 0; i < _eventHandlers[eventType].Count; i++)
             {
-                handler?.Invoke(eventToPublish);
+                _eventHandlers[eventType][i](eventToPublish);
+                if (wasRemovedSomething)
+                {
+                    wasRemovedSomething = false;
+                    i--;
+                }
             }
+
+            wasRemovedSomething = false;
         }
     }
 
