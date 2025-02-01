@@ -1,12 +1,9 @@
 {
-    "name": "KahaGameCore.Tests",
+    "name": "KahaGameCore.Package.EffectProcessor.Tests",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "KahaGameCore.Common",
-        "KahaGameCore.GameData",
-        "KahaGameCore.GameEvent",
         "KahaGameCore.Package.EffectProcessor.ValueContainer",
         "KahaGameCore.Package.EffectProcessor.EffectProcessor",
         "KahaGameCore.Package.EffectProcessor.Data",

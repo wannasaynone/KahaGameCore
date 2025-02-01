@@ -1,0 +1,16 @@
+{
+    "name": "KahaGameCore.Package.EffectProcessor.Implemented",
+    "rootNamespace": "",
+    "references": [
+        "GUID:ddd7feff3e1f92b4f89caed83cbfcf36"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
