@@ -22,9 +22,15 @@ namespace KahaGameCore.Package.DialogueSystem.Example
 
         private void Update()
         {
-            if (Input.GetKeyUp(KeyCode.Space))
+            if (Input.GetKeyUp(KeyCode.Alpha1))
             {
                 DialogueManager.Instance.TriggerDialogue(1, dialogueView);
+                gameObject.SetActive(false);
+            }
+
+            if (Input.GetKeyUp(KeyCode.Alpha2))
+            {
+                DialogueManager.Instance.TriggerDialogue(5, dialogueView);
                 gameObject.SetActive(false);
             }
         }

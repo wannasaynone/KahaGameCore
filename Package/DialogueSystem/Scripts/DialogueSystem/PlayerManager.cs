@@ -25,6 +25,10 @@ namespace KahaGameCore.Package.DialogueSystem
         {
             instance = new PlayerManager();
             instance.player = instance.LoadPlayer();
+            if (instance.player == null)
+            {
+                instance.player = new Player();
+            }
         }
 
         public Player Player => player;
