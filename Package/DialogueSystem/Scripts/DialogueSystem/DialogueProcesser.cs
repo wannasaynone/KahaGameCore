@@ -16,6 +16,18 @@ namespace KahaGameCore.Package.DialogueSystem
 
         public DialogueProcesser(int id, IDialogueView dialogueView, DialogueData[] allDialogueData, IDialogueFactory dialogueFactory)
         {
+            if (allDialogueData == null)
+            {
+                UnityEngine.Debug.LogError("[DialogueManager][Process] allDialogueData is null");
+                return;
+            }
+
+            if (dialogueFactory == null)
+            {
+                UnityEngine.Debug.LogError("[DialogueManager][Process] dialogueFactory is null");
+                return;
+            }
+
             this.dialogueFactory = dialogueFactory;
 
             for (int i = 0; i < allDialogueData.Length; i++)

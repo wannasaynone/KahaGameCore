@@ -114,6 +114,12 @@ namespace KahaGameCore.Package.DialogueSystem
 
         public void SetContentText(string text, Action onCompleted = null)
         {
+            if (string.IsNullOrEmpty(text))
+            {
+                onCompleted?.Invoke();
+                return;
+            }
+
             ShowUI();
             dialoguePanelRoot.SetActive(!cgImage.enabled);
             cgDialoguePanelRoot.SetActive(cgImage.enabled);
