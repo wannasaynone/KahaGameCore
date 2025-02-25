@@ -1,0 +1,18 @@
+{
+    "name": "KahaGameCore.Package.DialogueSystem.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:eb4597b0d4bffa342a7cdfb142534768"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

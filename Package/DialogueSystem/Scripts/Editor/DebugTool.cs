@@ -7,6 +7,8 @@ namespace ProjectASNIM
     public class DebugTool : EditorWindow
     {
         private static DebugTool window;
+        private DialogueView dialogueView;
+        private int triggerDialogueID;
         private int addItemID;
 
 
@@ -35,11 +37,6 @@ namespace ProjectASNIM
 
         private void OnGUI()
         {
-            if (GUILayout.Button("Delete Save"))
-            {
-
-            }
-
             if (GUILayout.Button("Open Save Folder"))
             {
                 string path = Application.persistentDataPath;
@@ -53,6 +50,16 @@ namespace ProjectASNIM
             if (GUILayout.Button("Add Item"))
             {
                 PlayerManager.Instance.Player.AddItem(addItemID, 1);
+            }
+
+            AddHorizontalLine();
+
+            GUILayout.Label("Trigger Dialogue", EditorStyles.boldLabel);
+            dialogueView = EditorGUILayout.ObjectField("Dialogue View", dialogueView, typeof(DialogueView), true) as DialogueView;
+            triggerDialogueID = EditorGUILayout.IntField("Dialogue ID", triggerDialogueID);
+            if (GUILayout.Button("Trigger Dialogue"))
+            {
+                DialogueManager.Instance.TriggerDialogue(triggerDialogueID, dialogueView);
             }
         }
     }

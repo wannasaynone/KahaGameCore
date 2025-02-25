@@ -39,6 +39,7 @@ namespace KahaGameCore.Package.DialogueSystem
             GameStaticDataDeserializer gameStaticDataDeserializer = new GameStaticDataDeserializer();
             GameStaticDataSerializer gameStaticDataSerializer = new GameStaticDataSerializer();
             JsonSaveDataHandler jsonSaveDataHandler = new JsonSaveDataHandler(gameStaticDataSerializer, gameStaticDataDeserializer);
+            player.SetDataToSaveField();
             jsonSaveDataHandler.Save(player, 0);
         }
 

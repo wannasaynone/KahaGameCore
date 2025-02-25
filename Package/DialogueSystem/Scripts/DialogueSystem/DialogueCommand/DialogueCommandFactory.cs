@@ -2,12 +2,10 @@ namespace KahaGameCore.Package.DialogueSystem
 {
     public class DialogueCommandFactory : IDialogueFactory
     {
-        private readonly CameraController cameraController;
         private readonly Player player;
 
-        public DialogueCommandFactory(CameraController cameraController, Player player)
+        public DialogueCommandFactory(Player player)
         {
-            this.cameraController = cameraController;
             this.player = player;
         }
 
@@ -51,12 +49,6 @@ namespace KahaGameCore.Package.DialogueSystem
                     return new DialogueCommand_IfDayMore(dialogueData, dialogueView, player);
                 case "AddCoin":
                     return new DialogueCommand_AddCoin(dialogueData, dialogueView);
-                case "ShakeCamera":
-                    return new DialogueCommand_ShakeCamera(dialogueData, dialogueView, cameraController);
-                case "MoveCamera":
-                    return new DialogueCommand_MoveCamera(dialogueData, dialogueView, cameraController);
-                case "ResumeCamera":
-                    return new DialogueCommand_ResumeCamera(dialogueData, dialogueView, cameraController);
                 case "Wait":
                     return new DialogueCommand_Wait(dialogueData, dialogueView);
                 case "ShowSimplifiedCG":

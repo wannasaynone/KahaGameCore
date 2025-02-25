@@ -8,7 +8,6 @@ namespace KahaGameCore.Package.DialogueSystem
 {
     public class DialogueView : MonoBehaviour, IDialogueView
     {
-        [SerializeField] private CameraController mainCamera;
         [SerializeField] private Transform leftCharacterTransform;
         [SerializeField] private Image leftCharacterImage;
         [SerializeField] private Transform rightCharacterTransform;
@@ -362,15 +361,6 @@ namespace KahaGameCore.Package.DialogueSystem
             HideCharacterImage(rightCharacterImage, Vector3.right * 300f);
             dialoguePanelRoot.SetActive(false);
             yield return new WaitForSeconds(0.5f);
-
-            if (mainCamera.IsTrackingOtherTarget)
-            {
-                GeneralBlackScreen.Instance.FadeIn(() =>
-                {
-                    mainCamera.ResuemTarget();
-                    GeneralBlackScreen.Instance.FadeOut(null);
-                });
-            }
 
             gameObject.SetActive(false);
             InputDetector.UnlockMovement(this);
