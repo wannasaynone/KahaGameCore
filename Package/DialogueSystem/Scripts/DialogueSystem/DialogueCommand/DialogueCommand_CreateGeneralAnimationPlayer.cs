@@ -20,6 +20,19 @@ namespace KahaGameCore.Package.DialogueSystem.DialogueCommand
             return generalAnimationPlayer;
         }
 
+        public static void ClearGeneralAnimationPlayers()
+        {
+            for (int i = 0; i < m_generalAnimationPlayers.Count; i++)
+            {
+                if (m_generalAnimationPlayers[i] != null)
+                {
+                    UnityEngine.Object.Destroy(m_generalAnimationPlayers[i].gameObject);
+                }
+            }
+
+            m_generalAnimationPlayers.Clear();
+        }
+
         public DialogueCommand_CreateCreateGeneralAnimationPlayer(DialogueData dialogueData, IDialogueView dialogueView) : base(dialogueData, dialogueView)
         {
         }
@@ -30,7 +43,11 @@ namespace KahaGameCore.Package.DialogueSystem.DialogueCommand
             float x = float.Parse(DialogueData.Arg2);
             float y = float.Parse(DialogueData.Arg3);
 
+            gameObject.name = DialogueData.Arg1;//
+            m_generalAnimationPlayers.Add(gameObject);
+
             gameObject.transform.position = new Vector3(x, y, 0);
+            onCompleted?.Invoke();
         }
     }
 }

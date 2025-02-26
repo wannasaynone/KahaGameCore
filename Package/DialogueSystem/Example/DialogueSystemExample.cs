@@ -23,13 +23,29 @@ namespace KahaGameCore.Package.DialogueSystem.Example
         {
             if (Input.GetKeyUp(KeyCode.Alpha1))
             {
-                DialogueManager.Instance.TriggerDialogue(1, dialogueView);
+                DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+                {
+                    id = 1,
+                    dialogueView = dialogueView,
+                    onCompleted = delegate
+                    {
+                        gameObject.SetActive(true);
+                    }
+                });
                 gameObject.SetActive(false);
             }
 
             if (Input.GetKeyUp(KeyCode.Alpha2))
             {
-                DialogueManager.Instance.TriggerDialogue(5, dialogueView);
+                DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+                {
+                    id = 5,
+                    dialogueView = dialogueView,
+                    onCompleted = delegate
+                    {
+                        gameObject.SetActive(true);
+                    }
+                });
                 gameObject.SetActive(false);
             }
         }

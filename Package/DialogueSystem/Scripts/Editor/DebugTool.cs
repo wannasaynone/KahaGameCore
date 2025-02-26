@@ -59,7 +59,15 @@ namespace ProjectASNIM
             triggerDialogueID = EditorGUILayout.IntField("Dialogue ID", triggerDialogueID);
             if (GUILayout.Button("Trigger Dialogue"))
             {
-                DialogueManager.Instance.TriggerDialogue(triggerDialogueID, dialogueView);
+                DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+                {
+                    id = triggerDialogueID,
+                    dialogueView = dialogueView,
+                    onCompleted = delegate
+                    {
+                        Debug.Log("Dialogue Completed: " + triggerDialogueID);
+                    }
+                });
             }
         }
     }

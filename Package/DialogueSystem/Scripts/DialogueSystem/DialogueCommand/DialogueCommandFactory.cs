@@ -1,3 +1,5 @@
+using KahaGameCore.Package.DialogueSystem.DialogueCommand;
+
 namespace KahaGameCore.Package.DialogueSystem
 {
     public class DialogueCommandFactory : IDialogueFactory
@@ -61,6 +63,10 @@ namespace KahaGameCore.Package.DialogueSystem
                     return new DialogueCommand_PopUp(dialogueData, dialogueView);
                 case "Visable":
                     return new DialogueCommand_Visable(dialogueData, dialogueView);
+                case "CreateGeneralAnimationPlayer":
+                    return new DialogueCommand_CreateCreateGeneralAnimationPlayer(dialogueData, dialogueView);
+                case "PlayAnimation":
+                    return new DialogueCommand_PlayAnimation(dialogueData, dialogueView);
 
                 default:
                     return null;

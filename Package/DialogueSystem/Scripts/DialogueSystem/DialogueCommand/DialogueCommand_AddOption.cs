@@ -21,7 +21,12 @@ namespace KahaGameCore.Package.DialogueSystem
 
         private void OnClickedOption()
         {
-            DialogueManager.Instance.TriggerDialogue(int.Parse(DialogueData.Arg2), DialogueView);
+            DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+            {
+                id = int.Parse(DialogueData.Arg2),
+                dialogueView = DialogueView,
+                onCompleted = null
+            });
             DialogueView.ClearOptions();
         }
     }

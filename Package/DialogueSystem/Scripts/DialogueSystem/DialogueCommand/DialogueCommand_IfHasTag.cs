@@ -28,7 +28,12 @@ namespace KahaGameCore.Package.DialogueSystem
 
             if (hasAllTags)
             {
-                DialogueManager.Instance.TriggerDialogue(int.Parse(DialogueData.Arg2), DialogueView);
+                DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+                {
+                    id = int.Parse(DialogueData.Arg2),
+                    dialogueView = DialogueView,
+                    onCompleted = null
+                });
                 onForceQuit?.Invoke();
                 return;
             }
@@ -36,7 +41,12 @@ namespace KahaGameCore.Package.DialogueSystem
             {
                 if (!string.IsNullOrEmpty(DialogueData.Arg3))
                 {
-                    DialogueManager.Instance.TriggerDialogue(int.Parse(DialogueData.Arg3), DialogueView);
+                    DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+                    {
+                        id = int.Parse(DialogueData.Arg3),
+                        dialogueView = DialogueView,
+                        onCompleted = null
+                    });
                     onForceQuit?.Invoke();
                     return;
                 }

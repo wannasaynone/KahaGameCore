@@ -31,13 +31,23 @@ namespace KahaGameCore.Package.DialogueSystem
 
             if (hasAllItem)
             {
-                DialogueManager.Instance.TriggerDialogue(goToIfHave, DialogueView);
+                DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+                {
+                    id = goToIfHave,
+                    dialogueView = DialogueView,
+                    onCompleted = null
+                });
                 onForceQuit?.Invoke();
                 return;
             }
             else if (goToIfNotHave != -1)
             {
-                DialogueManager.Instance.TriggerDialogue(goToIfNotHave, DialogueView);
+                DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+                {
+                    id = goToIfNotHave,
+                    dialogueView = DialogueView,
+                    onCompleted = null
+                });
                 onForceQuit?.Invoke();
                 return;
             }

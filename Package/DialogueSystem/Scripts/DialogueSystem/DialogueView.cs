@@ -8,6 +8,8 @@ namespace KahaGameCore.Package.DialogueSystem
 {
     public class DialogueView : MonoBehaviour, IDialogueView
     {
+        public bool IsVisible => gameObject.activeSelf;
+
         [SerializeField] private Transform leftCharacterTransform;
         [SerializeField] private Image leftCharacterImage;
         [SerializeField] private Transform rightCharacterTransform;

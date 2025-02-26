@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using KahaGameCore.GameData.Implemented;
+using KahaGameCore.Package.DialogueSystem.DialogueCommand;
 
 namespace KahaGameCore.Package.DialogueSystem
 {
@@ -30,26 +31,30 @@ namespace KahaGameCore.Package.DialogueSystem
 
         private DialogueManager() { }
 
-        public event Action OnDialogueViewHided;
-
-
         private DialogueProcesser dialogueProcesser;
-        private IDialogueView currentUsingDialogueView;
         private IDialogueFactory dialogueFactory;
 
-        private List<int> pendingDialogueIDs = new List<int>();
+        public class PendingDialogueData
+        {
+            public int id;
+            public IDialogueView dialogueView;
+            public Action onCompleted;
+        }
 
-        public void TriggerDialogue(int id, IDialogueView dialogueView)
+        private PendingDialogueData currentDialogueData;
+        private List<PendingDialogueData> pendingDialogueIDs = new List<PendingDialogueData>();
+
+        public void TriggerDialogue(PendingDialogueData pendingDialogueData)
         {
             if (dialogueProcesser == null)
             {
-                currentUsingDialogueView = dialogueView;
-                dialogueProcesser = new DialogueProcesser(id, dialogueView, GameStaticDataManager.GetAllGameData<DialogueData>(), dialogueFactory);
+                currentDialogueData = pendingDialogueData;
+                dialogueProcesser = new DialogueProcesser(pendingDialogueData.id, pendingDialogueData.dialogueView, GameStaticDataManager.GetAllGameData<DialogueData>(), dialogueFactory);
                 dialogueProcesser.Process(OnDialogueEnded, OnDialogueEnded);
             }
             else
             {
-                pendingDialogueIDs.Add(id);
+                pendingDialogueIDs.Add(pendingDialogueData);
             }
         }
 
@@ -60,7 +65,7 @@ namespace KahaGameCore.Package.DialogueSystem
 
         private System.Collections.IEnumerator IECheckIsPlayerSelectingOption()
         {
-            while (currentUsingDialogueView.IsWaitingSelection())
+            while (currentDialogueData.dialogueView.IsWaitingSelection())
             {
                 yield return null;
             }
@@ -70,18 +75,31 @@ namespace KahaGameCore.Package.DialogueSystem
 
             if (pendingDialogueIDs.Count > 0)
             {
-                int id = pendingDialogueIDs[0];
+                currentDialogueData.onCompleted?.Invoke();
+
+                PendingDialogueData nextDialogueData = pendingDialogueIDs[0];
                 pendingDialogueIDs.RemoveAt(0);
+
                 dialogueProcesser = null;
-                TriggerDialogue(id, currentUsingDialogueView);
+                TriggerDialogue(nextDialogueData);
             }
             else
             {
-                currentUsingDialogueView.Hide(delegate
+                if (currentDialogueData.dialogueView.IsVisible)
+                {
+                    currentDialogueData.dialogueView.Hide(delegate
+                                    {
+                                        dialogueProcesser = null;
+                                        DialogueCommand_CreateCreateGeneralAnimationPlayer.ClearGeneralAnimationPlayers();
+                                        currentDialogueData.onCompleted?.Invoke();
+                                    });
+                }
+                else
                 {
                     dialogueProcesser = null;
-                    OnDialogueViewHided?.Invoke();
-                });
+                    DialogueCommand_CreateCreateGeneralAnimationPlayer.ClearGeneralAnimationPlayers();
+                    currentDialogueData.onCompleted?.Invoke();
+                }
             }
         }
     }

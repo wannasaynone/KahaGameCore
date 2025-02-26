@@ -19,13 +19,23 @@ namespace KahaGameCore.Package.DialogueSystem
 
             if (player.HasReadDialogue(dialogueID))
             {
-                DialogueManager.Instance.TriggerDialogue(goToIfDid, DialogueView);
+                DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+                {
+                    id = goToIfDid,
+                    dialogueView = DialogueView,
+                    onCompleted = null
+                });
                 onForceQuit?.Invoke();
                 return;
             }
             else if (goToIfNot != -1)
             {
-                DialogueManager.Instance.TriggerDialogue(goToIfNot, DialogueView);
+                DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+                {
+                    id = goToIfNot,
+                    dialogueView = DialogueView,
+                    onCompleted = null
+                });
                 onForceQuit?.Invoke();
                 return;
             }

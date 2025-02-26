@@ -13,7 +13,12 @@ namespace KahaGameCore.Package.DialogueSystem
 
         public override void Process(Action onCompleted, Action onForceQuit)
         {
-            DialogueManager.Instance.TriggerDialogue(int.Parse(DialogueData.Arg1), DialogueView);
+            DialogueManager.Instance.TriggerDialogue(new DialogueManager.PendingDialogueData
+            {
+                id = int.Parse(DialogueData.Arg1),
+                dialogueView = DialogueView,
+                onCompleted = null
+            });
             onCompleted?.Invoke();
         }
     }

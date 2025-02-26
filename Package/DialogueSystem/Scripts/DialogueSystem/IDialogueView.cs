@@ -5,6 +5,7 @@ namespace KahaGameCore.Package.DialogueSystem
 {
     public interface IDialogueView
     {
+        bool IsVisible { get; }
         void SetLeftCharacterImage(Sprite sprite, Action onCompleted = null);
         void SetLeftCharacterImage(string spriteName, Action onCompleted = null);
         void SetRightCharacterImage(Sprite sprite, Action onCompleted = null);
