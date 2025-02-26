@@ -24,6 +24,6 @@ namespace KahaGameCore.Package.DialogueSystem
         void ShowCGImage(string spriteName, Action onCompleted = null);
         void HideCGImage(Action onCompleted = null);
         void ClearOptions();
-        void Hide(Action onCompleted = null);
+        void Hide(float fadeOutTime, Action onCompleted = null);
     }
 }

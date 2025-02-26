@@ -87,17 +87,17 @@ namespace KahaGameCore.Package.DialogueSystem
             {
                 if (currentDialogueData.dialogueView.IsVisible)
                 {
-                    currentDialogueData.dialogueView.Hide(delegate
+                    currentDialogueData.dialogueView.Hide(0.5f, delegate
                                     {
                                         dialogueProcesser = null;
-                                        DialogueCommand_CreateCreateGeneralAnimationPlayer.ClearGeneralAnimationPlayers();
                                         currentDialogueData.onCompleted?.Invoke();
                                     });
+                    DialogueCommand_CreateCreateGeneralAnimationPlayer.ClearGeneralAnimationPlayers(1f);
                 }
                 else
                 {
                     dialogueProcesser = null;
-                    DialogueCommand_CreateCreateGeneralAnimationPlayer.ClearGeneralAnimationPlayers();
+                    DialogueCommand_CreateCreateGeneralAnimationPlayer.ClearGeneralAnimationPlayers(0.25f);
                     currentDialogueData.onCompleted?.Invoke();
                 }
             }

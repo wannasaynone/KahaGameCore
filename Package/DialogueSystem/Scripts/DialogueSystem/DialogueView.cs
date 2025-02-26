@@ -92,11 +92,11 @@ namespace KahaGameCore.Package.DialogueSystem
             root.DOLocalMove(curPos, 0.5f).OnComplete(() => onShown?.Invoke());
         }
 
-        private void HideCharacterImage(Image image, Vector3 add)
+        private void HideCharacterImage(Image image, Vector3 add, float time)
         {
             Vector3 originPos = image.transform.localPosition;
-            image.DOFade(0f, 0.5f);
-            image.transform.DOLocalMove(originPos + add, 0.5f).OnComplete(() =>
+            image.DOFade(0f, time);
+            image.transform.DOLocalMove(originPos + add, time).OnComplete(() =>
             {
                 image.enabled = false;
                 image.transform.localPosition = originPos;
@@ -357,18 +357,19 @@ namespace KahaGameCore.Package.DialogueSystem
             ClearOptions();
         }
 
-        public void Hide(Action onCompleted = null)
+        public void Hide(float fadeOutTime, Action onCompleted = null)
         {
-            if (gameObject.activeSelf) StartCoroutine(IEHide(onCompleted));
+            if (gameObject.activeSelf) StartCoroutine(IEHide(fadeOutTime, onCompleted));
             else onCompleted?.Invoke();
         }
 
-        private System.Collections.IEnumerator IEHide(Action onCompleted = null)
+        private System.Collections.IEnumerator IEHide(float fadeOutTime, Action onCompleted = null)
         {
-            HideCharacterImage(leftCharacterImage, Vector3.left * 300f);
-            HideCharacterImage(rightCharacterImage, Vector3.right * 300f);
+            HideCharacterImage(leftCharacterImage, Vector3.left * 300f, fadeOutTime);
+            HideCharacterImage(rightCharacterImage, Vector3.right * 300f, fadeOutTime);
             dialoguePanelRoot.SetActive(false);
-            yield return new WaitForSeconds(0.5f);
+
+            yield return new WaitForSeconds(fadeOutTime);
 
             gameObject.SetActive(false);
             InputDetector.UnlockMovement(this);

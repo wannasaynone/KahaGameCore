@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,17 +21,24 @@ namespace KahaGameCore.Package.DialogueSystem.DialogueCommand
             return generalAnimationPlayer;
         }
 
-        public static void ClearGeneralAnimationPlayers()
+        public static void ClearGeneralAnimationPlayers(float duration)
         {
             for (int i = 0; i < m_generalAnimationPlayers.Count; i++)
             {
                 if (m_generalAnimationPlayers[i] != null)
                 {
-                    UnityEngine.Object.Destroy(m_generalAnimationPlayers[i].gameObject);
+                    Common.GeneralCoroutineRunner.Instance.StartCoroutine(IEFadeOutGeneralAnimationPlayer(m_generalAnimationPlayers[i], duration));
                 }
             }
 
             m_generalAnimationPlayers.Clear();
+        }
+
+        private static IEnumerator IEFadeOutGeneralAnimationPlayer(GeneralAnimationPlayer generalAnimationPlayer, float duration)
+        {
+            generalAnimationPlayer.FadeOut(duration);
+            yield return new WaitForSeconds(duration);
+            UnityEngine.Object.Destroy(generalAnimationPlayer.gameObject);
         }
 
         public DialogueCommand_CreateCreateGeneralAnimationPlayer(DialogueData dialogueData, IDialogueView dialogueView) : base(dialogueData, dialogueView)
