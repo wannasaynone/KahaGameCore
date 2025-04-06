@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using KahaGameCore.GameData.Implemented;
-using UnityEngine;
 
 namespace KahaGameCore.Package.DialogueSystem
 {
