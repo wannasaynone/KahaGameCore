@@ -37,8 +37,26 @@ namespace KahaGameCore.Package.DialogueSystem
                     }
             }
 
-            DialogueView.SetNameText(DialogueData.Arg1);
-            DialogueView.SetContentText(DialogueData.Arg2, onCompleted);
+            switch (DialogueManager.Instance.currentLanguage)
+            {
+                case DialogueManager.LanguageType.TranditionalChinese:
+                    DialogueView.SetNameText(DialogueData.Arg1);
+                    DialogueView.SetContentText(DialogueData.Arg2, onCompleted);
+                    break;
+                case DialogueManager.LanguageType.English:
+                    DialogueView.SetNameText(DialogueData.Arg1_en);
+                    DialogueView.SetContentText(DialogueData.Arg2_en, onCompleted);
+                    break;
+                case DialogueManager.LanguageType.SimplifiedChinese:
+                    DialogueView.SetNameText(DialogueData.Arg1_hans);
+                    DialogueView.SetContentText(DialogueData.Arg2_hans, onCompleted);
+                    break;
+                default:
+                    UnityEngine.Debug.LogError("Language not supported: " + DialogueManager.Instance.currentLanguage);
+                    DialogueView.SetNameText(DialogueData.Arg1);
+                    DialogueView.SetContentText(DialogueData.Arg2, onCompleted);
+                    break;
+            }
         }
     }
 }

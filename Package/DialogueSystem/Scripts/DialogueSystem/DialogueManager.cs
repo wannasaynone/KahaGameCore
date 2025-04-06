@@ -18,14 +18,23 @@ namespace KahaGameCore.Package.DialogueSystem
                 return instance;
             }
         }
+
+        public enum LanguageType
+        {
+            TranditionalChinese,
+            SimplifiedChinese,
+            English
+        }
+
         private static DialogueManager instance;
         public GameStaticDataManager GameStaticDataManager { get; private set; }
-        public static void Initialize(GameStaticDataManager gameStaticDataManager, IDialogueFactory dialogueFactory)
+        public static void Initialize(GameStaticDataManager gameStaticDataManager, IDialogueFactory dialogueFactory, LanguageType languageType)
         {
             instance = new DialogueManager
             {
                 GameStaticDataManager = gameStaticDataManager,
-                dialogueFactory = dialogueFactory
+                dialogueFactory = dialogueFactory,
+                currentLanguage = languageType
             };
         }
 
@@ -33,6 +42,7 @@ namespace KahaGameCore.Package.DialogueSystem
 
         private DialogueProcesser dialogueProcesser;
         private IDialogueFactory dialogueFactory;
+        public LanguageType currentLanguage = LanguageType.TranditionalChinese;
 
         public class PendingDialogueData
         {

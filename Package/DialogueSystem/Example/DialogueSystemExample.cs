@@ -16,7 +16,7 @@ namespace KahaGameCore.Package.DialogueSystem.Example
             GameStaticDataDeserializer gameStaticDataDeserializer = new GameStaticDataDeserializer();
             gameStaticDataManager.Add<DialogueData>(gameStaticDataDeserializer.Read<DialogueData[]>(dialogueDataTextAsset.text));
 
-            DialogueManager.Initialize(gameStaticDataManager, new DialogueCommandFactory(PlayerManager.Instance.Player));
+            DialogueManager.Initialize(gameStaticDataManager, new DialogueCommandFactory(PlayerManager.Instance.Player), DialogueManager.LanguageType.TranditionalChinese);
         }
 
         private void Update()
