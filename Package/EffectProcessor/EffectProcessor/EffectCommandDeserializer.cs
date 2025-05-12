@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace KahaGameCore.Combat.Processor.EffectProcessor
+namespace KahaGameCore.Package.EffectProcessor
 {
     public class EffectCommandDeserializer
     {

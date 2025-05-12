@@ -1,4 +1,4 @@
-using KahaGameCore.Combat.Processor.EffectProcessor;
+using KahaGameCore.Package.EffectProcessor;
 using KahaGameCore.Package.EffectProcessor.Data;
 using NUnit.Framework;
 using System;

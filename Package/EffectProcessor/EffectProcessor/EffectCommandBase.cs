@@ -1,7 +1,7 @@
 ﻿using System;
 using KahaGameCore.Package.EffectProcessor.Data;
 
-namespace KahaGameCore.Combat.Processor.EffectProcessor
+namespace KahaGameCore.Package.EffectProcessor
 {
     public abstract class EffectCommandBase
     {

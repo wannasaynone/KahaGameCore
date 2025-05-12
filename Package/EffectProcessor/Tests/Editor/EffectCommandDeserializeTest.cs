@@ -1,5 +1,5 @@
 using System;
-using KahaGameCore.Combat.Processor.EffectProcessor;
+using KahaGameCore.Package.EffectProcessor;
 using NUnit.Framework;
 
 namespace KahaGameCore.Tests

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using KahaGameCore.Package.EffectProcessor.Data;
 using KahaGameCore.Package.EffectProcessor.Processor;
 
-namespace KahaGameCore.Combat.Processor.EffectProcessor
+namespace KahaGameCore.Package.EffectProcessor
 {
     public class EffectProcessor
     {

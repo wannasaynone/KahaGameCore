@@ -1,4 +1,4 @@
-namespace KahaGameCore.Combat.Processor.EffectProcessor
+namespace KahaGameCore.Package.EffectProcessor
 {
     public abstract class EffectCommandFactoryBase
     {

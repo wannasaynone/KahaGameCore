@@ -1,8 +1,8 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using KahaGameCore.Combat.Processor.EffectProcessor;
 using System.Collections.Generic;
 using KahaGameCore.Package.EffectProcessor.ValueContainer;
+using KahaGameCore.Package.EffectProcessor;
 
 namespace Assets.Scripts.StateMachine
 {
