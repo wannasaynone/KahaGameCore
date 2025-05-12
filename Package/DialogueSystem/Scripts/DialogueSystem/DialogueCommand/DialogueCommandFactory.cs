@@ -11,7 +11,7 @@ namespace KahaGameCore.Package.DialogueSystem
             this.player = player;
         }
 
-        DialogueCommandBase IDialogueFactory.CreateDialogueCommand(DialogueData dialogueData, IDialogueView dialogueView)
+        public DialogueCommandBase CreateDialogueCommand(DialogueData dialogueData, IDialogueView dialogueView)
         {
             switch (dialogueData.Command)
             {
