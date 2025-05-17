@@ -12,7 +12,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Level
         [SerializeField] private Transform boardTransform_max;
         public bool EnableWhiteNoise => enableWhiteNoise;
         [SerializeField] private bool enableWhiteNoise = false;
-#if UNIVERSAL_PIPELINE_CORE_INCLUDED
+#if USING_URP
         public VolumeProfile VolumeProfile => volumeProfile;
         [SerializeField] private VolumeProfile volumeProfile;
 #endif

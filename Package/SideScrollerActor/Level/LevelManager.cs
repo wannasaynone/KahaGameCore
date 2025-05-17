@@ -75,7 +75,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Level
                 instance.hero.PauseMove(false);
             }
         }
-#if UNIVERSAL_PIPELINE_CORE_INCLUDED
+#if USING_URP
         public static void SetProfile(VolumeProfile profile)
         {
             if (instance == null || instance.CurrentState != State.Started)
@@ -116,7 +116,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Level
         private static LevelManager instance;
 
         [Header("All Nullable")]
-#if UNIVERSAL_PIPELINE_CORE_INCLUDED
+#if USING_URP
         [SerializeField] private Volume volume;
 #endif
         [SerializeField] private ActorController actorController;

@@ -33,7 +33,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Level.InteractableObject
                     board_max = BoardSetter.MAX_X,
                     isBackPortal = true,
                     enableWhiteNoise = Audio.AudioManager.Instance.IsPlayingWhiteNoise,
-#if UNIVERSAL_PIPELINE_CORE_INCLUDED
+#if USING_URP
                     volumeProfile = LevelManager.GetCurrentVolumeProfile()
 #endif
                 };
@@ -45,7 +45,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Level.InteractableObject
                     board_min = targetRoom.BoardTransform_min.position.x,
                     board_max = targetRoom.BoardTransform_max.position.x,
                     isBackPortal = false,
-#if UNIVERSAL_PIPELINE_CORE_INCLUDED
+#if USING_URP
                     volumeProfile = targetRoom.VolumeProfile,
 #endif
                     enableWhiteNoise = targetRoom.EnableWhiteNoise,
@@ -88,7 +88,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Level.InteractableObject
         private void OnPortalFadeInEnded()
         {
             BoardSetter.SetBoard(interactingPortal.board_min, interactingPortal.board_max);
-#if UNIVERSAL_PIPELINE_CORE_INCLUDED
+#if USING_URP
             if (interactingPortal.volumeProfile != null)
             {
                 LevelManager.SetProfile(interactingPortal.volumeProfile);

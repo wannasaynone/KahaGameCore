@@ -140,7 +140,7 @@ namespace KahaGameCore.Package.SideScrollerActor.InGameEvent
         public float board_max;
         public float board_min;
         public UnityEngine.AudioClip enterSound;
-#if UNIVERSAL_PIPELINE_CORE_INCLUDED
+#if USING_URP
         public UnityEngine.Rendering.VolumeProfile volumeProfile;
 #endif
         public UnityEngine.AudioClip backgroundMusic;

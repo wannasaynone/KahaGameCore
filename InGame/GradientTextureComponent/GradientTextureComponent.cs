@@ -1,4 +1,4 @@
-#if UNIVERSAL_PIPELINE_CORE_INCLUDED
+#if USING_URP
 using CustomBlendModes;
 #endif
 using UnityEngine;
@@ -11,7 +11,7 @@ namespace ProjectTentacle.Tools
         Radius
     }
 
-#if UNIVERSAL_PIPELINE_CORE_INCLUDED
+#if USING_URP
     [RequireComponent(typeof(SpriteRenderer), typeof(SpriteBlendingMode))]
 #else
     [RequireComponent(typeof(SpriteRenderer))]
