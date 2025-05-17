@@ -1,0 +1,18 @@
+{
+    "name": "SideScrollerActor.Game.Cutscene.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:4136ab2391224294ca097c471f1d92b2"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -23,7 +23,8 @@ namespace KahaGameCore.Package.DialogueSystem
         {
             TranditionalChinese,
             SimplifiedChinese,
-            English
+            English,
+            Japanese
         }
 
         private static DialogueManager instance;

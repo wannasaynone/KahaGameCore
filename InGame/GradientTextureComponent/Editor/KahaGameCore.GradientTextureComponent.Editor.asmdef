@@ -1,0 +1,18 @@
+{
+    "name": "KahaGameCore.GradientTextureComponent.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:64b53ea36113c6f419b1755de209a0fb"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

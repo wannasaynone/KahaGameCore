@@ -1,0 +1,19 @@
+{
+    "name": "SideScrollerActor.Utlity",
+    "rootNamespace": "",
+    "references": [
+        "GUID:ed339a495f13a4d44b03055703f6e1c1",
+        "GUID:aa3d86240491d914a8e29aa51fabdecb",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f",
+        "GUID:ae869c991e11deb44a63f0e7bd1fce7e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

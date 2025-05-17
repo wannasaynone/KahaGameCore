@@ -1,0 +1,17 @@
+{
+    "name": "SideScrollerActor.DialogueSystemExtend",
+    "rootNamespace": "",
+    "references": [
+        "GUID:eb4597b0d4bffa342a7cdfb142534768",
+        "GUID:92e9d184777ecd047b47289f2af3ce2b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

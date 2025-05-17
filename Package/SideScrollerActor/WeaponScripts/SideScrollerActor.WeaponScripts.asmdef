@@ -1,0 +1,19 @@
+{
+    "name": "SideScrollerActor.WeaponScripts",
+    "rootNamespace": "",
+    "references": [
+        "GUID:74ba164b62537314c80e03e421d30887",
+        "GUID:ef82501adac90004689f3ccfd44113d8",
+        "GUID:f91d9863fa14b6b47b7e8ece2df6efc7",
+        "GUID:92e9d184777ecd047b47289f2af3ce2b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

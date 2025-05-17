@@ -1,0 +1,174 @@
+{
+    "descriptions": [
+        {
+            "commandName": "MoveActor",
+            "argDescriptions": [
+                "物件名稱",
+                "移動單位",
+                "移動時間",
+                "不等待(輸入T/F)",
+                ""
+            ]
+        },
+        {
+            "commandName": "MoveCamera",
+            "argDescriptions": [
+                "移動單位",
+                "移動時間",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "BlackFadeIn",
+            "argDescriptions": [
+                "",
+                "",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "BlackFadeOut",
+            "argDescriptions": [
+                "",
+                "",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "CutInText",
+            "argDescriptions": [
+                "ContextDataID",
+                "",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "DisableCutInText",
+            "argDescriptions": [
+                "",
+                "",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "PlayAnimation",
+            "argDescriptions": [
+                "物件名稱",
+                "動畫名稱",
+                "面向(L/R)",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "PlaySound",
+            "argDescriptions": [
+                "Resources路徑",
+                "",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "SetCamera",
+            "argDescriptions": [
+                "指定X",
+                "移動時間",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "TriggerDialogue",
+            "argDescriptions": [
+                "ID",
+                "",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "Wait",
+            "argDescriptions": [
+                "等待秒數",
+                "",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "SetActorPosition",
+            "argDescriptions": [
+                "物件名稱",
+                "X值",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "SetCameraToActor",
+            "argDescriptions": [
+                "Actor名稱",
+                "移動時間",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "PlayBGM",
+            "argDescriptions": [
+                "ResourcesPath",
+                "",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "PlayRepeatSound",
+            "argDescriptions": [
+                "ResourcesPath",
+                "重複次數",
+                "重複間隔",
+                "不等待(T/F)",
+                ""
+            ]
+        },
+        {
+            "commandName": "StopBGM",
+            "argDescriptions": [
+                "",
+                "",
+                "",
+                "",
+                ""
+            ]
+        },
+        {
+            "commandName": "ShowStoryCG",
+            "argDescriptions": [
+                "Reources Path",
+                "",
+                "",
+                "",
+                ""
+            ]
+        }
+    ]
+}
