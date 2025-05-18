@@ -113,13 +113,15 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
         [Header("視覺相關組件設置")]
         [Space(10)]
         [SerializeField] private Animator animator;
-        [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private ParticleSystemRenderer dashEffect_front;
         [SerializeField] private ParticleSystemRenderer dashEffect_back;
         [SerializeField] private GameObject perfectGuardEffect;
         [SerializeField] private float cameraOffset_normal = 0.5f;
         [SerializeField] private float cameraOffset_y = 0f;
         [SerializeField] private Transform defaultFirePoint;
+        [SerializeField] private string groundLayerName = "Ground";
+        [Header("Observable")]
+        [Observerable][SerializeField] private SpriteRenderer[] spriteRenderers;
 
         /// cache parameter
         private BoxCollider2D boxCollider2D;
@@ -155,7 +157,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
         }
 
         public Animator Animator { get { return animator; } }
-        public SpriteRenderer SpriteRenderer { get { return spriteRenderer; } }
+        public SpriteRenderer[] SpriteRenderers { get { return spriteRenderers; } }
 
         public bool IsFacingRight
         {
@@ -223,6 +225,12 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
             boxCollider2D = GetComponent<BoxCollider2D>();
             boxCollider2D.isTrigger = true;
 
+            spriteRenderers = GetComponentsInChildren<SpriteRenderer>();
+            if (spriteRenderers == null || spriteRenderers.Length == 0)
+            {
+                Debug.LogError("Actor: " + gameObject.name + " has no sprite renderer.");
+            }
+
             EventBus.Subscribe<WeaponSwitcher_OnWeaponRequested>(WeaponSwitcher_OnWeaponRequested);
         }
 
@@ -269,7 +277,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
         private void Update()
         {
             float groundCheckDistance = 0.1f;
-            LayerMask groundLayer = 1 << LayerMask.NameToLayer("Ground");
+            LayerMask groundLayer = 1 << LayerMask.NameToLayer(groundLayerName);
             RaycastHit2D hit = Physics2D.Raycast(transform.position + Vector3.up * groundCheckDistance, Vector2.down, groundCheckDistance, groundLayer);
             IsGrounded = hit.collider != null;
 

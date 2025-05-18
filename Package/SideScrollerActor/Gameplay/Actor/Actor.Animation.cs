@@ -36,14 +36,17 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
 
         private float GetSpriteAlpha()
         {
-            return spriteRenderer.color.a;
+            return spriteRenderers[0].color.a;
         }
 
         private void SetSpriteAlpha(float alpha)
         {
-            Color color = spriteRenderer.color;
-            color.a = alpha;
-            spriteRenderer.color = color;
+            foreach (SpriteRenderer spriteRenderer in spriteRenderers)
+            {
+                Color color = spriteRenderer.color;
+                color.a = alpha;
+                spriteRenderer.color = color;
+            }
         }
 
         public void SetFacingRight(bool force = false)

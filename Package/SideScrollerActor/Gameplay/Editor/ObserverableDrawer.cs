@@ -8,17 +8,21 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
     {
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            // 保存當前的 GUI 狀態
-            bool previousGUIState = GUI.enabled;
+            EditorGUI.BeginProperty(position, label, property);
 
-            // 設置 GUI 為禁用狀態
+            bool wasEnabled = GUI.enabled;
             GUI.enabled = false;
 
-            // 繪製默認的屬性字段
-            EditorGUI.PropertyField(position, property, label);
+            EditorGUI.PropertyField(position, property, label, true);
 
-            // 恢復之前的 GUI 狀態
-            GUI.enabled = previousGUIState;
+            GUI.enabled = wasEnabled;
+
+            EditorGUI.EndProperty();
+        }
+
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+        {
+            return EditorGUI.GetPropertyHeight(property, label, true);
         }
     }
 }

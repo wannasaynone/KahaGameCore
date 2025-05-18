@@ -81,10 +81,18 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
 
         private IEnumerator IESetForceInvincible(float time)
         {
-            spriteRenderer.color = new Color(1f, 1f, 1f, 0.5f);
+            foreach (var spriteRenderer in spriteRenderers)
+            {
+                spriteRenderer.color = new Color(1f, 1f, 1f, 0.5f);
+            }
+
             yield return new WaitForSeconds(time);
             isForceInvincible = false;
-            spriteRenderer.color = new Color(1f, 1f, 1f, 1f);
+
+            foreach (var spriteRenderer in spriteRenderers)
+            {
+                spriteRenderer.color = new Color(1f, 1f, 1f, 1f);
+            }
         }
 
         public void SetWaitingInteractObject(IInteractableObject interactableObject)

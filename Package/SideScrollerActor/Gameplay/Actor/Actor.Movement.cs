@@ -255,7 +255,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
 
             ParticleSystemRenderer cloneEffect;
 
-            if (spriteRenderer.flipX == !isGoingRight)
+            if (spriteRenderers[0].flipX == !isGoingRight)
             {
                 animator.Play(dashAnimationName_front);
                 cloneEffect = Instantiate(dashEffect_front, dashEffect_front.transform.position, Quaternion.identity);
