@@ -28,6 +28,13 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
                 return;
             }
 
+            // 如果攻擊信息提供了自定義的 Animator Controller，則臨時切換
+            if (attackInfo.GetAnimatorController() != null)
+            {
+                cachedOriginalController = animator.runtimeAnimatorController;
+                animator.runtimeAnimatorController = attackInfo.GetAnimatorController();
+            }
+
             animator.Play(attackInfo.GetPrepareAnimationName());
             isPreparingAttack = true;
             isHoldingPrepareAttackButton = true;
@@ -54,6 +61,14 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
         private void DisableIsPreparingAttack()
         {
             isPreparingAttack = false;
+
+            // 恢復原始的 Animator Controller
+            if (cachedOriginalController != null && currentAttackInfo == null)
+            {
+                animator.runtimeAnimatorController = cachedOriginalController;
+                cachedOriginalController = null;
+            }
+
             if (cachedEnabledPrepareGameObject != null && currentAttackInfo == null)
             {
                 cachedEnabledPrepareGameObject.gameObject.SetActive(false);
@@ -182,6 +197,16 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
 
             bool createdBullet = false;
 
+            // 保存原始的 Animator Controller
+            RuntimeAnimatorController originalController = null;
+
+            // 如果攻擊信息提供了自定義的 Animator Controller，則臨時切換
+            if (currentAttackInfo.GetAnimatorController() != null)
+            {
+                originalController = animator.runtimeAnimatorController;
+                animator.runtimeAnimatorController = currentAttackInfo.GetAnimatorController();
+            }
+
             animator.Play(currentAttackInfo.GetAnimationName());
             while (currentAttackInfo != null && attackTimer <= currentAttackInfo.GetDuration())
             {
@@ -200,6 +225,13 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
                         cachedEnabledAttackGameObject.gameObject.SetActive(false);
                         cachedEnabledAttackGameObject = null;
                     }
+
+                    // 如果攻擊被中斷，恢復原始的 Animator Controller
+                    if (originalController != null)
+                    {
+                        animator.runtimeAnimatorController = originalController;
+                    }
+
                     yield break;
                 }
 
@@ -214,7 +246,18 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
 
             if (state != State.Attacking)
             {
+                // 如果攻擊被中斷，恢復原始的 Animator Controller
+                if (originalController != null)
+                {
+                    animator.runtimeAnimatorController = originalController;
+                }
                 yield break;
+            }
+
+            // 攻擊結束，恢復原始的 Animator Controller
+            if (originalController != null)
+            {
+                animator.runtimeAnimatorController = originalController;
             }
 
             if (IsGrounded)

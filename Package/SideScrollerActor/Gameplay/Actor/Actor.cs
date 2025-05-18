@@ -142,6 +142,7 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
         private bool isForceInvincible = false;
         private bool isPreparingAttack = false;
         private bool isHoldingPrepareAttackButton = false;
+        private RuntimeAnimatorController cachedOriginalController;
         [SerializeField] private State state = State.WaitInitialize;
         private JumpState jumpState = JumpState.None;
         ///
@@ -268,6 +269,13 @@ namespace KahaGameCore.Package.SideScrollerActor.Gameplay
             {
                 cachedEnabledPrepareGameObject.gameObject.SetActive(false);
                 cachedEnabledPrepareGameObject = null;
+            }
+
+            // 恢復原始的 Animator Controller
+            if (cachedOriginalController != null)
+            {
+                animator.runtimeAnimatorController = cachedOriginalController;
+                cachedOriginalController = null;
             }
 
             EventBus.Unsubscribe<RangeWeapon_OnReloading>(OnReloading);

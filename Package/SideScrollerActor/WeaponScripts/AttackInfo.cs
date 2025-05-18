@@ -16,6 +16,8 @@ namespace KahaGameCore.Package.SideScrollerActor.WeaponScripts
         [Rename("範圍傷害影響弱點")] public bool areaAffectWeakPoints = true;
         [Tooltip("觸發本攻擊時會播放的動畫。")]
         [Rename("攻擊動畫")] public string animationName;
+        [Tooltip("可選的動畫控制器。如果設置，在播放此攻擊動畫時會臨時切換到此控制器。")]
+        [Rename("動畫控制器")] public RuntimeAnimatorController animatorController;
         [Tooltip("施展這個攻擊時需要消耗多少體力，不足消耗時攻擊會失敗")]
         [Rename("消耗體力")] public float staminaCost;
         [Tooltip("施展這個攻擊時需要消耗多少生命值，不足消耗時攻擊會失敗")]
@@ -148,5 +150,7 @@ namespace KahaGameCore.Package.SideScrollerActor.WeaponScripts
         public float GetShakeWhenHit() => shakeWhenHit;
 
         public float GetShakeWhenCritical() => shakeWhenCritical;
+
+        public RuntimeAnimatorController GetAnimatorController() => animatorController;
     }
 }

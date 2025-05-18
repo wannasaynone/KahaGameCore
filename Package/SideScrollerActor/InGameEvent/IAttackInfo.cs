@@ -7,6 +7,7 @@ namespace KahaGameCore.Package.SideScrollerActor.WeaponScripts
         string GetAnimationName();
         string GetPrepareAnimationName();
         string GetPrepareAndMoveAnimationName(bool isReverse = false);
+        RuntimeAnimatorController GetAnimatorController();
 
         float GetStaminaCost();
         int GetHealthCost();
