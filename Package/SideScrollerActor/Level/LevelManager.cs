@@ -85,16 +85,6 @@ namespace KahaGameCore.Package.SideScrollerActor.Level
 
             instance.volume.profile = profile;
         }
-
-        public static VolumeProfile GetCurrentVolumeProfile()
-        {
-            if (instance == null || instance.CurrentState != State.Started)
-            {
-                return null;
-            }
-
-            return instance.volume.profile;
-        }
 #endif
         public static GameObject GetSpecialGameObjectByName(string name)
         {
@@ -111,6 +101,23 @@ namespace KahaGameCore.Package.SideScrollerActor.Level
             }
 
             return specialGameObject;
+        }
+
+        public static RoomSetting GetRoomSettingByName(string roomName)
+        {
+            if (instance == null || instance.CurrentState != State.Started)
+            {
+                return null;
+            }
+
+            RoomSetting roomSetting = System.Array.Find(instance.allRoomSettings, room => room.name == roomName);
+            if (roomSetting == null)
+            {
+                Debug.LogError($"RoomSetting with name {roomName} not found. Did you forget to add it to the list in LevelManager?");
+                return null;
+            }
+
+            return roomSetting;
         }
 
         private static LevelManager instance;
@@ -140,6 +147,8 @@ namespace KahaGameCore.Package.SideScrollerActor.Level
 
         private GameObject aiTickerParent;
 
+        private RoomSetting[] allRoomSettings;
+
         private void OnEnable()
         {
             if (instance != null)
@@ -152,6 +161,8 @@ namespace KahaGameCore.Package.SideScrollerActor.Level
             EventBus.Subscribe<InGameItem_OnAmountChanged>(InGameItem_OnAmountChanged);
             EventBus.Subscribe<OnItemRecordChanged>(OnItemRecordChanged);
             EventBus.Subscribe<Game_CallHitPause>(OnGamePause);
+
+            allRoomSettings = GetComponentsInChildren<RoomSetting>(true);
         }
 
         private void InGameItem_OnAmountChanged(InGameItem_OnAmountChanged e)

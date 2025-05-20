@@ -8,8 +8,8 @@ namespace KahaGameCore.Package.SideScrollerActor.Level.InteractableObject
     {
         [SerializeField] private AudioClip enterSound;
         [SerializeField] private Animator animator;
-        [Header("如果沒有設定target room表示返回最後一次記憶的傳送門處")]
-        [SerializeField] private RoomSetting targetRoom;
+        [SerializeField] private bool autoTeleport = false;
+        [SerializeField] private string targetRoomName = "";
 
         protected override void Exit()
         {
@@ -23,39 +23,66 @@ namespace KahaGameCore.Package.SideScrollerActor.Level.InteractableObject
 
         protected override void Interact()
         {
-            if (targetRoom != null)
+            if (autoTeleport)
             {
-                backFromPortalInfo = new Game_OnPortalEntered
-                {
-                    actorInstanceID = GetInstanceID(),
-                    targetPosition = new Vector3(transform.position.x, actor.transform.position.y, actor.transform.position.z),
-                    board_min = BoardSetter.MIN_X,
-                    board_max = BoardSetter.MAX_X,
-                    isBackPortal = true,
-                    enableWhiteNoise = Audio.AudioManager.Instance.IsPlayingWhiteNoise,
-#if USING_URP
-                    volumeProfile = LevelManager.GetCurrentVolumeProfile()
-#endif
-                };
-
-                interactingPortal = new Game_OnPortalEntered
-                {
-                    actorInstanceID = actor.GetInstanceID(),
-                    targetPosition = targetRoom.SpawnPoint.position,
-                    board_min = targetRoom.BoardTransform_min.position.x,
-                    board_max = targetRoom.BoardTransform_max.position.x,
-                    isBackPortal = false,
-#if USING_URP
-                    volumeProfile = targetRoom.VolumeProfile,
-#endif
-                    enableWhiteNoise = targetRoom.EnableWhiteNoise,
-                    enterSound = enterSound
-                };
+                AutoTeleport();
             }
             else
             {
-                interactingPortal = backFromPortalInfo;
+                SetWaitingInteractObject();
             }
+        }
+
+        private void AutoTeleport()
+        {
+            RoomSetting targetRoom = LevelManager.GetRoomSettingByName(targetRoomName);
+
+            if (targetRoom == null)
+            {
+                Debug.LogError("targetRoom cannot be null for portal: " + gameObject.name);
+                return;
+            }
+
+            interactingPortal = new Game_OnPortalEntered
+            {
+                actorInstanceID = actor.GetInstanceID(),
+                targetPosition = targetRoom.GetSpawnPointByFromRoomName(transform.parent.name).transform.position,
+                board_min = targetRoom.BoardTransform_min.position.x,
+                board_max = targetRoom.BoardTransform_max.position.x,
+                isBackPortal = false,
+#if USING_URP
+                volumeProfile = targetRoom.VolumeProfile,
+#endif
+                enableWhiteNoise = targetRoom.EnableWhiteNoise,
+                enterSound = enterSound
+            };
+
+            Enter();
+        }
+
+        private void SetWaitingInteractObject()
+        {
+            RoomSetting targetRoom = LevelManager.GetRoomSettingByName(targetRoomName);
+
+            if (targetRoom == null)
+            {
+                Debug.LogError("targetRoom cannot be null for portal: " + gameObject.name);
+                return;
+            }
+
+            interactingPortal = new Game_OnPortalEntered
+            {
+                actorInstanceID = actor.GetInstanceID(),
+                targetPosition = targetRoom.GetSpawnPointByFromRoomName(transform.parent.name).transform.position,
+                board_min = targetRoom.BoardTransform_min.position.x,
+                board_max = targetRoom.BoardTransform_max.position.x,
+                isBackPortal = false,
+#if USING_URP
+                volumeProfile = targetRoom.VolumeProfile,
+#endif
+                enableWhiteNoise = targetRoom.EnableWhiteNoise,
+                enterSound = enterSound
+            };
 
             actor.SetWaitingInteractObject(this);
 
@@ -70,7 +97,6 @@ namespace KahaGameCore.Package.SideScrollerActor.Level.InteractableObject
             Enter();
         }
 
-        private static Game_OnPortalEntered backFromPortalInfo = null;
         private static Game_OnPortalEntered interactingPortal = null;
 
         private void Enter()
