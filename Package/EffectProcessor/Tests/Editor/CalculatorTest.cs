@@ -114,7 +114,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public void Spciaial_command_random_when_typo()
+        public void Special_command_random_when_typo()
         {
             float result = Calculator.Calculate(new Calculator.CalculateData
             {
