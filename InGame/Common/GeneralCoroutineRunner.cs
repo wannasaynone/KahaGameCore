@@ -8,10 +8,12 @@ namespace KahaGameCore.Common
         {
             get
             {
-                if(m_instance == null)
+                if (m_instance == null)
                 {
-                    return new GameObject("[General Coroutine Runner]").AddComponent<GeneralCoroutineRunner>();
+                    m_instance = new GameObject("[General Coroutine Runner]").AddComponent<GeneralCoroutineRunner>();
+                    DontDestroyOnLoad(m_instance.gameObject);
                 }
+
                 return m_instance;
             }
         }
