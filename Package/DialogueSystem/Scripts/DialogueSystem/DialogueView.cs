@@ -28,6 +28,7 @@ namespace KahaGameCore.Package.DialogueSystem
         [SerializeField] private Image higherBlackScreen;
         [SerializeField] private Image whiteScreen;
         [SerializeField] private AudioClip nextSentenceSound;
+        [SerializeField] private Material characterDefaultMaterial;
 
         private int currentSelectOptionIndex = -1;
         private int lastSelectOptionIndex = -1;
@@ -53,15 +54,23 @@ namespace KahaGameCore.Package.DialogueSystem
             });
         }
 
-        public void SetLeftCharacterImage(Sprite sprite, Action onCompleted = null)
+        public void SetLeftCharacterImage(Sprite sprite, string materialName = "Default", Action onCompleted = null)
         {
             leftCharacterImage.sprite = sprite;
+            if (materialName != "Default")
+            {
+                leftCharacterImage.material = Resources.Load<Material>($"Materials/{materialName}");
+            }
+            else
+            {
+                leftCharacterImage.material = characterDefaultMaterial;
+            }
             ShowCharacterImage(leftCharacterImage, leftCharacterTransform, Vector3.left * 300f, onCompleted);
         }
 
-        public void SetLeftCharacterImage(string spriteName, Action onCompleted = null)
+        public void SetLeftCharacterImage(string spriteName, string materialName = "Default", Action onCompleted = null)
         {
-            SetLeftCharacterImage(Resources.Load<Sprite>($"Character/{spriteName}"), onCompleted);
+            SetLeftCharacterImage(Resources.Load<Sprite>($"Character/{spriteName}"), materialName, onCompleted);
         }
 
         private void ShowUI()
@@ -92,7 +101,7 @@ namespace KahaGameCore.Package.DialogueSystem
             root.DOLocalMove(curPos, 0.5f).OnComplete(() => onShown?.Invoke());
         }
 
-        private void HideCharacterImage(Image image, Vector3 add, float time)
+        private void HideCharacterImage(Image image, Vector3 add, float time)//
         {
             Vector3 originPos = image.transform.localPosition;
             image.DOFade(0f, time);
@@ -103,16 +112,25 @@ namespace KahaGameCore.Package.DialogueSystem
             });
         }
 
-        public void SetRightCharacterImage(Sprite sprite, Action onCompleted = null)
+        public void SetRightCharacterImage(Sprite sprite, string materialName = "Default", Action onCompleted = null)
         {
             rightCharacterImage.sprite = sprite;
+            if (materialName != "Default")
+            {
+                rightCharacterImage.material = Resources.Load<Material>($"Materials/{materialName}");
+            }
+            else
+            {
+                rightCharacterImage.material = characterDefaultMaterial;
+            }
             ShowCharacterImage(rightCharacterImage, rightCharacterTransform, Vector3.right * 300f, onCompleted);
         }
 
-        public void SetRightCharacterImage(string spriteName, Action onCompleted = null)
+        public void SetRightCharacterImage(string spriteName, string materialName = "Default", Action onCompleted = null)
         {
-            SetRightCharacterImage(Resources.Load<Sprite>($"Character/{spriteName}"), onCompleted);
+            SetRightCharacterImage(Resources.Load<Sprite>($"Character/{spriteName}"), materialName, onCompleted);
         }
+
 
         public void SetContentText(string text, Action onCompleted = null)
         {

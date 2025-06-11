@@ -10,6 +10,7 @@ namespace KahaGameCore.Package.DialogueSystem
         public string Arg1 { get; set; }
         public string Arg2 { get; set; }
         public string Arg3 { get; set; }
+        public string Arg4 { get; set; }
         public string Arg1_en { get; set; }
         public string Arg2_en { get; set; }
         public string Arg3_en { get; set; }

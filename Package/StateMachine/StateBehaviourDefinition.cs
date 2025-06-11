@@ -27,7 +27,7 @@ namespace Assets.Scripts.StateMachine
 
             string fullCommand = "Execute{" + behaviourContent.ReplaceWhitespace("").Replace("\n", "") + "}";
 
-            Debug.Log(name + " " + fullCommand);
+            //Debug.Log(name + " " + fullCommand);
 
             EffectCommandDeserializer deserializer = new EffectCommandDeserializer(effectCommandFactoryContainer);
             Dictionary<string, List<EffectProcessor.EffectData>> effectCommands = deserializer.Deserialize(fullCommand);
