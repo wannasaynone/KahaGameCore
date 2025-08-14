@@ -15,94 +15,181 @@ namespace KahaGameCore.Package.EffectProcessor.ValueContainer
         }
         public static float Calculate(CalculateData data)
         {
-            List<string> _buffer = new List<string> { "" };
-
-            for (int i = 0; i < data.formula.Length; i++)
+            // Handle empty formula
+            if (string.IsNullOrEmpty(data.formula))
             {
-                if (data.formula[i] == '(')
-                {
-                    _buffer.Add("");
-                    continue;
-                }
+                UnityEngine.Debug.LogError("[Error] Formula is empty");
+                return 0;
+            }
 
-                if (i == data.formula.Length - 1 && data.formula[i] != ')')
-                {
-                    _buffer[_buffer.Count - 1] += data.formula[i];
-                }
+            // Trim the formula
+            data.formula = data.formula.Trim();
+            UnityEngine.Debug.Log($"Calculating formula: {data.formula}");
 
-                if (data.formula[i] == ')' || i == data.formula.Length - 1)
-                {
-                    string _blockResult = _buffer[_buffer.Count - 1];
+            try
+            {
+                // Check if the formula contains arithmetic operators outside of parentheses
+                bool containsOperatorsOutsideParentheses = ContainsOperatorsOutsideParentheses(data.formula);
 
-                    if (_buffer.Count > 1)
+                // First, handle function calls like Random() and Read()
+                if (data.formula.Contains("(") && data.formula.Contains(")"))
+                {
+                    // Check if parentheses are balanced
+                    if (!AreParenthesesBalanced(data.formula))
                     {
-                        // means this block is a value command
-                        if (_blockResult.Contains(",") || !_blockResult.Contains(".") && !int.TryParse(_blockResult, out int r))
-                        {
-                            string _commandBuffer = ""; // start get command
-                            for (int j = _buffer[_buffer.Count - 2].Length - 1; j >= 0; j--)
-                            {
-                                if (_buffer[_buffer.Count - 2][j] != '+'
-                                    && _buffer[_buffer.Count - 2][j] != '-'
-                                    && _buffer[_buffer.Count - 2][j] != '*'
-                                    && _buffer[_buffer.Count - 2][j] != '/'
-                                    && _buffer[_buffer.Count - 2][j] != '('
-                                    && _buffer[_buffer.Count - 2][j] != ')')
-                                {
-                                    _commandBuffer = _commandBuffer.Insert(0, _buffer[_buffer.Count - 2][j].ToString());
-                                }
-                                else
-                                {
-                                    break;
-                                }
-                            }
-
-                            string _para = _buffer[_buffer.Count - 1];
-                            int _commandResult = GetValueByCommand(data, _commandBuffer, _para);
-
-                            _buffer[_buffer.Count - 2] = _buffer[_buffer.Count - 2].Replace(_commandBuffer, "");
-                            _buffer.RemoveAt(_buffer.Count - 1);
-
-                            if (_buffer.Count > 0)
-                            {
-                                _buffer[_buffer.Count - 1] += _commandResult;
-                            }
-                            else
-                            {
-                                _buffer.Add(_commandResult.ToString());
-                            }
-                            continue;
-                        }
-
-                        if (int.TryParse(_blockResult, out int _blockValue))
-                        {
-                            _buffer[_buffer.Count - 2] += _blockValue;
-                        }
-                        else
-                        {
-                            _buffer[_buffer.Count - 2] += Arithmetic(data, _blockResult);
-                        }
-
-                        _buffer.RemoveAt(_buffer.Count - 1);
-                        continue;
+                        UnityEngine.Debug.LogError($"Mismatched parentheses in formula: {data.formula}");
+                        return 0;
                     }
-                    else if (i == data.formula.Length - 1)
+
+                    // Only treat as a single function call if there are no operators outside parentheses
+                    // and the formula starts with a function name and ends with a closing parenthesis
+                    if (!containsOperatorsOutsideParentheses &&
+                        (data.formula.StartsWith("Random") || data.formula.StartsWith("Read")) &&
+                        data.formula.LastIndexOf(')') == data.formula.Length - 1)
+                    {
+                        int openParenIndex = data.formula.IndexOf('(');
+                        int closeParenIndex = data.formula.LastIndexOf(')');
+
+                        if (openParenIndex > 0 && closeParenIndex > openParenIndex)
+                        {
+                            string command = data.formula.Substring(0, openParenIndex).Trim();
+                            string parameters = data.formula.Substring(openParenIndex + 1, closeParenIndex - openParenIndex - 1).Trim();
+
+                            return GetValueByCommand(data, command, parameters);
+                        }
+                    }
+
+                    // For formulas with multiple function calls or nested parentheses,
+                    // use the arithmetic processing which handles them through tokenization
+                    if (containsOperatorsOutsideParentheses)
+                    {
+                        string result = Arithmetic(data, data.formula);
+                        if (float.TryParse(result, out float value))
+                        {
+                            return value;
+                        }
+                    }
+                    else
+                    {
+                        // Use parentheses evaluation logic for nested parentheses without operators
+                        return EvaluateExpressionWithParentheses(data);
+                    }
+                }
+
+                // Handle arithmetic expressions without parentheses
+                if (data.formula.Contains("+") || data.formula.Contains("-") ||
+                    data.formula.Contains("*") || data.formula.Contains("/"))
+                {
+                    string result = Arithmetic(data, data.formula);
+                    if (float.TryParse(result, out float value))
+                    {
+                        return value;
+                    }
+                }
+
+                // Handle direct values (numbers or property references)
+                if (float.TryParse(data.formula, out float directValue))
+                {
+                    return directValue;
+                }
+                else
+                {
+                    return GetValueByParaString(data, data.formula);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                UnityEngine.Debug.LogError($"Error calculating formula '{data.formula}': {ex.Message}");
+                return 0;
+            }
+        }
+
+        private static float EvaluateExpressionWithParentheses(CalculateData data)
+        {
+            string formula = data.formula;
+            UnityEngine.Debug.Log($"Evaluating expression with parentheses: {formula}");
+
+            // Check if parentheses are balanced
+            if (!AreParenthesesBalanced(formula))
+            {
+                UnityEngine.Debug.LogError($"Mismatched parentheses in formula: {formula}");
+                return 0;
+            }
+
+            // Find the innermost parentheses
+            int openIndex = formula.LastIndexOf('(');
+            if (openIndex < 0)
+            {
+                UnityEngine.Debug.LogError($"Mismatched parentheses in formula: {formula}");
+                return 0;
+            }
+
+            int closeIndex = formula.IndexOf(')', openIndex);
+            if (closeIndex < 0)
+            {
+                UnityEngine.Debug.LogError($"Mismatched parentheses in formula: {formula}");
+                return 0;
+            }
+
+            // Extract the content inside the parentheses
+            string innerExpression = formula.Substring(openIndex + 1, closeIndex - openIndex - 1);
+
+            // Check if this is a function call
+            string prefix = "";
+            if (openIndex > 0)
+            {
+                // Look for a function name before the opening parenthesis
+                for (int i = openIndex - 1; i >= 0; i--)
+                {
+                    char c = formula[i];
+                    if (char.IsLetterOrDigit(c) || c == '_')
+                    {
+                        prefix = c + prefix;
+                    }
+                    else
                     {
                         break;
                     }
                 }
-
-                _buffer[_buffer.Count - 1] += data.formula[i];
             }
 
-            string _resultString = Arithmetic(data, _buffer[_buffer.Count - 1]);
-
-            if (!float.TryParse(_resultString, out float _result))
+            float innerResult;
+            if (prefix == "Random" || prefix == "Read")
             {
-                _result = (float)GetValueByParaString(data, _resultString);
+                // This is a function call
+                innerResult = GetValueByCommand(data, prefix, innerExpression);
+
+                // Replace the entire function call with the result
+                string functionCall = prefix + "(" + innerExpression + ")";
+                formula = formula.Replace(functionCall, innerResult.ToString());
+            }
+            else
+            {
+                // Evaluate the inner expression
+                CalculateData innerData = new CalculateData
+                {
+                    caster = data.caster,
+                    target = data.target,
+                    formula = innerExpression,
+                    useBaseValue = data.useBaseValue
+                };
+
+                innerResult = Calculate(innerData);
+
+                // Replace the parentheses expression with its result
+                formula = formula.Substring(0, openIndex) + innerResult.ToString() + formula.Substring(closeIndex + 1);
             }
 
-            return _result;
+            // Recursively evaluate the updated formula
+            CalculateData updatedData = new CalculateData
+            {
+                caster = data.caster,
+                target = data.target,
+                formula = formula,
+                useBaseValue = data.useBaseValue
+            };
+
+            return Calculate(updatedData);
         }
 
         public static void Remember(string tag, float value)
@@ -117,7 +204,7 @@ namespace KahaGameCore.Package.EffectProcessor.ValueContainer
             }
         }
 
-        private static int GetStatsValue(IValueContainer unit, string statsName, bool useBaseValue)
+        private static float GetStatsValue(IValueContainer unit, string statsName, bool useBaseValue)
         {
             if (unit == null)
             {
@@ -128,21 +215,46 @@ namespace KahaGameCore.Package.EffectProcessor.ValueContainer
             return unit.GetTotal(statsName, useBaseValue);
         }
 
-        private static int GetValueByCommand(CalculateData data, string command, string paraString)
+        private static float GetValueByCommand(CalculateData data, string command, string paraString)
         {
+            UnityEngine.Debug.Log($"GetValueByCommand: command={command}, paraString={paraString}");
             bool _minus = false;
             if (command.StartsWith("-"))
             {
                 command = command.Remove(0, 1);
                 _minus = true;
             }
+            command = command.Trim();
             switch (command)
             {
                 case "Random":
                     {
                         string[] _varParts = paraString.Split(',');
-                        int _min = System.Convert.ToInt32(float.Parse(Arithmetic(data, _varParts[0])));
-                        int _max = System.Convert.ToInt32(float.Parse(Arithmetic(data, _varParts[1])));
+
+                        // Create new CalculateData instances for each parameter
+                        CalculateData minData = new CalculateData
+                        {
+                            caster = data.caster,
+                            target = data.target,
+                            formula = _varParts[0].Trim(),
+                            useBaseValue = data.useBaseValue
+                        };
+
+                        CalculateData maxData = new CalculateData
+                        {
+                            caster = data.caster,
+                            target = data.target,
+                            formula = _varParts[1].Trim(),
+                            useBaseValue = data.useBaseValue
+                        };
+
+                        // Calculate each parameter value
+                        float minValue = Calculate(minData);
+                        float maxValue = Calculate(maxData);
+
+                        int _min = System.Convert.ToInt32(minValue);
+                        int _max = System.Convert.ToInt32(maxValue);
+
                         if (_minus)
                             return -UnityEngine.Random.Range(_min, _max);
                         else
@@ -150,7 +262,42 @@ namespace KahaGameCore.Package.EffectProcessor.ValueContainer
                     }
                 case "Read":
                     {
-                        return System.Convert.ToInt32(m_tagToValue[paraString]);
+                        // If the parameter contains nested function calls or expressions,
+                        // we need to evaluate it first to get the actual key name
+                        string key;
+
+                        if (paraString.Contains("(") ||
+                            paraString.Contains("+") ||
+                            paraString.Contains("-") ||
+                            paraString.Contains("*") ||
+                            paraString.Contains("/"))
+                        {
+                            // Create a new CalculateData for evaluating the parameter
+                            CalculateData paramData = new CalculateData
+                            {
+                                caster = data.caster,
+                                target = data.target,
+                                formula = paraString.Trim(),
+                                useBaseValue = data.useBaseValue
+                            };
+
+                            // Calculate the parameter to get the key name
+                            key = Calculate(paramData).ToString();
+                        }
+                        else
+                        {
+                            // Simple case - the parameter is directly the key
+                            key = paraString.Trim();
+                        }
+
+                        // Check if the key exists in the dictionary
+                        if (!m_tagToValue.ContainsKey(key))
+                        {
+                            UnityEngine.Debug.LogError($"The given key '{key}' was not present in the dictionary.");
+                            return 0; // Return 0 for non-existent keys
+                        }
+
+                        return m_tagToValue[key]; // Return the value associated with the key
                     }
                 default:
                     {
@@ -160,8 +307,29 @@ namespace KahaGameCore.Package.EffectProcessor.ValueContainer
             }
         }
 
-        private static int GetValueByParaString(CalculateData data, string paraString)
+        private static bool AreParenthesesBalanced(string expression)
         {
+            int count = 0;
+            foreach (char c in expression)
+            {
+                if (c == '(')
+                    count++;
+                else if (c == ')')
+                    count--;
+
+                // If at any point we have more closing than opening parentheses, it's unbalanced
+                if (count < 0)
+                    return false;
+            }
+            // If count is 0, all parentheses are balanced
+            return count == 0;
+        }
+
+        private static float GetValueByParaString(CalculateData data, string paraString)
+        {
+            UnityEngine.Debug.Log($"GetValueByParaString: paraString={paraString}");
+            paraString = paraString.Trim();
+
             bool _minus = false;
             if (paraString.StartsWith("-"))
             {
@@ -169,7 +337,57 @@ namespace KahaGameCore.Package.EffectProcessor.ValueContainer
                 _minus = true;
             }
 
+            // Check if it's a remembered value first
+            if (!paraString.Contains(".") && m_tagToValue.ContainsKey(paraString))
+            {
+                float rememberedValue = m_tagToValue[paraString];
+                if (_minus)
+                    rememberedValue = -rememberedValue;
+                UnityEngine.Debug.Log($"GetValueByParaString result (remembered value): {rememberedValue}");
+                return rememberedValue;
+            }
+
+            // Check if the string contains any parentheses
+            if (paraString.Contains("("))
+            {
+                // Check if parentheses are balanced
+                if (!AreParenthesesBalanced(paraString))
+                {
+                    UnityEngine.Debug.LogError($"Failed to parse left operand: {paraString}");
+                    return 0;
+                }
+            }
+
+            // Check if it's a function call (contains both opening and closing parentheses)
+            if (paraString.Contains("(") && paraString.Contains(")"))
+            {
+
+                int openParenIndex = paraString.IndexOf('(');
+                string command = paraString.Substring(0, openParenIndex).Trim();
+                string parameters = paraString.Substring(openParenIndex + 1, paraString.Length - openParenIndex - 2).Trim();
+
+                try
+                {
+                    float functionResult = GetValueByCommand(data, command, parameters);
+                    if (_minus)
+                        functionResult = -functionResult;
+                    return functionResult;
+                }
+                catch (System.Exception)
+                {
+                    // If GetValueByCommand fails (e.g., for unknown commands), log error and return 0
+                    UnityEngine.Debug.LogError($"Failed to parse left operand: {paraString}");
+                    return 0;
+                }
+            }
+
             string[] _getValueData = paraString.Split('.');
+            if (_getValueData.Length != 2)
+            {
+                UnityEngine.Debug.LogError($"Failed to parse left operand: {paraString}");
+                return 0;
+            }
+
             IValueContainer _getValueTarget = data.caster;
 
             switch (_getValueData[0].Trim())
@@ -186,247 +404,345 @@ namespace KahaGameCore.Package.EffectProcessor.ValueContainer
                     }
                 default:
                     {
-                        throw new System.Exception("[CombatUtility][GetValueByParaString] Invaild target=" + _getValueData[0]);
+                        UnityEngine.Debug.LogError("[CombatUtility][GetValueByParaString] Invalid target=" + _getValueData[0]);
+                        return 0;
                     }
             }
 
+            float result;
             if (_minus)
-                return -GetStatsValue(_getValueTarget, _getValueData[1], data.useBaseValue);
+                result = -GetStatsValue(_getValueTarget, _getValueData[1].Trim(), data.useBaseValue);
             else
-                return GetStatsValue(_getValueTarget, _getValueData[1], data.useBaseValue);
+                result = GetStatsValue(_getValueTarget, _getValueData[1].Trim(), data.useBaseValue);
+
+            UnityEngine.Debug.Log($"GetValueByParaString result: {result}");
+            return result;
         }
 
         private static string Arithmetic(CalculateData data, string arithmeticString)
         {
-            List<char> _mathString = new List<char>(arithmeticString);
-            for (int _mathStringIndex = 0; _mathStringIndex < _mathString.Count; _mathStringIndex++)
+            UnityEngine.Debug.Log($"Arithmetic: arithmeticString={arithmeticString}");
+
+            // First, handle all multiplications and divisions
+            string result = HandleMultiplicationAndDivision(data, arithmeticString);
+
+            // Then, handle all additions and subtractions
+            result = HandleAdditionAndSubtraction(data, result);
+
+            return result;
+        }
+
+        private static string HandleMultiplicationAndDivision(CalculateData data, string arithmeticString)
+        {
+            // Convert the string to a list of tokens (numbers and operators)
+            List<string> tokens = TokenizeExpression(arithmeticString);
+
+            // Process all multiplications and divisions first (left to right)
+            for (int i = 1; i < tokens.Count - 1; i += 2)
             {
-                if (_mathString[_mathStringIndex] == '*' || _mathString[_mathStringIndex] == '/')
+                if (tokens[i] == "*" || tokens[i] == "/")
                 {
-                    string _varA = "";
-                    string _varB = "";
-                    int _removeStartIndex = 0;
-                    int _removeEndIndex = 0;
+                    float leftValue;
+                    float rightValue;
 
-                    for (int _recordIndex = _mathStringIndex - 1; _recordIndex >= 0; _recordIndex--)
+                    // Parse left operand
+                    if (!float.TryParse(tokens[i - 1], out leftValue))
                     {
-                        if (_mathString[_recordIndex] == '+')
+                        try
                         {
-                            _removeStartIndex = _recordIndex + 1;
-                            break;
-                        }
-
-                        if (_mathString[_recordIndex] == '-')
-                        {
-                            if (_recordIndex == 0)
+                            // Check if it's a function call
+                            if (tokens[i - 1].Contains("(") && tokens[i - 1].Contains(")"))
                             {
-                                _varA = _varA.Insert(0, _mathString[_recordIndex].ToString());
-                                continue;
+                                // Create a new CalculateData for this token
+                                CalculateData tokenData = new CalculateData
+                                {
+                                    caster = data.caster,
+                                    target = data.target,
+                                    formula = tokens[i - 1],
+                                    useBaseValue = data.useBaseValue
+                                };
+
+                                // Calculate the value of this function call
+                                leftValue = Calculate(tokenData);
                             }
                             else
                             {
-                                if (_mathString[_recordIndex - 1] == '('
-                                    || _mathString[_recordIndex - 1] == ')'
-                                    || _mathString[_recordIndex - 1] == '+'
-                                    || _mathString[_recordIndex - 1] == '*'
-                                    || _mathString[_recordIndex - 1] == '/')
-                                {
-                                    _removeStartIndex = _recordIndex + 1;
-                                    break;
-                                }
-                                else
-                                {
-                                    _varA = _varA.Insert(0, _mathString[_recordIndex].ToString());
-                                    continue;
-                                }
+                                leftValue = GetValueByParaString(data, tokens[i - 1]);
                             }
                         }
-
-                        _varA = _varA.Insert(0, _mathString[_recordIndex].ToString());
-
-                        if (_recordIndex == 0)
+                        catch (System.Exception ex)
                         {
-                            _removeStartIndex = 0;
+                            UnityEngine.Debug.LogError($"Failed to parse left operand: {tokens[i - 1]}, Error: {ex.Message}");
+                            return "0";
                         }
                     }
 
-                    for (int _recordIndex = _mathStringIndex + 1; _recordIndex < _mathString.Count; _recordIndex++)
+                    // Parse right operand
+                    if (!float.TryParse(tokens[i + 1], out rightValue))
                     {
-                        if (_mathString[_recordIndex] == '+'
-                            || _mathString[_recordIndex] == '/'
-                            || _mathString[_recordIndex] == '*')
+                        try
                         {
-                            _removeEndIndex = _recordIndex - 1;
-                            break;
-                        }
-
-                        if (_mathString[_recordIndex] == '-')
-                        {
-                            if (_mathString[_recordIndex - 1] == '('
-                                || _mathString[_recordIndex - 1] == ')'
-                                || _mathString[_recordIndex - 1] == '+'
-                                || _mathString[_recordIndex - 1] == '*'
-                                || _mathString[_recordIndex - 1] == '/')
+                            // Check if it's a function call
+                            if (tokens[i + 1].Contains("(") && tokens[i + 1].Contains(")"))
                             {
-                                _removeStartIndex = _recordIndex + 1;
-                                break;
+                                // Create a new CalculateData for this token
+                                CalculateData tokenData = new CalculateData
+                                {
+                                    caster = data.caster,
+                                    target = data.target,
+                                    formula = tokens[i + 1],
+                                    useBaseValue = data.useBaseValue
+                                };
+
+                                // Calculate the value of this function call
+                                rightValue = Calculate(tokenData);
                             }
                             else
                             {
-                                _varB += _mathString[_recordIndex];
-                                continue;
+                                rightValue = GetValueByParaString(data, tokens[i + 1]);
                             }
                         }
-
-                        _varB += _mathString[_recordIndex];
-
-                        if (_recordIndex == _mathString.Count - 1)
+                        catch (System.Exception ex)
                         {
-                            _removeEndIndex = _mathString.Count - 1;
+                            UnityEngine.Debug.LogError($"Failed to parse right operand: {tokens[i + 1]}, Error: {ex.Message}");
+                            return "0";
                         }
                     }
 
-                    if (!float.TryParse(_varA, out float _varAFloat))
+                    // Perform the operation
+                    float result;
+                    if (tokens[i] == "*")
                     {
-                        _varAFloat = GetValueByParaString(data, _varA);
+                        result = leftValue * rightValue;
+                        UnityEngine.Debug.Log($"Multiplication: {leftValue} * {rightValue} = {result}");
+                    }
+                    else // Division
+                    {
+                        if (rightValue == 0)
+                        {
+                            UnityEngine.Debug.LogError("Error evaluating expression: Division by zero");
+                            return "0";
+                        }
+                        result = leftValue / rightValue;
+                        UnityEngine.Debug.Log($"Division: {leftValue} / {rightValue} = {result}");
                     }
 
-                    if (!float.TryParse(_varB, out float _varBFloat))
-                    {
-                        _varBFloat = GetValueByParaString(data, _varB);
-                    }
-
-                    if (_mathString[_mathStringIndex] == '*')
-                    {
-                        _mathString.RemoveRange(_removeStartIndex, _removeEndIndex - _removeStartIndex + 1);
-                        _mathString.InsertRange(_removeStartIndex, System.Math.Round(_varAFloat * _varBFloat, 2).ToString("0.00"));
-                    }
-                    else
-                    {
-                        _mathString.RemoveRange(_removeStartIndex, _removeEndIndex - _removeStartIndex + 1);
-                        _mathString.InsertRange(_removeStartIndex, System.Math.Round(_varAFloat / _varBFloat, 2).ToString("0.00"));
-                    }
-
-                    _mathStringIndex = 0;
+                    // Replace the operation and its operands with the result
+                    tokens[i - 1] = result.ToString();
+                    tokens.RemoveRange(i, 2);
+                    i -= 2; // Adjust index after removal
                 }
             }
 
-            for (int _mathStringIndex = 0; _mathStringIndex < _mathString.Count; _mathStringIndex++)
+            // Combine the remaining tokens back into a string
+            return string.Join("", tokens);
+        }
+
+        private static string HandleAdditionAndSubtraction(CalculateData data, string arithmeticString)
+        {
+            // Convert the string to a list of tokens (numbers and operators)
+            List<string> tokens = TokenizeExpression(arithmeticString);
+
+            // Process all additions and subtractions (left to right)
+            for (int i = 1; i < tokens.Count - 1; i += 2)
             {
-                if (_mathString[_mathStringIndex] == '+' || _mathString[_mathStringIndex] == '-')
+                if (tokens[i] == "+" || tokens[i] == "-")
                 {
-                    if (_mathStringIndex == 0)
+                    float leftValue;
+                    float rightValue;
+
+                    // Parse left operand
+                    if (!float.TryParse(tokens[i - 1], out leftValue))
                     {
-                        continue;
-                    }
-
-                    string _varA = "";
-                    string _varB = "";
-                    int _removeStartIndex = 0;
-                    int _removeEndIndex = 0;
-
-                    for (int _recordIndex = _mathStringIndex - 1; _recordIndex >= 0; _recordIndex--)
-                    {
-                        if (_mathString[_recordIndex] == '+')
+                        try
                         {
-                            _removeStartIndex = _recordIndex + 1;
-                            break;
-                        }
-
-                        if (_mathString[_recordIndex] == '-')
-                        {
-                            if (_recordIndex == 0)
+                            // Check if it's a function call
+                            if (tokens[i - 1].Contains("(") && tokens[i - 1].Contains(")"))
                             {
-                                _varA = _varA.Insert(0, _mathString[_recordIndex].ToString());
-                                continue;
+                                // Create a new CalculateData for this token
+                                CalculateData tokenData = new CalculateData
+                                {
+                                    caster = data.caster,
+                                    target = data.target,
+                                    formula = tokens[i - 1],
+                                    useBaseValue = data.useBaseValue
+                                };
+
+                                // Calculate the value of this function call
+                                leftValue = Calculate(tokenData);
                             }
                             else
                             {
-                                if (_mathString[_recordIndex - 1] == '('
-                                    || _mathString[_recordIndex - 1] == ')'
-                                    || _mathString[_recordIndex - 1] == '+'
-                                    || _mathString[_recordIndex - 1] == '*'
-                                    || _mathString[_recordIndex - 1] == '/')
-                                {
-                                    _removeStartIndex = _recordIndex + 1;
-                                    break;
-                                }
-                                else
-                                {
-                                    _varA = _varA.Insert(0, _mathString[_recordIndex].ToString());
-                                    continue;
-                                }
+                                leftValue = GetValueByParaString(data, tokens[i - 1]);
                             }
                         }
-
-                        _varA = _varA.Insert(0, _mathString[_recordIndex].ToString());
-
-                        if (_recordIndex == 0)
+                        catch (System.Exception ex)
                         {
-                            _removeStartIndex = 0;
+                            UnityEngine.Debug.LogError($"Failed to parse left operand: {tokens[i - 1]}, Error: {ex.Message}");
+                            return "0";
                         }
                     }
 
-                    for (int _recordIndex = _mathStringIndex + 1; _recordIndex < _mathString.Count; _recordIndex++)
+                    // Parse right operand
+                    if (!float.TryParse(tokens[i + 1], out rightValue))
                     {
-                        if (_mathString[_recordIndex] == '+')
+                        try
                         {
-                            _removeEndIndex = _recordIndex - 1;
-                            break;
-                        }
-
-                        if (_mathString[_recordIndex] == '-')
-                        {
-                            if (_mathString[_recordIndex - 1] == '('
-                                || _mathString[_recordIndex - 1] == ')'
-                                || _mathString[_recordIndex - 1] == '+'
-                                || _mathString[_recordIndex - 1] == '*'
-                                || _mathString[_recordIndex - 1] == '/')
+                            // Check if it's a function call
+                            if (tokens[i + 1].Contains("(") && tokens[i + 1].Contains(")"))
                             {
-                                _removeStartIndex = _recordIndex + 1;
-                                break;
+                                // Create a new CalculateData for this token
+                                CalculateData tokenData = new CalculateData
+                                {
+                                    caster = data.caster,
+                                    target = data.target,
+                                    formula = tokens[i + 1],
+                                    useBaseValue = data.useBaseValue
+                                };
+
+                                // Calculate the value of this function call
+                                rightValue = Calculate(tokenData);
                             }
                             else
                             {
-                                _varB += _mathString[_recordIndex];
-                                continue;
+                                rightValue = GetValueByParaString(data, tokens[i + 1]);
                             }
                         }
-
-                        _varB += _mathString[_recordIndex];
-
-                        if (_recordIndex == _mathString.Count - 1)
+                        catch (System.Exception ex)
                         {
-                            _removeEndIndex = _mathString.Count - 1;
+                            UnityEngine.Debug.LogError($"Failed to parse right operand: {tokens[i + 1]}, Error: {ex.Message}");
+                            return "0";
                         }
                     }
 
-                    if (!float.TryParse(_varA, out float _varAFloat))
+                    // Perform the operation
+                    float result;
+                    if (tokens[i] == "+")
                     {
-                        _varAFloat = GetValueByParaString(data, _varA);
+                        result = leftValue + rightValue;
+                        UnityEngine.Debug.Log($"Addition: {leftValue} + {rightValue} = {result}");
+                    }
+                    else // Subtraction
+                    {
+                        result = leftValue - rightValue;
+                        UnityEngine.Debug.Log($"Subtraction: {leftValue} - {rightValue} = {result}");
                     }
 
-                    if (!float.TryParse(_varB, out float _varBFloat))
-                    {
-                        _varBFloat = GetValueByParaString(data, _varB);
-                    }
-
-                    if (_mathString[_mathStringIndex] == '+')
-                    {
-                        _mathString.RemoveRange(_removeStartIndex, _removeEndIndex - _removeStartIndex + 1);
-                        _mathString.InsertRange(_removeStartIndex, System.Math.Round(_varAFloat + _varBFloat, 2).ToString());
-                    }
-                    else
-                    {
-                        _mathString.RemoveRange(_removeStartIndex, _removeEndIndex - _removeStartIndex + 1);
-                        _mathString.InsertRange(_removeStartIndex, System.Math.Round(_varAFloat - _varBFloat, 2).ToString());
-                    }
-
-                    _mathStringIndex = 0;
+                    // Replace the operation and its operands with the result
+                    tokens[i - 1] = result.ToString();
+                    tokens.RemoveRange(i, 2);
+                    i -= 2; // Adjust index after removal
                 }
             }
 
-            return new string(_mathString.ToArray());
+            // Combine the remaining tokens back into a string
+            return string.Join("", tokens);
+        }
+
+        private static bool ContainsOperatorsOutsideParentheses(string formula)
+        {
+            int parenthesesDepth = 0;
+
+            for (int i = 0; i < formula.Length; i++)
+            {
+                char c = formula[i];
+
+                if (c == '(')
+                {
+                    parenthesesDepth++;
+                }
+                else if (c == ')')
+                {
+                    parenthesesDepth--;
+                }
+                else if ((c == '+' || c == '-' || c == '*' || c == '/') && parenthesesDepth == 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static List<string> TokenizeExpression(string expression)
+        {
+            List<string> tokens = new List<string>();
+            string currentToken = "";
+            int parenthesesDepth = 0;
+
+            for (int i = 0; i < expression.Length; i++)
+            {
+                char c = expression[i];
+
+                // Track parentheses depth to avoid splitting inside function calls
+                if (c == '(')
+                {
+                    parenthesesDepth++;
+                    currentToken += c;
+                }
+                else if (c == ')')
+                {
+                    parenthesesDepth--;
+                    currentToken += c;
+                }
+                // Only split by operators when not inside parentheses
+                else if ((c == '+' || c == '-' || c == '*' || c == '/') && parenthesesDepth == 0)
+                {
+                    // Special case for unary minus (negative sign)
+                    // A minus is a unary operator if:
+                    // 1. It's at the start of the expression, or
+                    // 2. It follows another operator, or
+                    // 3. It follows an opening parenthesis
+                    bool isUnaryMinus = false;
+                    if (c == '-')
+                    {
+                        if (i == 0) // At the start of the expression
+                        {
+                            isUnaryMinus = true;
+                        }
+                        else
+                        {
+                            char prevChar = expression[i - 1];
+                            // After another operator or opening parenthesis
+                            if (prevChar == '+' || prevChar == '-' || prevChar == '*' || prevChar == '/' || prevChar == '(')
+                            {
+                                isUnaryMinus = true;
+                            }
+                        }
+                    }
+
+                    if (isUnaryMinus)
+                    {
+                        // For unary minus, add it to the current token
+                        currentToken += c;
+                    }
+                    else
+                    {
+                        // For binary operators, add the current token to the list and start a new one
+                        if (!string.IsNullOrEmpty(currentToken))
+                        {
+                            tokens.Add(currentToken.Trim());
+                            currentToken = "";
+                        }
+
+                        // Add the operator as a separate token
+                        tokens.Add(c.ToString());
+                    }
+                }
+                else
+                {
+                    // Build up the current token
+                    currentToken += c;
+                }
+            }
+
+            // Add the last token if there is one
+            if (!string.IsNullOrEmpty(currentToken))
+            {
+                tokens.Add(currentToken.Trim());
+            }
+
+            return tokens;
         }
     }
 }

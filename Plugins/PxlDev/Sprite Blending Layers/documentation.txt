@@ -1,0 +1,84 @@
+--- Overview ---
+The SpriteBlendingMode.cs script allows you to apply various blend modes to 2D sprites. 
+It dynamically updates the material properties of a sprite based on the selected blend mode.
+
+--- Usage ---
+
+1. Attach the SpriteBlendingMode script to a GameObject with a SpriteRenderer.
+
+2. Select a blend mode from the dropdown in the Inspector.
+
+3. The shader will automatically update to reflect the chosen mode.
+
+4. You can change the blend mode on runtime.
+
+
+-- The script supports the following blend modes: --
+- Opaque: Normal alpha blending.
+
+- Add: Colors are added together.
+
+- Multiply: Multiplies the sprite with the background.
+
+- Screen: Inverts, multiplies, and inverts the colors again.
+
+- Overlay: Combines Multiply and Screen for a dynamic effect.
+
+- Darken: Chooses the darker of the sprite and background colors.
+
+- Lighten: Chooses the lighter of the sprite and background colors.
+
+- Subtract: Subtracts the sprite's color from the background.
+
+- Hard Light Approximation: A rough approximation of the Hard Light blend.
+
+- Soft Light Approximation: A rough approximation of the Soft Light blend.
+
+
+--- How It Works ---
+
+The script updates the sprite’s material whenever the blend mode changes. 
+This is done by adjusting the shader’s blend properties (_SourceBlend, _DestinationBlend, _BlendOp).
+
+-- Key Functions --
+
+SetupMaterial(): Ensures the sprite has a material instance and assigns a shader.
+
+UpdateBlendMode(): Updates the shader blend properties based on the selected blend mode.
+
+Update(): Monitors for changes to the blend mode and updates the material when necessary.
+
+
+
+
+--- Shader Details ---
+
+The custom shader (2D_Sprite_Shader.shader) enables different blending modes by modifying the following properties:
+
+_SourceBlend:  Defines how the source color is blended.
+
+_DestinationBlend:  Defines how the destination color is blended.
+
+_BlendOp:  Determines the blend operation (e.g., Add, Subtract, Darken, etc.).
+
+
+-- Shader Functions--
+
+darken(v2f i): Applies a darken blend effect.
+
+hardLight(v2f i): Approximates the Hard Light blend.
+
+softLight(v2f i): Approximates the Soft Light blend.
+
+
+--- Editor Integration ---
+
+A Custom Inspector is included to provide tooltips and warnings for blend mode selection. 
+If an approximation mode is selected, the inspector displays a warning about its imprecision.
+
+
+- Notes -
+
+The shader must be assigned in the Shader.Find("Custom/2D_Sprite_Shader") call.
+
+Hard Light and Soft Light are approximations and may not match traditional blending.

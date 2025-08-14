@@ -1,10 +1,12 @@
 {
-    "name": "KahaGameCore.GradientTextureComponent",
+    "name": "KahaGameCore.Common.Editor",
     "rootNamespace": "",
     "references": [
-        "SpriteBlendingMode"
+        "GUID:f91d9863fa14b6b47b7e8ece2df6efc7"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

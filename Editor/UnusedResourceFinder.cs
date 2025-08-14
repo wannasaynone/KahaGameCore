@@ -12,9 +12,6 @@ namespace KahaGameCore.EditorTool
         private static List<string> m_allScenePath = null;
         private static List<string> m_allPrefab = null;
 
-        private static List<Sprite> m_allUsingSpriteAssets = null;
-        private static List<Texture> m_allUsingTextureAssets = null;
-
         private static List<string> m_allUnusedResourcesPath = null;
         private static string m_defaultIconPath = "";
 

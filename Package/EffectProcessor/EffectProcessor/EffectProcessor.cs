@@ -88,6 +88,23 @@ namespace KahaGameCore.Package.EffectProcessor
             }
         }
 
+        /// <summary>
+        /// Force quits the current processing and triggers the OnProcessQuitted event
+        /// </summary>
+        public void ForceQuit()
+        {
+            // Make a copy of the dictionary to avoid modification during iteration
+            var processors = new Dictionary<string, Processor<EffectData>>(m_timingToProcesser);
+
+            foreach (var processor in processors.Values)
+            {
+                processor.ForceQuit();
+            }
+
+            // Invoke OnProcessQuitted event if it hasn't been invoked by the processor
+            OnProcessQuitted?.Invoke();
+        }
+
         public void Dispose()
         {
             foreach (KeyValuePair<string, List<EffectData>> keyValuePair in m_timingToData)

@@ -1,9 +1,7 @@
 {
-    "name": "KahaGameCore.GradientTextureComponent",
+    "name": "SpriteBlendingMode",
     "rootNamespace": "",
-    "references": [
-        "SpriteBlendingMode"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
