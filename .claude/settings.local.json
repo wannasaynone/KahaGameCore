@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "mcp__unity-natural-mcp__refresh_assets",
+      "mcp__unity-natural-mcp__get_compile_logs",
+      "Bash(mv:*)",
+      "mcp__unity-natural-mcp__get_current_console_logs",
+      "mcp__unity-natural-mcp__run_edit_mode_tests",
+      "Bash(move:*)",
+      "Bash(tasklist:*)",
+      "Bash(dir:*)",
+      "Bash(find:*)",
+      "Bash(rm:*)",
+      "mcp__unity-natural-mcp__run_play_mode_tests",
+      "Bash(copy:*)",
+      "Bash(del \"C:\\Users\\user\\Documents\\work\\ZombieAndConvenienceStore\\Assets\\Documents\\Features\\TODO\\CheckoutSystem_ArchitectureDesign.md\")",
+      "mcp__unity-natural-mcp__clear_console_logs",
+      "Bash(del \"C:\\Users\\user\\Documents\\work\\ZombieAndConvenienceStore\\Assets\\Scripts\\CheckoutSystem\\Test\\CompileTest.cs\")",
+      "Bash(python:*)",
+      "Bash(where:*)",
+      "Bash(del \"C:\\Users\\user\\Documents\\work\\ZombieAndConvenienceStore\\Assets\\Scenes\\GameTimeValidation.unity\")"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "unity-natural-mcp"
+  ]
+}
