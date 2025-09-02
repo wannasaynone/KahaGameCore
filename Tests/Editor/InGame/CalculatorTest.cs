@@ -1,9 +1,8 @@
-using System.Collections.Generic;
-using KahaGameCore.Package.EffectProcessor.ValueContainer;
 using NUnit.Framework;
 using NSubstitute;
 using UnityEngine;
 using UnityEngine.TestTools;
+using KahaGameCore.ValueContainer;
 
 namespace KahaGameCore.Tests
 {

@@ -1,4 +1,4 @@
-using KahaGameCore.Package.EffectProcessor.ValueContainer;
+using KahaGameCore.ValueContainer;
 
 namespace KahaGameCore.Package.EffectProcessor.Data
 {

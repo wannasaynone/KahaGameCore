@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace KahaGameCore.Package.EffectProcessor.ValueContainer
+namespace KahaGameCore.ValueContainer
 {
     public interface IValueContainer
     {
@@ -11,7 +11,6 @@ namespace KahaGameCore.Package.EffectProcessor.ValueContainer
         void AddBase(string tag, int value);
         void SetBase(string tag, int value);
         void Remove(System.Guid guid);
-        void AddStringKeyValue(string key, string value);
         string GetStringKeyValue(string key);
         void RemoveStringKeyValue(string key);
         void SetStringKeyValue(string key, string value);

@@ -1,7 +1,9 @@
 {
-    "name": "KahaGameCore.Package.EffectProcessor.ValueContainer",
+    "name": "KahaGameCore.Package.ActorSystem.Definition",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "GUID:ddd7feff3e1f92b4f89caed83cbfcf36"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

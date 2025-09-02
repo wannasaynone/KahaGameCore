@@ -7,11 +7,10 @@
         "KahaGameCore.Common",
         "KahaGameCore.GameData",
         "KahaGameCore.GameEvent",
-        "KahaGameCore.Package.EffectProcessor.ValueContainer",
         "KahaGameCore.Package.EffectProcessor.EffectProcessor",
         "KahaGameCore.Package.EffectProcessor.Data",
         "KahaGameCore.Package.EffectProcessor.Processor",
-        "KahaGameCore.Package.StateMachine.Core"
+        "KahaGameCore.Package.ValueContainer"
     ],
     "includePlatforms": [
         "Editor"

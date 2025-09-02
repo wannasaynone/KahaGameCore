@@ -1,10 +1,13 @@
 {
-    "name": "KahaGameCore.Package.EffectProcessor.Implemented",
+    "name": "KahaGameCore.Package.ActorSystem.Definition.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:ddd7feff3e1f92b4f89caed83cbfcf36"
+        "KahaGameCore.Package.ValueContainer",
+        "KahaGameCore.Package.ActorSystem.Definition"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

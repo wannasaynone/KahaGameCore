@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace KahaGameCore.Package.EffectProcessor.ValueContainer
+namespace KahaGameCore.ValueContainer
 {
     public static class Calculator
     {
