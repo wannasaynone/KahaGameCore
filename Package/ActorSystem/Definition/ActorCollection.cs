@@ -34,21 +34,6 @@ namespace KahaGameCore.Package.ActorSystem.Definition
             actor.AddController(controller);
         }
 
-        public void Bind(Instance instance, List<ControllerBase> controllers)
-        {
-            Actor actor = actors.Find(a => a.Instance == instance);
-            if (actor == null)
-            {
-                actor = new Actor();
-                actor.UpdateInstance(instance);
-                actors.Add(actor);
-            }
-            foreach (var controller in controllers)
-            {
-                actor.AddController(controller);
-            }
-        }
-
         public void Unbind(Instance instance, ControllerBase controller)
         {
             Actor actor = actors.Find(a => a.Instance == instance);

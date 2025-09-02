@@ -25,11 +25,10 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
 
         public override void OnInspectorGUI()
         {
-            DrawDefaultInspector();
-
             // Draw the default inspector in edit mode
             if (!EditorApplication.isPlaying)
             {
+                DrawDefaultInspector();
                 EditorGUILayout.HelpBox("Enter Play Mode to edit ValueContainer values.", MessageType.Info);
                 return;
             }

@@ -91,8 +91,8 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
                     container.SetBase(kvp.Key, newValue);
                 }
 
-                // Set to 0 button
-                if (GUILayout.Button("Set to 0", GUILayout.Width(60)))
+                // Remove button
+                if (GUILayout.Button("Remove", GUILayout.Width(60)))
                 {
                     keysToRemove.Add(kvp.Key);
                 }
@@ -100,17 +100,10 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
                 EditorGUILayout.EndHorizontal();
             }
 
-            // Set values to 0 for any keys marked
-            if (keysToRemove.Count > 0)
+            // Remove any base values marked for deletion
+            foreach (string key in keysToRemove)
             {
-                foreach (string key in keysToRemove)
-                {
-                    container.SetBase(key, 0);
-                }
-
-                // Force the inspector to repaint immediately to show the changes
-                EditorUtility.SetDirty(container);
-                UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+                container.SetBase(key, 0);
             }
         }
 
@@ -124,11 +117,11 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
             EditorGUILayout.LabelField("Add New Base Value", EditorStyles.boldLabel);
 
             EditorGUILayout.BeginHorizontal();
-            state.newBaseValueTag = EditorGUILayout.TextField("Tag", state.newBaseValueTag, GUILayout.Width(250));
+            state.newBaseValueTag = EditorGUILayout.TextField("Tag", state.newBaseValueTag);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
-            state.newBaseValueAmount = EditorGUILayout.IntField("Value", state.newBaseValueAmount, GUILayout.Width(250));
+            state.newBaseValueAmount = EditorGUILayout.IntField("Value", state.newBaseValueAmount);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
@@ -138,10 +131,6 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
                 container.SetBase(state.newBaseValueTag, state.newBaseValueAmount);
                 state.newBaseValueTag = "";
                 state.newBaseValueAmount = 0;
-
-                // Force the inspector to repaint immediately to show the new value
-                EditorUtility.SetDirty(container);
-                UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
             }
             GUI.enabled = true;
             EditorGUILayout.EndHorizontal();

@@ -31,33 +31,34 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
             FieldInfo tempValuesField = typeof(Instance).GetField("tempValues", BindingFlags.NonPublic | BindingFlags.Instance);
             if (tempValuesField != null)
             {
-                var tempValues = tempValuesField.GetValue(container) as Dictionary<string, int>;
-                if (tempValues != null)
-                {
-                    var result = new List<ValueContainerInspectorData.TempValueData>();
+                var tempValuesList = tempValuesField.GetValue(container);
 
-                    // Convert the dictionary entries to TempValueData objects
-                    foreach (var kvp in tempValues)
+                // Get the TempValue type which is a nested private class
+                Type tempValueType = typeof(Instance).GetNestedType("TempValue", BindingFlags.NonPublic);
+                if (tempValueType != null)
+                {
+                    FieldInfo guidField = tempValueType.GetField("guid");
+                    FieldInfo tagField = tempValueType.GetField("tag");
+                    FieldInfo valueField = tempValueType.GetField("value");
+
+                    if (guidField != null && tagField != null && valueField != null)
                     {
-                        try
+                        var result = new List<ValueContainerInspectorData.TempValueData>();
+
+                        // Use reflection to extract the values from each TempValue object
+                        foreach (var item in (System.Collections.IEnumerable)tempValuesList)
                         {
-                            var guid = new Guid(kvp.Key);
                             var tempValueData = new ValueContainerInspectorData.TempValueData
                             {
-                                guid = guid,
-                                tag = "Temp Value", // We don't have tag information in the dictionary
-                                value = kvp.Value
+                                guid = (Guid)guidField.GetValue(item),
+                                tag = (string)tagField.GetValue(item),
+                                value = (int)valueField.GetValue(item)
                             };
                             result.Add(tempValueData);
                         }
-                        catch (FormatException)
-                        {
-                            // Skip invalid GUIDs
-                            continue;
-                        }
-                    }
 
-                    return result;
+                        return result;
+                    }
                 }
             }
             return new List<ValueContainerInspectorData.TempValueData>();

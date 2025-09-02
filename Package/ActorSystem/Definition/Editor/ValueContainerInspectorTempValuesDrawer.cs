@@ -100,11 +100,8 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
                 // GUID (read-only)
                 EditorGUILayout.LabelField(tempValue.guid.ToString(), ValueContainerInspectorStyles.GuidStyle, GUILayout.Width(200));
 
-                // Action buttons in a vertical layout
-                EditorGUILayout.BeginVertical(GUILayout.Width(80));
-
                 // Remove button
-                if (GUILayout.Button("Remove", GUILayout.Width(80)))
+                if (GUILayout.Button("Remove", GUILayout.Width(60)))
                 {
                     guidsToRemove.Add(tempValue.guid);
                 }
@@ -115,22 +112,13 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
                     EditorGUIUtility.systemCopyBuffer = tempValue.guid.ToString();
                 }
 
-                EditorGUILayout.EndVertical();
-
                 EditorGUILayout.EndHorizontal();
             }
 
             // Remove any temp values marked for deletion
-            if (guidsToRemove.Count > 0)
+            foreach (Guid guid in guidsToRemove)
             {
-                foreach (Guid guid in guidsToRemove)
-                {
-                    container.Remove(guid);
-                }
-
-                // Force the inspector to repaint immediately to show the changes
-                EditorUtility.SetDirty(container);
-                UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
+                container.Remove(guid);
             }
         }
 
@@ -144,11 +132,11 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
             EditorGUILayout.LabelField("Add New Temporary Value", EditorStyles.boldLabel);
 
             EditorGUILayout.BeginHorizontal();
-            state.newTempValueTag = EditorGUILayout.TextField("Tag", state.newTempValueTag, GUILayout.Width(250));
+            state.newTempValueTag = EditorGUILayout.TextField("Tag", state.newTempValueTag);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
-            state.newTempValueAmount = EditorGUILayout.IntField("Value", state.newTempValueAmount, GUILayout.Width(250));
+            state.newTempValueAmount = EditorGUILayout.IntField("Value", state.newTempValueAmount);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
@@ -158,10 +146,6 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
                 container.Add(state.newTempValueTag, state.newTempValueAmount);
                 state.newTempValueTag = "";
                 state.newTempValueAmount = 0;
-
-                // Force the inspector to repaint immediately to show the new value
-                EditorUtility.SetDirty(container);
-                UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
             }
             GUI.enabled = true;
             EditorGUILayout.EndHorizontal();

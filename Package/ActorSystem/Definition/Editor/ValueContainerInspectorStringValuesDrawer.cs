@@ -117,11 +117,11 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
             EditorGUILayout.LabelField("Add New String Value", EditorStyles.boldLabel);
 
             EditorGUILayout.BeginHorizontal();
-            state.newStringKey = EditorGUILayout.TextField("Key", state.newStringKey, GUILayout.Width(250));
+            state.newStringKey = EditorGUILayout.TextField("Key", state.newStringKey);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
-            state.newStringValue = EditorGUILayout.TextField("Value", state.newStringValue, GUILayout.Width(250));
+            state.newStringValue = EditorGUILayout.TextField("Value", state.newStringValue);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
@@ -131,10 +131,6 @@ namespace KahaGameCore.Package.ActorSystem.Definition.Editor
                 container.SetStringKeyValue(state.newStringKey, state.newStringValue);
                 state.newStringKey = "";
                 state.newStringValue = "";
-
-                // Force the inspector to repaint immediately to show the new value
-                EditorUtility.SetDirty(container);
-                UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
             }
             GUI.enabled = true;
             EditorGUILayout.EndHorizontal();

@@ -27,7 +27,7 @@ namespace KahaGameCore.Package.ActorSystem.Definition
             }
         }
 
-        private void Start()
+        private void Awake()
         {
             if (controlTarget != null)
             {

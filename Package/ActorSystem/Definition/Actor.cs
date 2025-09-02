@@ -38,6 +38,7 @@ namespace KahaGameCore.Package.ActorSystem.Definition
                 controllers.Add(controller);
                 controller.controlTarget = Instance;
                 SetUpRoot();
+                Debug.Log($"[Actor] Controller {controller.GetType().Name} added to Actor with Instance {Instance.gameObject.name}");
             }
         }
 
@@ -47,7 +48,6 @@ namespace KahaGameCore.Package.ActorSystem.Definition
             {
                 controllers.Remove(controller);
                 controller.controlTarget = null;
-                controller.transform.SetParent(null);
             }
         }
 
