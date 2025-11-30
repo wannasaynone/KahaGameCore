@@ -2,7 +2,8 @@
     "name": "KahaGameCore.Package.ActorSystem.Definition",
     "rootNamespace": "",
     "references": [
-        "GUID:ddd7feff3e1f92b4f89caed83cbfcf36"
+        "GUID:ddd7feff3e1f92b4f89caed83cbfcf36",
+        "GUID:f91d9863fa14b6b47b7e8ece2df6efc7"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

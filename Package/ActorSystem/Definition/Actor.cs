@@ -25,7 +25,7 @@ namespace KahaGameCore.Package.ActorSystem.Definition
             Instance = instance;
             foreach (var controller in controllers)
             {
-                controller.controlTarget = instance;
+                controller.SetControlTarget(instance);
             }
 
             SetUpRoot();
@@ -36,7 +36,7 @@ namespace KahaGameCore.Package.ActorSystem.Definition
             if (!controllers.Contains(controller))
             {
                 controllers.Add(controller);
-                controller.controlTarget = Instance;
+                controller.SetControlTarget(Instance);
                 SetUpRoot();
                 Debug.Log($"[Actor] Controller {controller.GetType().Name} added to Actor with Instance {Instance.gameObject.name}");
             }
@@ -47,7 +47,7 @@ namespace KahaGameCore.Package.ActorSystem.Definition
             if (controllers.Contains(controller))
             {
                 controllers.Remove(controller);
-                controller.controlTarget = null;
+                controller.RemoveControlTarget();
             }
         }
 

@@ -7,34 +7,17 @@ namespace KahaGameCore.Package.ActorSystem.Definition
 {
     public class Instance : MonoBehaviour, IValueContainer
     {
-        public Animator Animator => animator;
-        [SerializeField] private Animator animator;
-        [SerializeField] private float rotationSpeed = 10f;
+        [SerializeField] private List<ControllerBase> defaultControllers = new List<ControllerBase>();
 
         private Dictionary<string, int> baseValues = new Dictionary<string, int>();
         private Dictionary<string, int> tempValues = new Dictionary<string, int>();
         private Dictionary<string, string> stringKeyValues = new Dictionary<string, string>();
 
-        public void UpdateFacingDirection(Vector3 direction, float? rotationSpeedOverride = null)
+        private void Awake()
         {
-            if (direction.sqrMagnitude > 0.001f)
+            foreach (var controller in defaultControllers)
             {
-                Vector3 flatDirection = new Vector3(direction.x, 0, direction.z).normalized;
-                if (flatDirection.sqrMagnitude > 0.001f)
-                {
-                    // Calculate target rotation
-                    Quaternion targetRotation = Quaternion.LookRotation(flatDirection);
-
-                    // Use provided rotation speed or default to the serialized field
-                    float currentRotationSpeed = rotationSpeedOverride ?? rotationSpeed;
-
-                    // Smoothly rotate towards the target rotation
-                    transform.rotation = Quaternion.Slerp(
-                        transform.rotation,
-                        targetRotation,
-                        currentRotationSpeed * Time.deltaTime
-                    );
-                }
+                ActorCollection.Instance.Bind(this, controller);
             }
         }
 

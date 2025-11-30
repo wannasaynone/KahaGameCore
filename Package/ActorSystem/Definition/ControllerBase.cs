@@ -1,10 +1,28 @@
+using KahaGameCore.Common;
 using UnityEngine;
 
 namespace KahaGameCore.Package.ActorSystem.Definition
 {
     public abstract class ControllerBase : MonoBehaviour
     {
-        public Instance controlTarget;
+        public Instance ControlTarget { get { return controlTarget; } }
+        [OnlyForObserver][SerializeField] private Instance controlTarget;
+
+        public void SetControlTarget(Instance target)
+        {
+            if (controlTarget != null)
+            {
+                Debug.LogError($"[{GetType().Name}] Changing control target from {controlTarget.name} to {target.name}, use RemoveControlTarget to remove previously controlled target before binding new target.");
+                ActorCollection.Instance.Unbind(controlTarget, this);
+            }
+
+            controlTarget = target;
+        }
+
+        public void RemoveControlTarget()
+        {
+            controlTarget = null;
+        }
 
         private int _lockCounter = 0;
 
@@ -27,19 +45,11 @@ namespace KahaGameCore.Package.ActorSystem.Definition
             }
         }
 
-        private void Awake()
-        {
-            if (controlTarget != null)
-            {
-                ActorCollection.Instance.Bind(controlTarget, this);
-            }
-        }
-
         private void OnDestroy()
         {
-            if (controlTarget != null)
+            if (ControlTarget != null)
             {
-                ActorCollection.Instance.Unbind(controlTarget, this);
+                ActorCollection.Instance.Unbind(ControlTarget, this);
             }
         }
 
@@ -60,6 +70,8 @@ namespace KahaGameCore.Package.ActorSystem.Definition
             OnTick();
         }
 
+        protected abstract void OnEnable();
         protected abstract void OnTick();
+        protected abstract void OnDisable();
     }
 }
