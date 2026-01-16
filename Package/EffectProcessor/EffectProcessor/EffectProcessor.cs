@@ -43,11 +43,7 @@ namespace KahaGameCore.Package.EffectProcessor
         }
 
         private Dictionary<string, List<EffectData>> m_timingToData = new Dictionary<string, List<EffectData>>();
-
-        public event Action OnProcessEnded;
-        public event Action OnProcessQuitted;
-        public event Action<ProcessData> OnProcessDataUpdated;
-
+        private event Action<ProcessData> OnProcessDataUpdated;
         private Dictionary<string, Processor<EffectData>> m_timingToProcesser = new Dictionary<string, Processor<EffectData>>();
 
         public void SetUp(Dictionary<string, List<EffectData>> timingToData)
@@ -67,10 +63,11 @@ namespace KahaGameCore.Package.EffectProcessor
             return m_timingToData.ContainsKey(timing);
         }
 
-        public void Start(ProcessData processData)
+        public void Start(ProcessData processData, Action onEnded = null, Action onQuitted = null)
         {
             if (m_timingToData.Count <= 0)
             {
+                onEnded?.Invoke();
                 return;
             }
 
@@ -84,25 +81,25 @@ namespace KahaGameCore.Package.EffectProcessor
                     m_timingToProcesser.Add(processData.timing, new Processor<EffectData>(_effects.ToArray()));
                 }
 
-                m_timingToProcesser[processData.timing].Start(OnProcessEnded, OnProcessQuitted);
+                m_timingToProcesser[processData.timing].Start(onEnded, onQuitted);
+            }
+            else
+            {
+                onEnded?.Invoke();
             }
         }
 
         /// <summary>
-        /// Force quits the current processing and triggers the OnProcessQuitted event
+        /// Force quits the current processing
         /// </summary>
         public void ForceQuit()
         {
-            // Make a copy of the dictionary to avoid modification during iteration
             var processors = new Dictionary<string, Processor<EffectData>>(m_timingToProcesser);
 
             foreach (var processor in processors.Values)
             {
                 processor.ForceQuit();
             }
-
-            // Invoke OnProcessQuitted event if it hasn't been invoked by the processor
-            OnProcessQuitted?.Invoke();
         }
 
         public void Dispose()

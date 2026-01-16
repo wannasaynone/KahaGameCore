@@ -32,11 +32,9 @@ namespace KahaGameCore.Tests
             };
 
             EffectProcessor effectProcessor = new EffectProcessor();
-            effectProcessor.OnProcessEnded += EffectProcessor_OnProcessEnded;
-            effectProcessor.OnProcessQuitted += EffectProcessor_OnProcessQuitted;
-            effectProcessor.Start(new ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" });
+            effectProcessor.Start(new ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" }, EffectProcessor_OnProcessEnded, EffectProcessor_OnProcessQuitted);
             effectProcessor.SetUp(timingToEffectDatas);
-            effectProcessor.Start(new ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" });
+            effectProcessor.Start(new ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" }, EffectProcessor_OnProcessEnded, EffectProcessor_OnProcessQuitted);
             UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Log, "TestMsg");
         }
 
@@ -59,11 +57,9 @@ namespace KahaGameCore.Tests
             };
 
             EffectProcessor effectProcessor = new EffectProcessor();
-            effectProcessor.OnProcessEnded += EffectProcessor_OnProcessEnded1;
-            effectProcessor.OnProcessQuitted += EffectProcessor_OnProcessQuitted1; ;
 
             effectProcessor.SetUp(timingToEffectDatas);
-            effectProcessor.Start(new ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" });
+            effectProcessor.Start(new ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" }, EffectProcessor_OnProcessEnded1, EffectProcessor_OnProcessQuitted1);
             UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Log, "TestMsg");
         }
 
@@ -101,10 +97,9 @@ namespace KahaGameCore.Tests
             };
 
             EffectProcessor effectProcessor = new EffectProcessor();
-            effectProcessor.OnProcessEnded += EffectProcessor_OnProcessEnded2;
 
             effectProcessor.SetUp(timingToEffectDatas);
-            effectProcessor.Start(new ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" });
+            effectProcessor.Start(new ProcessData { caster = null, skipIfCount = 0, targets = null, timing = "Test" }, EffectProcessor_OnProcessEnded2);
         }
 
         private void EffectProcessor_OnProcessEnded2()
