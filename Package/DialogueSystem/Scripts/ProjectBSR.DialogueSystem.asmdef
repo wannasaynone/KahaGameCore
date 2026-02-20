@@ -1,0 +1,21 @@
+{
+    "name": "ProjectBSR.DialogueSystem",
+    "rootNamespace": "",
+    "references": [
+        "GUID:ed339a495f13a4d44b03055703f6e1c1",
+        "GUID:1e113d3b5d77bc04eab508251483e8ff",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f",
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:9e24947de15b9834991c9d8411ea37cf",
+        "GUID:84651a3751eca9349aac36a66bba901b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
