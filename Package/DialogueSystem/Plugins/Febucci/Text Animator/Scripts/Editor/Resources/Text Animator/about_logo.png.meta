@@ -106,10 +106,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 254677
-  packageName: Text Animator for Unity (2.X)
-  packageVersion: 2.3.2
-  assetPath: Assets/Plugins/Febucci/Text Animator/Scripts/Editor/Resources/Text Animator/about_logo.png
-  uploadId: 821174
