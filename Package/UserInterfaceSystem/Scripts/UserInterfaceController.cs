@@ -13,6 +13,9 @@ namespace KahaGameCore.UserInterfaceSystem
         [SerializeField] private CanvasGroup blackoutOverlay;
 
         private Dictionary<string, AView> activeViews = new Dictionary<string, AView>();
+        private readonly Stack<AView> m_viewStack = new Stack<AView>();
+
+        public int ViewStackCount => m_viewStack.Count;
 
         private CancellationTokenSource cts = new CancellationTokenSource();
 
@@ -199,5 +202,229 @@ namespace KahaGameCore.UserInterfaceSystem
             Debug.LogError("No active view of type: " + typeof(T).Name);
             return null;
         }
+
+        #region View Stack
+
+        public async Task<T> PushView<T>(string resourcePath, Action<T> onBeforeShow = null) where T : AView
+        {
+            T prefab = Resources.Load<T>(resourcePath);
+            if (prefab == null)
+            {
+                Debug.LogError($"[UserInterfaceController] Cannot load prefab at path: {resourcePath}");
+                return null;
+            }
+
+            T viewInstance = Instantiate(prefab, uiRoot);
+            if (viewInstance == null)
+            {
+                Debug.LogError($"[UserInterfaceController] Prefab does not have component: {typeof(T).Name}");
+                return null;
+            }
+
+            viewInstance.transform.SetAsLastSibling();
+
+            CancellationTokenSource stackCts = new CancellationTokenSource();
+
+            try
+            {
+                if (m_viewStack.Count > 0)
+                {
+                    await m_viewStack.Peek().Hide(stackCts.Token);
+                }
+
+                m_viewStack.Push(viewInstance);
+                onBeforeShow?.Invoke(viewInstance);
+                await viewInstance.Show(stackCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Log($"[UserInterfaceController] PushView canceled for: {typeof(T).Name}");
+            }
+            finally
+            {
+                stackCts.Dispose();
+            }
+
+            return viewInstance;
+        }
+
+        public async Task PushView(AView view, Action onBeforeShow = null)
+        {
+            if (view == null)
+            {
+                throw new ArgumentNullException(nameof(view));
+            }
+
+            view.transform.SetAsLastSibling();
+
+            CancellationTokenSource stackCts = new CancellationTokenSource();
+
+            try
+            {
+                if (m_viewStack.Count > 0)
+                {
+                    await m_viewStack.Peek().Hide(stackCts.Token);
+                }
+
+                m_viewStack.Push(view);
+                onBeforeShow?.Invoke();
+                await view.Show(stackCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Log($"[UserInterfaceController] PushView canceled for: {view.name}");
+            }
+            finally
+            {
+                stackCts.Dispose();
+            }
+        }
+
+        public async Task<T> PushViewWithCoexisting<T>(string resourcePath, Action<T> onBeforeShow = null) where T : AView
+        {
+            T prefab = Resources.Load<T>(resourcePath);
+            if (prefab == null)
+            {
+                Debug.LogError($"[UserInterfaceController] Cannot load prefab at path: {resourcePath}");
+                return null;
+            }
+
+            T viewInstance = Instantiate(prefab, uiRoot);
+            if (viewInstance == null)
+            {
+                Debug.LogError($"[UserInterfaceController] Prefab does not have component: {typeof(T).Name}");
+                return null;
+            }
+
+            viewInstance.transform.SetAsLastSibling();
+
+            CancellationTokenSource stackCts = new CancellationTokenSource();
+
+            try
+            {
+                m_viewStack.Push(viewInstance);
+                onBeforeShow?.Invoke(viewInstance);
+                await viewInstance.Show(stackCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Log($"[UserInterfaceController] PushViewWithCoexisting canceled for: {typeof(T).Name}");
+            }
+            finally
+            {
+                stackCts.Dispose();
+            }
+
+            return viewInstance;
+        }
+
+        public async Task PushViewWithCoexisting(AView view, Action onBeforeShow = null)
+        {
+            if (view == null)
+            {
+                throw new ArgumentNullException(nameof(view));
+            }
+
+            view.transform.SetAsLastSibling();
+
+            CancellationTokenSource stackCts = new CancellationTokenSource();
+
+            try
+            {
+                m_viewStack.Push(view);
+                onBeforeShow?.Invoke();
+                await view.Show(stackCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Log($"[UserInterfaceController] PushViewWithCoexisting canceled for: {view.name}");
+            }
+            finally
+            {
+                stackCts.Dispose();
+            }
+        }
+
+        public async Task<bool> PopView()
+        {
+            if (m_viewStack.Count == 0)
+            {
+                return false;
+            }
+
+            AView view = m_viewStack.Pop();
+
+            CancellationTokenSource stackCts = new CancellationTokenSource();
+
+            try
+            {
+                await view.Hide(stackCts.Token);
+                Destroy(view.gameObject);
+
+                if (m_viewStack.Count > 0)
+                {
+                    await m_viewStack.Peek().Show(stackCts.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Log("[UserInterfaceController] PopView canceled.");
+            }
+            finally
+            {
+                stackCts.Dispose();
+            }
+
+            return true;
+        }
+
+        public async Task<bool> HandleBackButton()
+        {
+            if (m_viewStack.Count == 0)
+            {
+                return false;
+            }
+
+            AView currentView = m_viewStack.Peek();
+            BackButtonResult result = currentView.OnBackButtonPressed();
+
+            if (result == BackButtonResult.DoNothing)
+            {
+                return true;
+            }
+
+            if (m_viewStack.Count > 1)
+            {
+                await PopView();
+                return true;
+            }
+
+            return false;
+        }
+
+        public async Task ClearViewStack()
+        {
+            CancellationTokenSource stackCts = new CancellationTokenSource();
+
+            try
+            {
+                while (m_viewStack.Count > 0)
+                {
+                    AView view = m_viewStack.Pop();
+                    await view.Hide(stackCts.Token);
+                    Destroy(view.gameObject);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Log("[UserInterfaceController] ClearViewStack canceled.");
+            }
+            finally
+            {
+                stackCts.Dispose();
+            }
+        }
+
+        #endregion
     }
 }

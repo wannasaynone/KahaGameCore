@@ -32,6 +32,11 @@ namespace KahaGameCore.UserInterfaceSystem
             canvasGroup.alpha = 1f;
         }
 
+        public virtual BackButtonResult OnBackButtonPressed()
+        {
+            return BackButtonResult.Close;
+        }
+
         public async Task Hide(CancellationToken token)
         {
             canvasGroup.alpha = 1f;
