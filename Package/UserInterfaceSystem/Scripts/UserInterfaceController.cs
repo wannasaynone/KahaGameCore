@@ -12,8 +12,13 @@ namespace KahaGameCore.UserInterfaceSystem
         [SerializeField] private RectTransform uiRoot;
         [SerializeField] private CanvasGroup blackoutOverlay;
 
-        private Dictionary<string, AView> activeViews = new Dictionary<string, AView>();
-        private readonly Stack<AView> m_viewStack = new Stack<AView>();
+        private class ViewStackEntry
+        {
+            public AView MainView;
+            public readonly Dictionary<string, AView> AttachedViews = new Dictionary<string, AView>();
+        }
+
+        private readonly Stack<ViewStackEntry> m_viewStack = new Stack<ViewStackEntry>();
 
         public int ViewStackCount => m_viewStack.Count;
 
@@ -28,7 +33,6 @@ namespace KahaGameCore.UserInterfaceSystem
             }
 
             cts = new CancellationTokenSource();
-
             await BlackIn(cts.Token);
         }
 
@@ -53,7 +57,6 @@ namespace KahaGameCore.UserInterfaceSystem
             }
 
             cts = new CancellationTokenSource();
-
             await BlackOut(cts.Token);
         }
 
@@ -69,133 +72,21 @@ namespace KahaGameCore.UserInterfaceSystem
             blackoutOverlay.gameObject.SetActive(false);
         }
 
-        public async Task Show(string viewPath, bool withBlackIn = false, bool withBlackOut = false, Action<AView> onViewCreated = null)
-        {
-            AView viewPrefab = Resources.Load<AView>(viewPath);
-            if (viewPrefab == null)
-            {
-                Debug.LogError("View prefab not found at path: " + viewPath);
-                return;
-            }
-
-            AView viewInstance = Instantiate(viewPrefab, uiRoot);
-            activeViews[viewPath] = viewInstance;
-            onViewCreated?.Invoke(viewInstance);
-            await Show(viewInstance, withBlackIn, withBlackOut);
-        }
-
-        public async Task Show(AView viewInstance, bool withBlackIn = false, bool withBlackOut = false)
-        {
-            if (cts != null)
-            {
-                cts.Cancel();
-                cts.Dispose();
-            }
-
-            cts = new CancellationTokenSource();
-
-            try
-            {
-                if (withBlackIn)
-                {
-                    viewInstance.gameObject.SetActive(false);
-                    await BlackIn(cts.Token);
-                }
-
-                await viewInstance.Show(cts.Token);
-
-                if (withBlackOut)
-                {
-                    await BlackOut(cts.Token);
-                }
-
-                cts.Dispose();
-                cts = null;
-            }
-            catch (System.OperationCanceledException e)
-            {
-                Debug.Log("Show operation canceled for view: " + viewInstance.name + ". " + e.Message);
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError("Error showing view: " + viewInstance.name + ". " + e.Message);
-            }
-        }
-
-        public async Task Hide(string viewPath, bool withBlackIn = false, bool withBlackOut = false)
-        {
-            if (activeViews.TryGetValue(viewPath, out AView viewInstance))
-            {
-                await Hide(viewInstance, withBlackIn, withBlackOut);
-                activeViews.Remove(viewPath);
-            }
-            else
-            {
-                Debug.LogError("No active view found for path: " + viewPath);
-            }
-        }
-
-
-        public async Task Hide(AView viewInstance, bool withBlackIn = false, bool withBlackOut = false)
-        {
-            if (cts != null)
-            {
-                cts.Cancel();
-                cts.Dispose();
-            }
-
-            cts = new CancellationTokenSource();
-
-            try
-            {
-                if (withBlackIn)
-                {
-                    await BlackIn(cts.Token);
-                }
-
-                await viewInstance.Hide(cts.Token);
-                Destroy(viewInstance.gameObject);
-
-                if (withBlackOut)
-                {
-                    await BlackOut(cts.Token);
-                }
-
-                cts.Dispose();
-                cts = null;
-            }
-            catch (System.OperationCanceledException e)
-            {
-                Debug.Log("Hide operation canceled for view: " + viewInstance.name + ". " + e.Message);
-                return;
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError("Error hiding view: " + viewInstance.name + ". " + e.Message);
-                return;
-            }
-        }
-
-        public T GetView<T>(string viewPath) where T : AView
-        {
-            if (activeViews.TryGetValue(viewPath, out AView viewInstance))
-            {
-                return viewInstance as T;
-            }
-            else
-            {
-                Debug.LogError("No active view found for path: " + viewPath);
-                return null;
-            }
-        }
-
         public T GetView<T>() where T : AView
         {
-            foreach (var viewInstance in activeViews.Values)
+            foreach (ViewStackEntry entry in m_viewStack)
             {
-                if (viewInstance is T typedView)
+                if (entry.MainView is T mainTyped)
                 {
-                    return typedView;
+                    return mainTyped;
+                }
+
+                foreach (AView attached in entry.AttachedViews.Values)
+                {
+                    if (attached is T attachedTyped)
+                    {
+                        return attachedTyped;
+                    }
                 }
             }
 
@@ -204,6 +95,38 @@ namespace KahaGameCore.UserInterfaceSystem
         }
 
         #region View Stack
+
+        private async Task HideEntry(ViewStackEntry entry, CancellationToken token)
+        {
+            List<Task> tasks = new List<Task>();
+            tasks.Add(entry.MainView.Hide(token));
+            foreach (AView attached in entry.AttachedViews.Values)
+            {
+                tasks.Add(attached.Hide(token));
+            }
+            await Task.WhenAll(tasks);
+        }
+
+        private async Task ShowEntry(ViewStackEntry entry, CancellationToken token)
+        {
+            List<Task> tasks = new List<Task>();
+            tasks.Add(entry.MainView.Show(token));
+            foreach (AView attached in entry.AttachedViews.Values)
+            {
+                tasks.Add(attached.Show(token));
+            }
+            await Task.WhenAll(tasks);
+        }
+
+        private void DestroyEntry(ViewStackEntry entry)
+        {
+            foreach (AView attached in entry.AttachedViews.Values)
+            {
+                Destroy(attached.gameObject);
+            }
+            entry.AttachedViews.Clear();
+            Destroy(entry.MainView.gameObject);
+        }
 
         public async Task<T> PushView<T>(string resourcePath, Action<T> onBeforeShow = null) where T : AView
         {
@@ -229,10 +152,12 @@ namespace KahaGameCore.UserInterfaceSystem
             {
                 if (m_viewStack.Count > 0)
                 {
-                    await m_viewStack.Peek().Hide(stackCts.Token);
+                    await HideEntry(m_viewStack.Peek(), stackCts.Token);
                 }
 
-                m_viewStack.Push(viewInstance);
+                ViewStackEntry newEntry = new ViewStackEntry { MainView = viewInstance };
+                m_viewStack.Push(newEntry);
+
                 onBeforeShow?.Invoke(viewInstance);
                 await viewInstance.Show(stackCts.Token);
             }
@@ -263,10 +188,12 @@ namespace KahaGameCore.UserInterfaceSystem
             {
                 if (m_viewStack.Count > 0)
                 {
-                    await m_viewStack.Peek().Hide(stackCts.Token);
+                    await HideEntry(m_viewStack.Peek(), stackCts.Token);
                 }
 
-                m_viewStack.Push(view);
+                ViewStackEntry newEntry = new ViewStackEntry { MainView = view };
+                m_viewStack.Push(newEntry);
+
                 onBeforeShow?.Invoke();
                 await view.Show(stackCts.Token);
             }
@@ -280,8 +207,47 @@ namespace KahaGameCore.UserInterfaceSystem
             }
         }
 
-        public async Task<T> PushViewWithCoexisting<T>(string resourcePath, Action<T> onBeforeShow = null) where T : AView
+        public async Task<bool> PopView()
         {
+            if (m_viewStack.Count == 0)
+            {
+                return false;
+            }
+
+            ViewStackEntry entry = m_viewStack.Pop();
+
+            CancellationTokenSource stackCts = new CancellationTokenSource();
+
+            try
+            {
+                await HideEntry(entry, stackCts.Token);
+                DestroyEntry(entry);
+
+                if (m_viewStack.Count > 0)
+                {
+                    await ShowEntry(m_viewStack.Peek(), stackCts.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.Log("[UserInterfaceController] PopView canceled.");
+            }
+            finally
+            {
+                stackCts.Dispose();
+            }
+
+            return true;
+        }
+
+        public async Task<T> AttachView<T>(string resourcePath, Action<T> onBeforeShow = null) where T : AView
+        {
+            if (m_viewStack.Count == 0)
+            {
+                Debug.LogError($"[UserInterfaceController] Cannot attach view: no main view in stack. Path: {resourcePath}");
+                return null;
+            }
+
             T prefab = Resources.Load<T>(resourcePath);
             if (prefab == null)
             {
@@ -302,13 +268,15 @@ namespace KahaGameCore.UserInterfaceSystem
 
             try
             {
-                m_viewStack.Push(viewInstance);
+                ViewStackEntry entry = m_viewStack.Peek();
+                entry.AttachedViews[resourcePath] = viewInstance;
+
                 onBeforeShow?.Invoke(viewInstance);
                 await viewInstance.Show(stackCts.Token);
             }
             catch (OperationCanceledException)
             {
-                Debug.Log($"[UserInterfaceController] PushViewWithCoexisting canceled for: {typeof(T).Name}");
+                Debug.Log($"[UserInterfaceController] AttachView canceled for: {typeof(T).Name}");
             }
             finally
             {
@@ -318,41 +286,22 @@ namespace KahaGameCore.UserInterfaceSystem
             return viewInstance;
         }
 
-        public async Task PushViewWithCoexisting(AView view, Action onBeforeShow = null)
-        {
-            if (view == null)
-            {
-                throw new ArgumentNullException(nameof(view));
-            }
-
-            view.transform.SetAsLastSibling();
-
-            CancellationTokenSource stackCts = new CancellationTokenSource();
-
-            try
-            {
-                m_viewStack.Push(view);
-                onBeforeShow?.Invoke();
-                await view.Show(stackCts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                Debug.Log($"[UserInterfaceController] PushViewWithCoexisting canceled for: {view.name}");
-            }
-            finally
-            {
-                stackCts.Dispose();
-            }
-        }
-
-        public async Task<bool> PopView()
+        public async Task<bool> DetachView(string resourcePath)
         {
             if (m_viewStack.Count == 0)
             {
                 return false;
             }
 
-            AView view = m_viewStack.Pop();
+            ViewStackEntry entry = m_viewStack.Peek();
+
+            if (!entry.AttachedViews.TryGetValue(resourcePath, out AView view))
+            {
+                Debug.LogWarning($"[UserInterfaceController] No attached view found for path: {resourcePath}");
+                return false;
+            }
+
+            entry.AttachedViews.Remove(resourcePath);
 
             CancellationTokenSource stackCts = new CancellationTokenSource();
 
@@ -360,15 +309,10 @@ namespace KahaGameCore.UserInterfaceSystem
             {
                 await view.Hide(stackCts.Token);
                 Destroy(view.gameObject);
-
-                if (m_viewStack.Count > 0)
-                {
-                    await m_viewStack.Peek().Show(stackCts.Token);
-                }
             }
             catch (OperationCanceledException)
             {
-                Debug.Log("[UserInterfaceController] PopView canceled.");
+                Debug.Log($"[UserInterfaceController] DetachView canceled for: {resourcePath}");
             }
             finally
             {
@@ -385,8 +329,8 @@ namespace KahaGameCore.UserInterfaceSystem
                 return false;
             }
 
-            AView currentView = m_viewStack.Peek();
-            BackButtonResult result = currentView.OnBackButtonPressed();
+            ViewStackEntry entry = m_viewStack.Peek();
+            BackButtonResult result = entry.MainView.OnBackButtonPressed();
 
             if (result == BackButtonResult.DoNothing)
             {
@@ -410,9 +354,9 @@ namespace KahaGameCore.UserInterfaceSystem
             {
                 while (m_viewStack.Count > 0)
                 {
-                    AView view = m_viewStack.Pop();
-                    await view.Hide(stackCts.Token);
-                    Destroy(view.gameObject);
+                    ViewStackEntry entry = m_viewStack.Pop();
+                    await HideEntry(entry, stackCts.Token);
+                    DestroyEntry(entry);
                 }
             }
             catch (OperationCanceledException)
