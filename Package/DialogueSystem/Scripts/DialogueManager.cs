@@ -78,6 +78,8 @@ namespace ProjectBSR.DialogueSystem
                 commandFactoryContainer.RegisterFactory("ChangeCharacter", new DefaultImplements.Command.ChangeCharacterFactory());
                 commandFactoryContainer.RegisterFactory("MoveCharacterX", new DefaultImplements.Command.MoveCharacterXFactory());
                 commandFactoryContainer.RegisterFactory("MoveCharacterY", new DefaultImplements.Command.MoveCharacterYFactory());
+                commandFactoryContainer.RegisterFactory("CharacterJump", new DefaultImplements.Command.CharacterJumpFactory());
+                commandFactoryContainer.RegisterFactory("ScaleCharacter", new DefaultImplements.Command.ScaleCharacterFactory());
                 this.commandFactoryContainer = commandFactoryContainer;
                 UnityEngine.Debug.Log("[DialogueManager] DialogueCommandFactoryContainer is not set. Using a default one with built-in commands registered.");
             }
