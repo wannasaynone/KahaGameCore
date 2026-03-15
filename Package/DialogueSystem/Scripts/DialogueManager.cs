@@ -73,6 +73,9 @@ namespace ProjectBSR.DialogueSystem
                 commandFactoryContainer.RegisterFactory("HideDialogueBox", new DefaultImplements.Command.HideDialogueBoxFactory());
                 commandFactoryContainer.RegisterFactory("PlaySoundEffect", new DefaultImplements.Command.PlaySoundEffectFactory());
                 commandFactoryContainer.RegisterFactory("PlayBackgroundMusic", new DefaultImplements.Command.PlayBackgroundMusicFactory());
+                commandFactoryContainer.RegisterFactory("ShowCharacter", new DefaultImplements.Command.ShowCharacterFactory());
+                commandFactoryContainer.RegisterFactory("HideCharacter", new DefaultImplements.Command.HideCharacterFactory());
+                commandFactoryContainer.RegisterFactory("ChangeCharacter", new DefaultImplements.Command.ChangeCharacterFactory());
                 this.commandFactoryContainer = commandFactoryContainer;
                 UnityEngine.Debug.Log("[DialogueManager] DialogueCommandFactoryContainer is not set. Using a default one with built-in commands registered.");
             }
