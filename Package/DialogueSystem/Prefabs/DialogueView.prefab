@@ -378,7 +378,7 @@ GameObject:
   - component: {fileID: 5362546672425638402}
   - component: {fileID: 7110197533572711702}
   - component: {fileID: 2969781932663596480}
-  - component: {fileID: 7283371988085610746}
+  - component: {fileID: 2696454399379723305}
   m_Layer: 5
   m_Name: MiddleCharacter
   m_TagString: Untagged
@@ -452,7 +452,7 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &7283371988085610746
+--- !u!114 &2696454399379723305
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -461,7 +461,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 4524263195074521740}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 971737a527ec0b14cbab52d1c03d2467, type: 3}
+  m_Script: {fileID: 11500000, guid: ec285c23d031aee458911c8500a18fd5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &5389369588746018122
@@ -476,7 +476,7 @@ GameObject:
   - component: {fileID: 3792357900609271609}
   - component: {fileID: 5386895987516216173}
   - component: {fileID: 3761470100967649992}
-  - component: {fileID: 3876624013351590189}
+  - component: {fileID: 845249773147780628}
   m_Layer: 5
   m_Name: LeftCharacter
   m_TagString: Untagged
@@ -550,7 +550,7 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &3876624013351590189
+--- !u!114 &845249773147780628
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -559,7 +559,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 5389369588746018122}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 971737a527ec0b14cbab52d1c03d2467, type: 3}
+  m_Script: {fileID: 11500000, guid: ec285c23d031aee458911c8500a18fd5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &5615222135683580365
@@ -800,7 +800,7 @@ GameObject:
   - component: {fileID: 9086981232402475839}
   - component: {fileID: 5320134823084788290}
   - component: {fileID: 725967766396322296}
-  - component: {fileID: 4325388895897265680}
+  - component: {fileID: 3710892843810036238}
   m_Layer: 5
   m_Name: RightCharacter
   m_TagString: Untagged
@@ -874,7 +874,7 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &4325388895897265680
+--- !u!114 &3710892843810036238
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -883,7 +883,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 7250011702000554189}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 971737a527ec0b14cbab52d1c03d2467, type: 3}
+  m_Script: {fileID: 11500000, guid: ec285c23d031aee458911c8500a18fd5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &8170419236501741370
@@ -1170,6 +1170,6 @@ MonoBehaviour:
   optionContainer: {fileID: 9151092141723571962}
   optionButtonPrefab: {fileID: 4981266044759279563, guid: 94dc388149c592b46a3b925191555e6e, type: 3}
   cgDisplayer: {fileID: 3185650854965298169}
-  leftCharacterImage: {fileID: 3876624013351590189}
-  middleCharacterImage: {fileID: 7283371988085610746}
-  rightCharacterImage: {fileID: 4325388895897265680}
+  leftCharacterImage: {fileID: 845249773147780628}
+  middleCharacterImage: {fileID: 2696454399379723305}
+  rightCharacterImage: {fileID: 3710892843810036238}
