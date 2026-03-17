@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace ProjectBSR.DialogueSystem.View
 {
@@ -30,6 +29,11 @@ namespace ProjectBSR.DialogueSystem.View
         [SerializeField] private Transform optionContainer;
         [SerializeField] private DialogueView_OptionButton optionButtonPrefab;
         [SerializeField] private CGDisplayer cgDisplayer;
+
+        [Header("Character Slots")]
+        [SerializeField] private CharacterDisplayer leftCharacterImage;
+        [SerializeField] private CharacterDisplayer middleCharacterImage;
+        [SerializeField] private CharacterDisplayer rightCharacterImage;
 
         private State state = State.None;
         private CancellationTokenSource cts;
@@ -245,11 +249,11 @@ namespace ProjectBSR.DialogueSystem.View
                 OptionData capturedOption = option;
 
                 button.Bind(capturedOption, (selectedDialogueId) =>
-                 {
-                     HideOptions();
-                     state = State.None;
-                     onOptionSelected?.Invoke(capturedOption);
-                 });
+                {
+                    HideOptions();
+                    state = State.None;
+                    onOptionSelected?.Invoke(capturedOption);
+                });
 
                 spawnedOptionButtons.Add(button);
             }
@@ -297,6 +301,99 @@ namespace ProjectBSR.DialogueSystem.View
             }
 
             await cgDisplayer.HideCG(cgName, fadeOutTime);
+        }
+
+        public async UniTask ShowCharacter(string slotName, Texture2D texture, float offsetX, float fadeInTime)
+        {
+            CharacterDisplayer slot = GetCharacterSlot(slotName);
+            if (slot == null)
+            {
+                Debug.LogError($"[DialogueView] Character slot '{slotName}' is not assigned or invalid!");
+                return;
+            }
+
+            slot.SetTexture(texture);
+            slot.SetPositionOffsetX(offsetX);
+
+            await slot.FadeIn(fadeInTime);
+        }
+
+        public async UniTask HideCharacter(string slotName, float fadeOutTime)
+        {
+            CharacterDisplayer slot = GetCharacterSlot(slotName);
+            if (slot == null)
+            {
+                Debug.LogError($"[DialogueView] Character slot '{slotName}' is not assigned or invalid!");
+                return;
+            }
+
+            await slot.FadeOut(fadeOutTime);
+
+            slot.ResetToDefault();
+        }
+
+        public async UniTask MoveCharacterX(string slotName, float addX, float moveTime)
+        {
+            CharacterDisplayer slot = GetCharacterSlot(slotName);
+            if (slot == null)
+            {
+                Debug.LogError($"[DialogueView] Character slot '{slotName}' is not assigned or invalid!");
+                return;
+            }
+
+            await slot.MoveX(addX, moveTime);
+        }
+
+        public async UniTask MoveCharacterY(string slotName, float addY, float moveTime)
+        {
+            CharacterDisplayer slot = GetCharacterSlot(slotName);
+            if (slot == null)
+            {
+                Debug.LogError($"[DialogueView] Character slot '{slotName}' is not assigned or invalid!");
+                return;
+            }
+
+            await slot.MoveY(addY, moveTime);
+        }
+
+        public async UniTask CharacterJump(string slotName, float totalTime)
+        {
+            CharacterDisplayer slot = GetCharacterSlot(slotName);
+            if (slot == null)
+            {
+                Debug.LogError($"[DialogueView] Character slot '{slotName}' is not assigned or invalid!");
+                return;
+            }
+
+            await slot.Jump(totalTime);
+        }
+
+        public async UniTask ScaleCharacter(string slotName, float targetScale, float scaleTime)
+        {
+            CharacterDisplayer slot = GetCharacterSlot(slotName);
+            if (slot == null)
+            {
+                Debug.LogError($"[DialogueView] Character slot '{slotName}' is not assigned or invalid!");
+                return;
+            }
+
+            await slot.ScaleTo(targetScale, scaleTime);
+        }
+
+        private CharacterDisplayer GetCharacterSlot(string slotName)
+        {
+            switch (slotName)
+            {
+                case "Left":
+                    return leftCharacterImage;
+                case "Middle":
+                    return middleCharacterImage;
+                case "Right":
+                    return rightCharacterImage;
+                default:
+                    Debug.LogError($"[DialogueView] Unknown character slot: {slotName}");
+                    return null;
+            }
         }
     }
 }
