@@ -105,7 +105,7 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public async void Load_data_with_async()
+        public async Task Load_data_with_async()
         {
             GameStaticDataManager gameDataManager = new GameStaticDataManager();
             TestLoadHandler testLoadHandler = new TestLoadHandler();
