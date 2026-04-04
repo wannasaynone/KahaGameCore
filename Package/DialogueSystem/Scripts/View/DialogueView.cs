@@ -17,6 +17,12 @@ namespace ProjectBSR.DialogueSystem.View
             TypeCompleted,
             WaitingForOption
         }
+        
+        public enum SpeedState
+        {
+            Normal,
+            Accelerated
+        }
 
         public event System.Action OnDialogueTextCompleted;
 
@@ -35,11 +41,16 @@ namespace ProjectBSR.DialogueSystem.View
         [SerializeField] private CharacterDisplayer middleCharacterImage;
         [SerializeField] private CharacterDisplayer rightCharacterImage;
 
+        private bool snapAsync = false;
+        
         private State state = State.None;
         private CancellationTokenSource cts;
         private readonly List<DialogueView_OptionButton> spawnedOptionButtons = new List<DialogueView_OptionButton>();
-
-
+        
+        public static event System.Action<SpeedState> OnSpeedStateChanged;
+        private SpeedState currentSpeedState = SpeedState.Normal;
+        public float TimeMultiplier => currentSpeedState == SpeedState.Accelerated ? 0.5f : 1f;
+        
         private void OnDisable()
         {
             if (cts != null)
@@ -62,6 +73,7 @@ namespace ProjectBSR.DialogueSystem.View
 
             HideOptions();
             state = State.None;
+            SetSpeedState(SpeedState.Normal);
         }
 
         public void HideDialogueBox()
@@ -108,19 +120,34 @@ namespace ProjectBSR.DialogueSystem.View
         {
             await Task.Yield();
             typeEffect.ShowText(text);
+            if (currentSpeedState == SpeedState.Accelerated)
+            {
+                typeEffect.SetTypewriterSpeed(2f);
+            }
         }
 
         public void TextAnimator_OnTypingCompleted()
         {
-            state = State.TypeCompleted;
+            if (currentSpeedState == SpeedState.Accelerated)
+            {
+                state = State.None;
+                OnDialogueTextCompleted?.Invoke();
+            }
+            else
+            {
+                state = State.TypeCompleted;
+            }
         }
 
         private void Update()
         {
-            if (Input.GetMouseButtonUp(0))
+            if (Input.GetMouseButtonUp(0) || Input.GetKeyUp(KeyCode.Space))
             {
                 OnInputDetected();
             }
+            
+            SpeedState newState = Input.GetKey(KeyCode.LeftControl) ? SpeedState.Accelerated : SpeedState.Normal;
+            SetSpeedState(newState);
         }
 
         private void OnInputDetected()
@@ -136,6 +163,31 @@ namespace ProjectBSR.DialogueSystem.View
                     break;
             }
         }
+        
+        private void SetSpeedState(SpeedState newState)
+        {
+            if (currentSpeedState == newState)
+                return;
+
+            currentSpeedState = newState;
+
+            if (currentSpeedState == SpeedState.Accelerated)
+            {
+                snapAsync = true;
+
+                if (state == State.Typing)
+                {
+                    typeEffect.SkipTypewriter();
+                }
+                else if (state == State.TypeCompleted)
+                {
+                    state = State.None;
+                    OnDialogueTextCompleted?.Invoke();
+                }
+            }
+
+            OnSpeedStateChanged?.Invoke(currentSpeedState);
+        }
 
         public async Task BlackIn(float fadeTime)
         {
@@ -146,7 +198,7 @@ namespace ProjectBSR.DialogueSystem.View
             }
 
             cts = new CancellationTokenSource();
-            await BlackIn(fadeTime, cts.Token);
+            await BlackIn(fadeTime * TimeMultiplier, cts.Token);
         }
 
         private async Task BlackIn(float fadeTime, CancellationToken token)
@@ -163,18 +215,18 @@ namespace ProjectBSR.DialogueSystem.View
                 fadeTime = 0;
             }
 
+            snapAsync = false;
             blackoutOverlay.gameObject.SetActive(true);
             blackoutOverlay.alpha = 0f;
 
             if (fadeTime == 0)
             {
-                // Instant fade in
                 blackoutOverlay.alpha = 1f;
             }
             else
             {
                 float fadeSpeed = 1f / fadeTime;
-                while (blackoutOverlay.alpha < 1f - Time.deltaTime * fadeSpeed)
+                while (blackoutOverlay.alpha < 1f - Time.deltaTime * fadeSpeed && !snapAsync)
                 {
                     blackoutOverlay.alpha += Time.deltaTime * fadeSpeed;
                     await UniTask.Yield(token);
@@ -192,7 +244,7 @@ namespace ProjectBSR.DialogueSystem.View
             }
 
             cts = new CancellationTokenSource();
-            await BlackOut(fadeTime, cts.Token);
+            await BlackOut(fadeTime * TimeMultiplier, cts.Token);
         }
 
         private async Task BlackOut(float fadeTime, CancellationToken token)
@@ -209,17 +261,17 @@ namespace ProjectBSR.DialogueSystem.View
                 fadeTime = 0;
             }
 
+            snapAsync = false;
             blackoutOverlay.alpha = 1f;
 
             if (fadeTime == 0)
             {
-                // Instant fade out
                 blackoutOverlay.alpha = 0f;
             }
             else
             {
                 float fadeSpeed = 1f / fadeTime;
-                while (blackoutOverlay.alpha > Time.deltaTime * fadeSpeed)
+                while (blackoutOverlay.alpha > Time.deltaTime * fadeSpeed && !snapAsync)
                 {
                     blackoutOverlay.alpha -= Time.deltaTime * fadeSpeed;
                     await UniTask.Yield(token);
@@ -289,7 +341,7 @@ namespace ProjectBSR.DialogueSystem.View
                 return;
             }
 
-            await cgDisplayer.ShowCG(texture, cgName, fadeInTime);
+            await cgDisplayer.ShowCG(texture, cgName, fadeInTime * TimeMultiplier);
         }
 
         public async UniTask HideCG(string cgName, float fadeOutTime)
@@ -300,7 +352,7 @@ namespace ProjectBSR.DialogueSystem.View
                 return;
             }
 
-            await cgDisplayer.HideCG(cgName, fadeOutTime);
+            await cgDisplayer.HideCG(cgName, fadeOutTime * TimeMultiplier);
         }
 
         public async UniTask ShowCharacter(string slotName, Texture2D texture, float offsetX, float fadeInTime)
@@ -314,8 +366,7 @@ namespace ProjectBSR.DialogueSystem.View
 
             slot.SetTexture(texture);
             slot.SetPositionOffsetX(offsetX);
-
-            await slot.FadeIn(fadeInTime);
+            await slot.FadeIn(fadeInTime * TimeMultiplier);
         }
 
         public async UniTask HideCharacter(string slotName, float fadeOutTime)
@@ -327,8 +378,7 @@ namespace ProjectBSR.DialogueSystem.View
                 return;
             }
 
-            await slot.FadeOut(fadeOutTime);
-
+            await slot.FadeOut(fadeOutTime * TimeMultiplier);
             slot.ResetToDefault();
         }
 
@@ -341,7 +391,7 @@ namespace ProjectBSR.DialogueSystem.View
                 return;
             }
 
-            await slot.MoveX(addX, moveTime);
+            await slot.MoveX(addX, moveTime * TimeMultiplier);
         }
 
         public async UniTask MoveCharacterY(string slotName, float addY, float moveTime)
@@ -353,7 +403,7 @@ namespace ProjectBSR.DialogueSystem.View
                 return;
             }
 
-            await slot.MoveY(addY, moveTime);
+            await slot.MoveY(addY, moveTime * TimeMultiplier);
         }
 
         public async UniTask CharacterJump(string slotName, float totalTime)
@@ -365,7 +415,7 @@ namespace ProjectBSR.DialogueSystem.View
                 return;
             }
 
-            await slot.Jump(totalTime);
+            await slot.Jump(totalTime * TimeMultiplier);
         }
 
         public async UniTask ScaleCharacter(string slotName, float targetScale, float scaleTime)
@@ -377,7 +427,7 @@ namespace ProjectBSR.DialogueSystem.View
                 return;
             }
 
-            await slot.ScaleTo(targetScale, scaleTime);
+            await slot.ScaleTo(targetScale, scaleTime * TimeMultiplier);
         }
 
         private CharacterDisplayer GetCharacterSlot(string slotName)

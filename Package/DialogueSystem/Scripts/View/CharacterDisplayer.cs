@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -19,6 +20,8 @@ namespace ProjectBSR.DialogueSystem.View
         private Vector3 defaultLocalScale;
 
         private const float JUMP_HEIGHT = 50f;
+        
+        private bool shouldSnap = false;
 
         private void Awake()
         {
@@ -30,6 +33,30 @@ namespace ProjectBSR.DialogueSystem.View
             defaultLocalScale = rectTransform.localScale;
 
             canvasGroup.alpha = 0f;
+        }
+        
+        private void OnEnable()
+        {
+            DialogueView.OnSpeedStateChanged += OnSpeedStateChanged;
+        }
+
+        private void OnDisable()
+        {
+            DialogueView.OnSpeedStateChanged -= OnSpeedStateChanged;
+            CancelFade();
+            CancelMove();
+            CancelScale();
+            canvasGroup.alpha = 0f;
+            rawImage.texture = null;
+            ResetToDefault();
+        }
+        
+        private void OnSpeedStateChanged(DialogueView.SpeedState speedState)
+        {
+            if (speedState == DialogueView.SpeedState.Accelerated)
+            {
+                shouldSnap = true;
+            }
         }
 
         public void SetTexture(Texture2D texture)
@@ -55,6 +82,7 @@ namespace ProjectBSR.DialogueSystem.View
         {
             CancelFade();
             fadeCts = new CancellationTokenSource();
+            shouldSnap = false;
 
             canvasGroup.alpha = 0f;
 
@@ -66,7 +94,7 @@ namespace ProjectBSR.DialogueSystem.View
 
             float speed = 1f / fadeTime;
 
-            while (canvasGroup.alpha < 1f - Time.deltaTime * speed)
+            while (canvasGroup.alpha < 1f - Time.deltaTime * speed && !shouldSnap)
             {
                 canvasGroup.alpha += Time.deltaTime * speed;
                 await UniTask.Yield(fadeCts.Token);
@@ -79,6 +107,7 @@ namespace ProjectBSR.DialogueSystem.View
         {
             CancelFade();
             fadeCts = new CancellationTokenSource();
+            shouldSnap = false;
 
             if (fadeTime <= 0f)
             {
@@ -88,7 +117,7 @@ namespace ProjectBSR.DialogueSystem.View
 
             float speed = 1f / fadeTime;
 
-            while (canvasGroup.alpha > Time.deltaTime * speed)
+            while (canvasGroup.alpha > Time.deltaTime * speed && !shouldSnap)
             {
                 canvasGroup.alpha -= Time.deltaTime * speed;
                 await UniTask.Yield(fadeCts.Token);
@@ -115,6 +144,7 @@ namespace ProjectBSR.DialogueSystem.View
         {
             CancelMove();
             moveCts = new CancellationTokenSource();
+            shouldSnap = false;
 
             Vector2 startPos = rectTransform.anchoredPosition;
             Vector2 targetPos = new Vector2(startPos.x + addX, startPos.y);
@@ -127,7 +157,7 @@ namespace ProjectBSR.DialogueSystem.View
 
             float elapsed = 0f;
 
-            while (elapsed < moveTime)
+            while (elapsed < moveTime && !shouldSnap)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / moveTime);
@@ -142,6 +172,7 @@ namespace ProjectBSR.DialogueSystem.View
         {
             CancelMove();
             moveCts = new CancellationTokenSource();
+            shouldSnap = false;
 
             Vector2 startPos = rectTransform.anchoredPosition;
             Vector2 targetPos = new Vector2(startPos.x, startPos.y + addY);
@@ -154,7 +185,7 @@ namespace ProjectBSR.DialogueSystem.View
 
             float elapsed = 0f;
 
-            while (elapsed < moveTime)
+            while (elapsed < moveTime && !shouldSnap)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / moveTime);
@@ -169,6 +200,7 @@ namespace ProjectBSR.DialogueSystem.View
         {
             CancelMove();
             moveCts = new CancellationTokenSource();
+            shouldSnap = false;
 
             Vector2 startPos = rectTransform.anchoredPosition;
 
@@ -179,11 +211,10 @@ namespace ProjectBSR.DialogueSystem.View
 
             float elapsed = 0f;
 
-            while (elapsed < totalTime)
+            while (elapsed < totalTime && !shouldSnap)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / totalTime);
-                // Parabola: 0 -> 1 -> 0, peak at t=0.5
                 float yOffset = JUMP_HEIGHT * 4f * t * (1f - t);
                 rectTransform.anchoredPosition = new Vector2(startPos.x, startPos.y + yOffset);
                 await UniTask.Yield(moveCts.Token);
@@ -210,6 +241,7 @@ namespace ProjectBSR.DialogueSystem.View
         {
             CancelScale();
             scaleCts = new CancellationTokenSource();
+            shouldSnap = false;
 
             Vector3 startScale = rectTransform.localScale;
             Vector3 endScale = new Vector3(targetScale, targetScale, 1f);
@@ -222,7 +254,7 @@ namespace ProjectBSR.DialogueSystem.View
 
             float elapsed = 0f;
 
-            while (elapsed < scaleTime)
+            while (elapsed < scaleTime && !shouldSnap)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / scaleTime);

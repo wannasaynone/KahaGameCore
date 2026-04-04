@@ -14,10 +14,25 @@ namespace ProjectBSR.DialogueSystem.View
 
         public string CGName { get; private set; }
 
+        private bool shouldSnap = false;
+
         private void Awake()
         {
             rawImage = GetComponent<RawImage>();
             canvasGroup = GetComponent<CanvasGroup>();
+        }
+        
+        private void OnEnable()
+        {
+            DialogueView.OnSpeedStateChanged += OnSpeedStateChanged;
+        }
+
+        private void OnSpeedStateChanged(DialogueView.SpeedState speedState)
+        {
+            if (speedState == DialogueView.SpeedState.Accelerated)
+            {
+                shouldSnap = true;
+            }
         }
 
         public void Setup(Texture2D texture, string cgName)
@@ -32,6 +47,7 @@ namespace ProjectBSR.DialogueSystem.View
         {
             CancelFade();
             fadeCts = new CancellationTokenSource();
+            shouldSnap = false;
 
             if (fadeTime <= 0f)
             {
@@ -42,7 +58,7 @@ namespace ProjectBSR.DialogueSystem.View
             canvasGroup.alpha = 0f;
             float speed = 1f / fadeTime;
 
-            while (canvasGroup.alpha < 1f - Time.deltaTime * speed)
+            while (canvasGroup.alpha < 1f - Time.deltaTime * speed && !shouldSnap)
             {
                 canvasGroup.alpha += Time.deltaTime * speed;
                 await UniTask.Yield(fadeCts.Token);
@@ -55,6 +71,7 @@ namespace ProjectBSR.DialogueSystem.View
         {
             CancelFade();
             fadeCts = new CancellationTokenSource();
+            shouldSnap = false;
 
             if (fadeTime <= 0f)
             {
@@ -64,7 +81,7 @@ namespace ProjectBSR.DialogueSystem.View
 
             float speed = 1f / fadeTime;
 
-            while (canvasGroup.alpha > Time.deltaTime * speed)
+            while (canvasGroup.alpha > Time.deltaTime * speed && !shouldSnap)
             {
                 canvasGroup.alpha -= Time.deltaTime * speed;
                 await UniTask.Yield(fadeCts.Token);
@@ -85,6 +102,7 @@ namespace ProjectBSR.DialogueSystem.View
 
         private void OnDestroy()
         {
+            DialogueView.OnSpeedStateChanged -= OnSpeedStateChanged;
             CancelFade();
         }
     }
