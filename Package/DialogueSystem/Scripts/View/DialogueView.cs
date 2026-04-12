@@ -49,7 +49,8 @@ namespace ProjectBSR.DialogueSystem.View
         
         public static event System.Action<SpeedState> OnSpeedStateChanged;
         private SpeedState currentSpeedState = SpeedState.Normal;
-        public float TimeMultiplier => currentSpeedState == SpeedState.Accelerated ? 0.5f : 1f;
+        public float TimeMultiplier => currentSpeedState == SpeedState.Accelerated ? 0f : 1f;
+        private float acceleratedCooldown = 0.2f;
         
         private void OnDisable()
         {
@@ -122,7 +123,7 @@ namespace ProjectBSR.DialogueSystem.View
             typeEffect.ShowText(text);
             if (currentSpeedState == SpeedState.Accelerated)
             {
-                typeEffect.SetTypewriterSpeed(2f);
+                typeEffect.SkipTypewriter();
             }
         }
 
@@ -131,12 +132,18 @@ namespace ProjectBSR.DialogueSystem.View
             if (currentSpeedState == SpeedState.Accelerated)
             {
                 state = State.None;
-                OnDialogueTextCompleted?.Invoke();
+                InvokeDialogueTextCompletedWithCooldown();
             }
             else
             {
                 state = State.TypeCompleted;
             }
+        }
+        
+        private async void InvokeDialogueTextCompletedWithCooldown()
+        {
+            await UniTask.Delay(System.TimeSpan.FromSeconds(acceleratedCooldown));
+            OnDialogueTextCompleted?.Invoke();
         }
 
         private void Update()
@@ -182,7 +189,7 @@ namespace ProjectBSR.DialogueSystem.View
                 else if (state == State.TypeCompleted)
                 {
                     state = State.None;
-                    OnDialogueTextCompleted?.Invoke();
+                    InvokeDialogueTextCompletedWithCooldown();
                 }
             }
 
@@ -209,7 +216,7 @@ namespace ProjectBSR.DialogueSystem.View
                 return;
             }
 
-            if (fadeTime <= 0)
+            if (fadeTime < 0)
             {
                 Debug.LogError("BlackIn fadeTime must be greater than 0. Setting to 0.");
                 fadeTime = 0;
@@ -255,7 +262,7 @@ namespace ProjectBSR.DialogueSystem.View
                 return;
             }
 
-            if (fadeTime <= 0)
+            if (fadeTime < 0)
             {
                 Debug.LogError("BlackOut fadeTime must be greater than 0. Setting to 0.");
                 fadeTime = 0;
