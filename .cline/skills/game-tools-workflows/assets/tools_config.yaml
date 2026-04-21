@@ -1,8 +1,0 @@
-version_control:
-  - git
-  - perforce
-  - plastic_scm
-project_management:
-  - jira
-  - hacknplan
-  - notion

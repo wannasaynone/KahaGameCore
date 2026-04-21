@@ -1,9 +1,0 @@
-languages:
-  game_specific:
-    - csharp
-    - cpp
-    - gdscript
-  scripting:
-    - lua
-    - python
-    - javascript

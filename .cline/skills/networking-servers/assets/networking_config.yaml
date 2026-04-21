@@ -1,8 +1,0 @@
-models:
-  - client_server
-  - peer_to_peer
-  - dedicated_server
-protocols:
-  - tcp
-  - udp
-  - websocket

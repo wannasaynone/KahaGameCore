@@ -1,7 +1,0 @@
-strategies:
-  - pooling
-  - streaming
-  - garbage_collection
-profiling:
-  - heap_analysis
-  - leak_detection

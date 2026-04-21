@@ -1,8 +1,0 @@
-languages:
-  - hlsl
-  - glsl
-  - shader_graph
-types:
-  - vertex
-  - fragment
-  - compute
