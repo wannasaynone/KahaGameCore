@@ -17,7 +17,7 @@ namespace ProjectBSR.DialogueSystem.View
             TypeCompleted,
             WaitingForOption
         }
-        
+
         public enum SpeedState
         {
             Normal,
@@ -42,17 +42,17 @@ namespace ProjectBSR.DialogueSystem.View
         [SerializeField] private CharacterDisplayer rightCharacterImage;
 
         private bool snapAsync = false;
-        
+
         private State state = State.None;
         private CancellationTokenSource cts;
         private readonly List<DialogueView_OptionButton> spawnedOptionButtons = new List<DialogueView_OptionButton>();
-        
+
         public static event System.Action<SpeedState> OnSpeedStateChanged;
         private SpeedState currentSpeedState = SpeedState.Normal;
         public float TimeMultiplier => currentSpeedState == SpeedState.Accelerated ? 0f : 1f;
         private float acceleratedCooldown = 0.2f;
-        
-        private void OnDisable()
+
+        private void OnEnable()
         {
             if (cts != null)
             {
@@ -75,6 +75,11 @@ namespace ProjectBSR.DialogueSystem.View
             HideOptions();
             state = State.None;
             SetSpeedState(SpeedState.Normal);
+        }
+
+        private void OnDisable()
+        {
+            OnEnable(); // Reset view state when disabled
         }
 
         public void HideDialogueBox()
@@ -139,7 +144,7 @@ namespace ProjectBSR.DialogueSystem.View
                 state = State.TypeCompleted;
             }
         }
-        
+
         private async void InvokeDialogueTextCompletedWithCooldown()
         {
             await UniTask.Delay(System.TimeSpan.FromSeconds(acceleratedCooldown));
@@ -152,7 +157,7 @@ namespace ProjectBSR.DialogueSystem.View
             {
                 OnInputDetected();
             }
-            
+
             SpeedState newState = Input.GetKey(KeyCode.LeftControl) ? SpeedState.Accelerated : SpeedState.Normal;
             SetSpeedState(newState);
         }
@@ -170,7 +175,7 @@ namespace ProjectBSR.DialogueSystem.View
                     break;
             }
         }
-        
+
         private void SetSpeedState(SpeedState newState)
         {
             if (currentSpeedState == newState)
