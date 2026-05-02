@@ -10,6 +10,8 @@ namespace KahaGameCore.UserInterfaceSystem
         [SerializeField] private CanvasGroup canvasGroup;
         [SerializeField] private float transitionDuration = 0.5f;
 
+        protected CanvasGroup CanvasGroup => canvasGroup;
+
         public async Task Show(CancellationToken token)
         {
             gameObject.SetActive(true);
