@@ -4,6 +4,9 @@ namespace KahaGameCore.ActorSystem
 {
     public abstract class AGameActor : MonoBehaviour
     {
+        public string Faction => faction;
+        [SerializeField] private string faction;
+
         private ActorController _controller;
         private bool _isInitialized;
 
@@ -44,5 +47,7 @@ namespace KahaGameCore.ActorSystem
         {
             transform.position += delta;
         }
+
+        public virtual void OnHitByBullet(BulletHitContext context) { }
     }
 }
