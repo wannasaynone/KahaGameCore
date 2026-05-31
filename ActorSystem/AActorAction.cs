@@ -23,15 +23,15 @@ namespace KahaGameCore.ActorSystem
 
         protected abstract void OnBind();
 
-        protected void BindChannel<TChannel>(TChannel channel, int priority, Action<IActor> handler)
+        protected void BindChannel<TChannel>(TChannel channel, int priority, Action<AGameActor, ActionContext> handler)
             where TChannel : Enum
         {
             _bindings.Add(new ChannelBinding(Convert.ToInt32(channel), priority, handler));
         }
 
-        public virtual void OnStart(IActor actor) { }
-        public virtual void OnTick() { }
-        public virtual void OnEnd(IActor actor) { }
+        public virtual void OnStart(AGameActor actor, ActionContext context) { }
+        public virtual void OnTick(ActionContext context) { }
+        public virtual void OnEnd(AGameActor actor, ActionContext context) { }
 
         protected void Complete()
         {

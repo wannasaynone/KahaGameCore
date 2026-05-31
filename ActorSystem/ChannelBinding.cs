@@ -6,9 +6,9 @@ namespace KahaGameCore.ActorSystem
     {
         public int ChannelId { get; }
         public int Priority { get; }
-        public Action<IActor> Handler { get; }
+        public Action<AGameActor, ActionContext> Handler { get; }
 
-        public ChannelBinding(int channelId, int priority, Action<IActor> handler)
+        public ChannelBinding(int channelId, int priority, Action<AGameActor, ActionContext> handler)
         {
             ChannelId = channelId;
             Priority = priority;

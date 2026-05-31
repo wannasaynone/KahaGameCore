@@ -5,18 +5,19 @@ namespace KahaGameCore.ActorSystem
 {
     public class ActorController
     {
-        private IActor _actor;
+        private AGameActor _actor;
         private readonly Dictionary<int, ChannelSlot> _channelIdToSlot = new();
         private readonly List<AActorAction> _activeActions = new();
         private readonly List<AActorAction> _tickSnapshot = new();
         private int _activationCounter;
+        private ActionContext _currentContext;
 
         private class ChannelSlot
         {
             public AActorAction Owner;
             public int Priority;
             public int OwnerActivationOrder;
-            public Action<IActor> Handler;
+            public Action<AGameActor, ActionContext> Handler;
 
             public void Clear()
             {
@@ -27,7 +28,7 @@ namespace KahaGameCore.ActorSystem
             }
         }
 
-        public void Initialize<TChannel>(IActor actor) where TChannel : Enum
+        public void Initialize<TChannel>(AGameActor actor) where TChannel : Enum
         {
             _actor = actor;
             _channelIdToSlot.Clear();
@@ -37,7 +38,7 @@ namespace KahaGameCore.ActorSystem
             }
         }
 
-        public void SetActionActive(AActorAction action)
+        public void SetActionActive(AActorAction action, ActionContext context)
         {
             if (action.IsActive) return;
 
@@ -47,10 +48,10 @@ namespace KahaGameCore.ActorSystem
             action.IsActive = true;
             action.ActivationOrder = _activationCounter++;
             _activeActions.Add(action);
-            action.OnStart(_actor);
+            action.OnStart(_actor, context);
         }
 
-        public void SetActionInactive(AActorAction action)
+        public void SetActionInactive(AActorAction action, ActionContext context)
         {
             if (!action.IsActive) return;
 
@@ -58,17 +59,18 @@ namespace KahaGameCore.ActorSystem
 
             action.IsActive = false;
             _activeActions.Remove(action);
-            action.OnEnd(_actor);
+            action.OnEnd(_actor, context);
         }
 
-        public void Tick()
+        public void Tick(ActionContext context)
         {
+            _currentContext = context;
             _tickSnapshot.Clear();
             for (int i = 0; i < _activeActions.Count; i++)
                 _tickSnapshot.Add(_activeActions[i]);
 
             for (int i = 0; i < _tickSnapshot.Count; i++)
-                _tickSnapshot[i].OnTick();
+                _tickSnapshot[i].OnTick(context);
 
             foreach (var slot in _channelIdToSlot.Values)
             {
@@ -99,13 +101,13 @@ namespace KahaGameCore.ActorSystem
 
             foreach (var slot in _channelIdToSlot.Values)
             {
-                slot.Handler?.Invoke(_actor);
+                slot.Handler?.Invoke(_actor, context);
             }
         }
 
         private void OnActionCompleted(AActorAction action)
         {
-            SetActionInactive(action);
+            SetActionInactive(action, _currentContext);
         }
     }
 }
