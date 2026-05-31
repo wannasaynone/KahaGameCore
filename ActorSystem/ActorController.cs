@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace KahaGameCore.ActorSystem
 {
-    public class ActorController
+    public class
+    ActorController
     {
         private AGameActor _actor;
         private readonly Dictionary<int, ChannelSlot> _channelIdToSlot = new();
@@ -18,6 +19,7 @@ namespace KahaGameCore.ActorSystem
             public int Priority;
             public int OwnerActivationOrder;
             public Action<AGameActor, ActionContext> Handler;
+            public Action<AGameActor, ActionContext> DefaultHandler;
 
             public void Clear()
             {
@@ -25,6 +27,15 @@ namespace KahaGameCore.ActorSystem
                 Priority = 0;
                 OwnerActivationOrder = -1;
                 Handler = null;
+            }
+        }
+
+        public void SetChannelDefault<TChannel>(TChannel channel, Action<AGameActor, ActionContext> handler) where TChannel : Enum
+        {
+            int channelId = Convert.ToInt32(channel);
+            if (_channelIdToSlot.TryGetValue(channelId, out var slot))
+            {
+                slot.DefaultHandler = handler;
             }
         }
 
@@ -101,7 +112,8 @@ namespace KahaGameCore.ActorSystem
 
             foreach (var slot in _channelIdToSlot.Values)
             {
-                slot.Handler?.Invoke(_actor, context);
+                var handler = slot.Handler ?? slot.DefaultHandler;
+                handler?.Invoke(_actor, context);
             }
         }
 
