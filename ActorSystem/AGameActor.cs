@@ -26,6 +26,7 @@ namespace KahaGameCore.ActorSystem
         protected abstract void OnFaceDirectionChanged();
         public abstract void PlayAnimation(string animationName);
         public abstract string GetCurrentAnimation();
+        public abstract Transform GetAnimatorRoot();
 
         public void SetFacingDirection(Vector3 direction)
         {
