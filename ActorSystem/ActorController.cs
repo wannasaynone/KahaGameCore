@@ -68,6 +68,26 @@ namespace KahaGameCore.ActorSystem
 
             if (action.IsActive) return;
 
+            if (action.IsInterruptible && action.Bindings.Count > 0)
+            {
+                int newActionMaxPriority = int.MinValue;
+                for (int i = 0; i < action.Bindings.Count; i++)
+                    newActionMaxPriority = Math.Max(newActionMaxPriority, action.Bindings[i].Priority);
+
+                for (int i = 0; i < _activeActions.Count; i++)
+                {
+                    var existing = _activeActions[i];
+                    if (existing.Bindings.Count == 0) continue;
+
+                    int existingMinPriority = int.MaxValue;
+                    for (int j = 0; j < existing.Bindings.Count; j++)
+                        existingMinPriority = Math.Min(existingMinPriority, existing.Bindings[j].Priority);
+
+                    if (existingMinPriority > newActionMaxPriority)
+                        return;
+                }
+            }
+
             action.Completed += OnActionCompleted;
 
             action.IsActive = true;
@@ -76,6 +96,31 @@ namespace KahaGameCore.ActorSystem
             action.ResetChannelOwnershipCheck();
             _activeActions.Add(action);
             action.Active(context);
+            InterruptLowerPriorityActions(action, context);
+        }
+
+        private void InterruptLowerPriorityActions(AActorAction newAction, ActionContext context)
+        {
+            if (newAction.Bindings.Count == 0) return;
+
+            int newActionMinPriority = int.MaxValue;
+            for (int i = 0; i < newAction.Bindings.Count; i++)
+                newActionMinPriority = Math.Min(newActionMinPriority, newAction.Bindings[i].Priority);
+
+            for (int i = _activeActions.Count - 1; i >= 0; i--)
+            {
+                var existing = _activeActions[i];
+                if (existing == newAction) continue;
+                if (!existing.IsInterruptible) continue;
+                if (existing.Bindings.Count == 0) continue;
+
+                int existingMaxPriority = int.MinValue;
+                for (int j = 0; j < existing.Bindings.Count; j++)
+                    existingMaxPriority = Math.Max(existingMaxPriority, existing.Bindings[j].Priority);
+
+                if (newActionMinPriority > existingMaxPriority)
+                    SetActionInactive(existing, context);
+            }
         }
 
         public void SetActionInactive(AActorAction action, ActionContext context)

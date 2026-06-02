@@ -18,6 +18,9 @@ namespace KahaGameCore.ActorSystem
         public bool IsActive { get; internal set; }
         public int ActivationOrder { get; internal set; }
         public ActorController OwningController { get; internal set; }
+
+
+        public virtual bool IsInterruptible => false;
         public event Action<AActorAction> Completed;
 
         protected AGameActor CurrentReferenceActor => _currentReferenceActor;
