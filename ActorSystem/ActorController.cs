@@ -18,7 +18,7 @@ namespace KahaGameCore.ActorSystem
             public AActorAction Owner;
             public int Priority;
             public int OwnerActivationOrder;
-            public Action<AGameActor, ActionContext> Handler;
+            public Action<ActionContext> Handler;
             public Action<AGameActor, ActionContext> DefaultHandler;
 
             public void Clear()
@@ -30,12 +30,12 @@ namespace KahaGameCore.ActorSystem
             }
         }
 
-        public void SetChannelDefault<TChannel>(TChannel channel, Action<AGameActor, ActionContext> handler) where TChannel : Enum
+        public void SetChannelDefault<TChannel>(TChannel channel, Action<AGameActor, ActionContext> defaultHandler) where TChannel : Enum
         {
             int channelId = Convert.ToInt32(channel);
             if (_channelIdToSlot.TryGetValue(channelId, out var slot))
             {
-                slot.DefaultHandler = handler;
+                slot.DefaultHandler = defaultHandler;
             }
         }
 
@@ -51,15 +51,22 @@ namespace KahaGameCore.ActorSystem
 
         public void SetActionActive(AActorAction action, ActionContext context)
         {
+            if (!action.IsInitialized)
+            {
+                UnityEngine.Debug.LogError("[ActorController] " + _actor.gameObject.name + " is trying to active uninitialized action " + nameof(action) + ", please make sure initialize action before active it.");
+                return;
+            }
+
             if (action.IsActive) return;
 
-            action.Init();
             action.Completed += OnActionCompleted;
 
             action.IsActive = true;
             action.ActivationOrder = _activationCounter++;
+            action.OwningController = this;
+            action.ResetChannelOwnershipCheck();
             _activeActions.Add(action);
-            action.OnStart(_actor, context);
+            action.Active(context);
         }
 
         public void SetActionInactive(AActorAction action, ActionContext context)
@@ -70,7 +77,7 @@ namespace KahaGameCore.ActorSystem
 
             action.IsActive = false;
             _activeActions.Remove(action);
-            action.OnEnd(_actor, context);
+            action.Deactivate(context);
         }
 
         public void Tick(ActionContext context)
@@ -81,7 +88,7 @@ namespace KahaGameCore.ActorSystem
                 _tickSnapshot.Add(_activeActions[i]);
 
             for (int i = 0; i < _tickSnapshot.Count; i++)
-                _tickSnapshot[i].OnTick(context);
+                _tickSnapshot[i].Tick(context);
 
             foreach (var slot in _channelIdToSlot.Values)
             {
@@ -112,9 +119,22 @@ namespace KahaGameCore.ActorSystem
 
             foreach (var slot in _channelIdToSlot.Values)
             {
-                var handler = slot.Handler ?? slot.DefaultHandler;
-                handler?.Invoke(_actor, context);
+                if (slot.Handler != null)
+                {
+                    slot.Handler.Invoke(context);
+                }
+                else
+                {
+                    slot.DefaultHandler?.Invoke(_actor, context);
+                }
             }
+        }
+
+        public AActorAction GetChannelOwner(int channelId)
+        {
+            if (_channelIdToSlot.TryGetValue(channelId, out var slot))
+                return slot.Owner;
+            return null;
         }
 
         private void OnActionCompleted(AActorAction action)
