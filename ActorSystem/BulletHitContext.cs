@@ -6,13 +6,13 @@ namespace KahaGameCore.ActorSystem
     {
         public string BulletFaction { get; }
         public Vector3 HitPosition { get; }
-        public Vector3 SourcePosition { get; }
+        public AGameActor Shooter { get; }
 
-        public BulletHitContext(string bulletFaction, Vector3 hitPosition, Vector3 sourcePosition)
+        public BulletHitContext(string bulletFaction, Vector3 hitPosition, AGameActor shooter = null)
         {
             BulletFaction = bulletFaction;
             HitPosition = hitPosition;
-            SourcePosition = sourcePosition;
+            Shooter = shooter;
         }
     }
 }
