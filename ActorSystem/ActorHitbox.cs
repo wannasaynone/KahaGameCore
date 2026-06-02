@@ -11,7 +11,11 @@ namespace KahaGameCore.ActorSystem
 
         public void OnHit(BulletHitContext context)
         {
-            if (actor == null) return;
+            if (actor == null)
+            {
+                UnityEngine.Debug.Log("[ActorHitbox] " + gameObject.name + " is getting hit but reference actor is null, will skip");
+                return;
+            }
             actor.OnHitByBullet(context);
         }
     }
