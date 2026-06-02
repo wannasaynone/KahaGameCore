@@ -25,6 +25,7 @@ namespace KahaGameCore.ActorSystem
         protected abstract void OnInitialize(ActorController controller);
         protected abstract void OnFaceDirectionChanged();
         public abstract void PlayAnimation(string animationName);
+        public abstract void SetAnimationSpeed(float delta);
         public abstract string GetCurrentAnimation();
         public abstract Transform GetAnimatorRoot();
 
