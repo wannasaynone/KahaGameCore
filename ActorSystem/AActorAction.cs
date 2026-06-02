@@ -6,6 +6,9 @@ namespace KahaGameCore.ActorSystem
 {
     public abstract class AActorAction : MonoBehaviour
     {
+        [SerializeField] private string _actionId = "";
+        public string ActionId => _actionId;
+
         private readonly List<ChannelBinding> _bindings = new();
         public bool IsInitialized => _isInitialized;
         private bool _isInitialized;
@@ -39,18 +42,6 @@ namespace KahaGameCore.ActorSystem
             where TChannel : Enum
         {
             _bindings.Add(new ChannelBinding(Convert.ToInt32(channel), priority, handler));
-        }
-
-        protected bool IsOwningChannel<TChannel>(TChannel channel) where TChannel : Enum
-        {
-            if (!_ownershipCheckReady)
-            {
-                _ownershipCheckReady = true;
-                return true;
-            }
-
-            if (OwningController == null) return true;
-            return OwningController.GetChannelOwner(Convert.ToInt32(channel)) == this;
         }
 
         public void Active(ActionContext context)

@@ -83,13 +83,8 @@ namespace KahaGameCore.ActorSystem
         public void Tick(ActionContext context)
         {
             _currentContext = context;
-            _tickSnapshot.Clear();
-            for (int i = 0; i < _activeActions.Count; i++)
-                _tickSnapshot.Add(_activeActions[i]);
 
-            for (int i = 0; i < _tickSnapshot.Count; i++)
-                _tickSnapshot[i].Tick(context);
-
+            // Step 1 & 2: 先清空並重建 channel slots，確立佔用關係
             foreach (var slot in _channelIdToSlot.Values)
             {
                 slot.Clear();
@@ -117,6 +112,15 @@ namespace KahaGameCore.ActorSystem
                 }
             }
 
+            // Step 3: 再 tick 所有 actions（此時 IsOwningChannel 可正確查詢當前幀的佔用狀態）
+            _tickSnapshot.Clear();
+            for (int i = 0; i < _activeActions.Count; i++)
+                _tickSnapshot.Add(_activeActions[i]);
+
+            for (int i = 0; i < _tickSnapshot.Count; i++)
+                _tickSnapshot[i].Tick(context);
+
+            // Step 4: 執行各 slot 的 handler
             foreach (var slot in _channelIdToSlot.Values)
             {
                 if (slot.Handler != null)
@@ -128,13 +132,6 @@ namespace KahaGameCore.ActorSystem
                     slot.DefaultHandler?.Invoke(_actor, context);
                 }
             }
-        }
-
-        public AActorAction GetChannelOwner(int channelId)
-        {
-            if (_channelIdToSlot.TryGetValue(channelId, out var slot))
-                return slot.Owner;
-            return null;
         }
 
         private void OnActionCompleted(AActorAction action)
