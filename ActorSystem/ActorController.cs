@@ -39,10 +39,19 @@ namespace KahaGameCore.ActorSystem
             }
         }
 
+        public void SetAnimationChannelDefault(Action<AGameActor, ActionContext> defaultHandler)
+        {
+            if (_channelIdToSlot.TryGetValue(AActorAction.AnimationChannelId, out var slot))
+            {
+                slot.DefaultHandler = defaultHandler;
+            }
+        }
+
         public void Initialize<TChannel>(AGameActor actor) where TChannel : Enum
         {
             _actor = actor;
             _channelIdToSlot.Clear();
+            _channelIdToSlot[AActorAction.AnimationChannelId] = new ChannelSlot();
             foreach (var value in Enum.GetValues(typeof(TChannel)))
             {
                 _channelIdToSlot[Convert.ToInt32(value)] = new ChannelSlot();

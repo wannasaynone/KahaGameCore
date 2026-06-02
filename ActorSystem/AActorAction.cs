@@ -44,6 +44,33 @@ namespace KahaGameCore.ActorSystem
             _bindings.Add(new ChannelBinding(Convert.ToInt32(channel), priority, handler));
         }
 
+        public const int AnimationChannelId = -1;
+
+        protected void BindAnimationChannel(int priority, Func<string> animProvider)
+        {
+            AnimationChannelHandler handler = new AnimationChannelHandler(this, animProvider);
+            _bindings.Add(new ChannelBinding(AnimationChannelId, priority, handler.Handle));
+        }
+
+        private sealed class AnimationChannelHandler
+        {
+            private readonly AActorAction _owner;
+            private readonly Func<string> _provider;
+
+            public AnimationChannelHandler(AActorAction owner, Func<string> provider)
+            {
+                _owner = owner;
+                _provider = provider;
+            }
+
+            public void Handle(ActionContext context)
+            {
+                string anim = _provider();
+                if (!string.IsNullOrEmpty(anim))
+                    _owner._currentReferenceActor.PlayAnimation(anim);
+            }
+        }
+
         public void Active(ActionContext context)
         {
             if (!IsInitialized)
