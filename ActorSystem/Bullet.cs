@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -29,7 +30,10 @@ namespace KahaGameCore.ActorSystem
         // Periodic mode: track cooldown end time per collider
         private readonly Dictionary<Collider2D, float> _periodicCooldowns = new();
 
-        public void Initialize(float speed, float lifetime, string faction, FactionCollisionTable collisionTable, AGameActor shooter = null)
+        // Bullet-side hit predicates: all must return true for the hit to register
+        private readonly List<Func<AGameActor, bool>> _hitPredicates = new();
+
+        public void Initialize(float speed, float lifetime, string faction, FactionCollisionTable collisionTable, AGameActor shooter = null, params Func<AGameActor, bool>[] hitPredicates)
         {
             _speed = speed;
             _lifetime = lifetime;
@@ -37,6 +41,13 @@ namespace KahaGameCore.ActorSystem
             _collisionTable = collisionTable;
             _shooter = shooter;
             _isInitialized = true;
+
+            _hitPredicates.Clear();
+            if (hitPredicates != null)
+            {
+                foreach (var p in hitPredicates)
+                    _hitPredicates.Add(p);
+            }
 
             Rigidbody2D rg = GetComponent<Rigidbody2D>();
             rg.bodyType = RigidbodyType2D.Kinematic;
@@ -110,8 +121,17 @@ namespace KahaGameCore.ActorSystem
 
             if (result == FactionCollisionResult.Skip) return;
 
-            // Explode: notify target via hitbox and spawn effect
+            // Bullet-side predicate check: all predicates must pass
+            foreach (var predicate in _hitPredicates)
+            {
+                if (!predicate(hitbox.Actor)) return;
+            }
+
+            // Target-side filter check: actor decides if it can be hit
             BulletHitContext context = new BulletHitContext(_faction, transform.position, _shooter);
+            if (!hitbox.Actor.CanBeHitByBullet(context)) return;
+
+            // Explode: notify target via hitbox and spawn effect
             hitbox.OnHit(context);
 
             GameObject explosionPrefab = _collisionTable.GetExplosionPrefab(_faction, targetFaction);

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace KahaGameCore.ActorSystem
@@ -51,5 +54,23 @@ namespace KahaGameCore.ActorSystem
         }
 
         public virtual void OnHitByBullet(BulletHitContext context) { }
+
+        private readonly List<Func<BulletHitContext, bool>> _bulletHitFilters = new();
+
+        public void AddBulletHitFilter(Func<BulletHitContext, bool> filter)
+        {
+            if (!_bulletHitFilters.Contains(filter))
+                _bulletHitFilters.Add(filter);
+        }
+
+        public void RemoveBulletHitFilter(Func<BulletHitContext, bool> filter)
+        {
+            _bulletHitFilters.Remove(filter);
+        }
+
+        public bool CanBeHitByBullet(BulletHitContext context)
+        {
+            return _bulletHitFilters.All(f => f(context));
+        }
     }
 }
