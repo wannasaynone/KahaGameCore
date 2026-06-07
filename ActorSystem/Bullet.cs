@@ -128,7 +128,12 @@ namespace KahaGameCore.ActorSystem
             }
 
             // Target-side filter check: actor decides if it can be hit
-            BulletHitContext context = new BulletHitContext(_faction, transform.position, _shooter);
+            BulletHitContext context = new BulletHitContext(
+                bulletFaction: _faction,
+                hitPosition: transform.position,
+                canCauseUnbalance: false,
+                shooter: _shooter
+            );
             if (!hitbox.Actor.CanBeHitByBullet(context)) return;
 
             // Explode: notify target via hitbox and spawn effect

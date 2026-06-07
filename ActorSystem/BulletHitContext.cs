@@ -7,12 +7,14 @@ namespace KahaGameCore.ActorSystem
         public string BulletFaction { get; }
         public Vector3 HitPosition { get; }
         public AGameActor Shooter { get; }
+        public bool CanCauseUnbalance { get; }
 
-        public BulletHitContext(string bulletFaction, Vector3 hitPosition, AGameActor shooter = null)
+        public BulletHitContext(string bulletFaction, Vector3 hitPosition, bool canCauseUnbalance, AGameActor shooter = null)
         {
             BulletFaction = bulletFaction;
             HitPosition = hitPosition;
             Shooter = shooter;
+            CanCauseUnbalance = canCauseUnbalance;
         }
     }
 }
