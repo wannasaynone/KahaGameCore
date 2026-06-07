@@ -26,6 +26,7 @@ namespace KahaGameCore.ActorSystem
         private string _faction;
         private FactionCollisionTable _collisionTable;
         private AGameActor _shooter;
+        private string[] _hitEffects;
 
         // Periodic mode: track cooldown end time per collider
         private readonly Dictionary<Collider2D, float> _periodicCooldowns = new();
@@ -33,13 +34,14 @@ namespace KahaGameCore.ActorSystem
         // Bullet-side hit predicates: all must return true for the hit to register
         private readonly List<Func<AGameActor, bool>> _hitPredicates = new();
 
-        public void Initialize(float speed, float lifetime, string faction, FactionCollisionTable collisionTable, AGameActor shooter = null, params Func<AGameActor, bool>[] hitPredicates)
+        public void Initialize(float speed, float lifetime, string faction, FactionCollisionTable collisionTable, AGameActor shooter = null, string[] hitEffects = null, params Func<AGameActor, bool>[] hitPredicates)
         {
             _speed = speed;
             _lifetime = lifetime;
             _faction = faction;
             _collisionTable = collisionTable;
             _shooter = shooter;
+            _hitEffects = hitEffects;
             _isInitialized = true;
 
             _hitPredicates.Clear();
@@ -131,8 +133,8 @@ namespace KahaGameCore.ActorSystem
             BulletHitContext context = new BulletHitContext(
                 bulletFaction: _faction,
                 hitPosition: transform.position,
-                canCauseUnbalance: false,
-                shooter: _shooter
+                shooter: _shooter,
+                effects: _hitEffects
             );
             if (!hitbox.Actor.CanBeHitByBullet(context)) return;
 

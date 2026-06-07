@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace KahaGameCore.ActorSystem
@@ -7,14 +8,18 @@ namespace KahaGameCore.ActorSystem
         public string BulletFaction { get; }
         public Vector3 HitPosition { get; }
         public AGameActor Shooter { get; }
-        public bool CanCauseUnbalance { get; }
 
-        public BulletHitContext(string bulletFaction, Vector3 hitPosition, bool canCauseUnbalance, AGameActor shooter = null)
+        private readonly HashSet<string> _effects;
+
+        public BulletHitContext(string bulletFaction, Vector3 hitPosition,
+            AGameActor shooter = null, IEnumerable<string> effects = null)
         {
             BulletFaction = bulletFaction;
             HitPosition = hitPosition;
             Shooter = shooter;
-            CanCauseUnbalance = canCauseUnbalance;
+            _effects = effects != null ? new HashSet<string>(effects) : new HashSet<string>();
         }
+
+        public bool HasEffect(string effectTag) => _effects.Contains(effectTag);
     }
 }
