@@ -8,7 +8,7 @@
 
 GameFlowSystem 的 `DefaultImplements/DialoguePlayer` 已把本系統包好（UniTask 等待 + 內建指令註冊 + GameEffect 橋接指令）：
 
-1. 執行選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**——生成的場景已含 DialogueView（連同 1080p 縮放包覆層），並接好 DefaultGameLauncher（其載表流程已包含 DialogueData）。
+1. 執行選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**——生成的場景已含 DialogueView，並接好 DefaultGameLauncher（其載表流程已包含 DialogueData）。
 2. 在事件表/行動表用 `StartDialogue(對話ID)` 指令即可播放，對話結束自動接回流程。
 
 詳見 `GameFlowSystem/新專案實作指南.md`。
@@ -48,7 +48,7 @@ dialogueManager.StartDialogue(dialogueId, onDialogueComplete: () => { /* 結束 
 
 - **自訂 `DialogueCommandFactoryContainer` 時，內建指令不會自動註冊**——`DialogueManager` 只在「沒傳容器」時才註冊預設指令。要加自訂指令又保留內建，請照 `GameFlowSystem/DefaultImplements/Domain/DialoguePlayer.CreateFactoryContainerWithDefaults()` 的清單補齊後再追加。
 - **`DialogueView.Update()` 使用舊版 `UnityEngine.Input`**——專案 Active Input Handling 需設為 Both（ProjectSettings `activeInputHandler: 2`），改完必須重啟編輯器才生效。
-- **DialogueView prefab 以 1920x1080 設計**——高解析度 Canvas（如 4K）需用一層固定 1080p 尺寸、等比放大的節點包覆（`GameFlowSampleRoot.prefab` 與 `SampleUiBuilder.InstantiateDialogueView()` 已示範）。
+- **放進場景時錨點記得拉滿**——DialogueView 內部元件的錨點會自適應畫布大小，直接放在 Canvas 下、根節點錨點 0,0~1,1 鋪滿即可，不需要縮放包覆層（GameFlowSystem 的 `DefaultUiBuilder.InstantiateDialogueView()` 已示範）。
 - **預設 CG / 音訊 Provider 走 Addressables**（`AddressablesCGProvider` / `AddressablesAudioProvider`）——專案未使用 Addressables 或資源不在其中時，需自行實作 `ICGProvider` / `IAudioProvider` 傳入建構子，否則 ShowCharacter / PlaySoundEffect 等指令會載不到資源。
 - **TMP 預設字型無 CJK**——中文顯示為方塊，需自建中文 TMP Font Asset 並替換 prefab 字型。
 

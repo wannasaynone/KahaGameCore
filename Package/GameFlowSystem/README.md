@@ -76,7 +76,7 @@ asmdef `KahaGameCore.Package.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 
 注意：TMP 預設字型無 CJK，正式中文顯示需自建 TMP Font Asset 後替換 prefab 中的字型。
 
-**DialogueView**：類別本體在 DialogueSystem 包（`DialogueManager` 直接依賴它，不能搬出），「怎麼接上」由 builder 處理——生成的場景已含 1080p 縮放包覆層。另一個已知陷阱：其 `Update()` 用舊版 Input，Active Input Handling 需設 Both 並重啟編輯器。
+**DialogueView**：類別本體在 DialogueSystem 包（`DialogueManager` 直接依賴它，不能搬出），「怎麼接上」由 builder 處理——直接放在 Canvas 下錨點拉滿即可，內部元件錨點會自適應畫布大小，不需要縮放包覆層。已知陷阱：其 `Update()` 用舊版 Input，Active Input Handling 需設 Both 並重啟編輯器。
 
 ---
 
