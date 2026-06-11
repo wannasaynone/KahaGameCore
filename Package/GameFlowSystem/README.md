@@ -10,10 +10,13 @@
 ## 快速接入（使用預設實作）
 
 ```csharp
-// 1. 載入表格（六張預設表自 Resources/GameData/{類別名}.txt 載入）
+// 1. 載入表格——二擇一：
+//    a) Inspector 手動指定 TextAsset（推薦，不依賴 Resources 路徑；檔名需與型別名一致）
 var staticDataManager = new GameStaticDataManager();
-GameFlowSystemBuilder.LoadDefaultTables(staticDataManager);
-staticDataManager.Add<DialogueData>(new ResourcesJsonStaticDataHandler()); // 對話表另外加
+var handler = new TextAssetJsonStaticDataHandler(gameDataTables);   // TextAsset[] 序列化欄位
+//    b) 或從 Resources/GameData/{類別名}.txt 載入：new ResourcesJsonStaticDataHandler()
+GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
+staticDataManager.Add<DialogueData>(handler); // 對話表另外加
 
 // 2. 組裝（UI 層是各專案的演出資產，由外部提供；其餘全用預設）
 GameFlowServices services = new GameFlowSystemBuilder(staticDataManager)
@@ -62,14 +65,15 @@ UI 層（`IActionMenuPresenter`、`IHintPresenter`、`ILocationMenuPresenter`）
 
 | 檔案 | 內容 |
 |---|---|
-| **`GameFlowSampleRoot.prefab`** | **拖進任意空場景即可運行**：Camera、EventSystem（Input System UI 模組）、4K Canvas、DialogueView（含 1080p 縮放包覆）、SampleGameLauncher 全部接好。要改成自己的遊戲：unpack 後直接改，或以它做 prefab variant |
-| `GameFlowSampleScene.unity` | 已放好 root prefab 的示範場景，開了就能按 Play（需先準備表格） |
+| **`GameFlowSampleRoot.prefab`** | **拖進任意空場景即可運行**：Camera、EventSystem（Input System UI 模組）、4K Canvas、DialogueView（含 1080p 縮放包覆）、SampleGameLauncher 全部接好，**七張範例表也已拖進 `gameDataTables` 欄位**。要改成自己的遊戲：unpack 後直接改，或以它做 prefab variant |
+| `GameFlowSampleScene.unity` | 已放好 root prefab 的示範場景，開了直接按 Play 就能玩 |
+| `SampleData/*.txt` | 七張範例表（ProjectII 的實際資料，可玩的完整內容）。以 Inspector 手動指定（`TextAssetJsonStaticDataHandler`），**不走 Resources**——換成自己的表只要替換欄位裡的 TextAsset，檔名與型別名一致即可 |
 | `Resources/SampleUIViews/*.prefab` | 九個 UI prefab（主選單、HUD、行動/移動選單、提示視窗、製作名單、各按鈕 item），引用 Samples 腳本，路徑刻意與專案 `UIViews/` 區隔避免 Resources 衝突 |
 | `SampleGameLauncher.cs` | 完整組裝根範例：載表 → 建 Presenter → Builder 組裝 → 啟動/中止流程、返回標題處理。檔頭註解列出接入步驟與 DialogueView 注意事項 |
 | `Presenters/`、`Views/` | Presenter 轉接層（各約 30 行）與對應 UGUI View 腳本 |
 | `Editor/SampleUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Sample UI Prefabs And Scene**：重新生成上述所有 prefab 與場景（全程式化版面，無美術素材依賴，可重複執行覆寫） |
 
-新專案最短路徑：複製 KahaGameCore 包 → 開空場景拖入 `GameFlowSampleRoot.prefab` → 在 `Resources/GameData/` 放表格 → Play。之後要客製 UI 時再 unpack/variant 逐步替換；要大改腳本時把 `Samples/` 複製出去改命名空間，避免重跑 builder 時被覆寫。
+新專案最短路徑：複製 KahaGameCore 包 → 開空場景拖入 `GameFlowSampleRoot.prefab` → **Play（範例表已內建，直接可玩）**。接著把 SampleGameLauncher 欄位裡的 TextAsset 換成自己的表、unpack/variant 逐步替換 UI；要大改腳本時把 `Samples/` 複製出去改命名空間，避免重跑 builder 時被覆寫。
 
 注意：TMP 預設字型無 CJK，正式中文顯示需自建 TMP Font Asset 後替換 prefab 中的字型。
 

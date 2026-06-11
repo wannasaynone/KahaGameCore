@@ -44,6 +44,8 @@ namespace KahaGameCore.Package.GameFlowSystem.Samples
         [SerializeField] private DialogueView dialogueView;
         [Tooltip("行動選單、提示視窗等覆蓋層 View 的父節點。")]
         [SerializeField] private RectTransform overlayRoot;
+        [Tooltip("七張表的 JSON TextAsset（檔名需與資料型別名稱一致，如 TimePhaseData.txt）。手動拖入，不走 Resources。")]
+        [SerializeField] private TextAsset[] gameDataTables;
         [SerializeField] private string gameTitle = "My Game";
         [Tooltip("製作人員名單文字（GameTextData 表的 ID）。")]
         [SerializeField] private int creditsTextId = 950;
@@ -81,8 +83,9 @@ namespace KahaGameCore.Package.GameFlowSystem.Samples
         private void LoadStaticData()
         {
             staticDataManager = new GameStaticDataManager();
-            GameFlowSystemBuilder.LoadDefaultTables(staticDataManager);
-            staticDataManager.Add<DialogueData>(new ResourcesJsonStaticDataHandler());
+            TextAssetJsonStaticDataHandler handler = new TextAssetJsonStaticDataHandler(gameDataTables);
+            GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
+            staticDataManager.Add<DialogueData>(handler);
         }
 
         private async UniTaskVoid ShowMainMenuAsync()

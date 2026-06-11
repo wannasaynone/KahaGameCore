@@ -67,7 +67,15 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
         /// </summary>
         public static void LoadDefaultTables(GameStaticDataManager staticDataManager)
         {
-            ResourcesJsonStaticDataHandler handler = new ResourcesJsonStaticDataHandler();
+            LoadDefaultTables(staticDataManager, new ResourcesJsonStaticDataHandler());
+        }
+
+        /// <summary>
+        /// 以指定的 handler 載入預設六張表（例如 TextAssetJsonStaticDataHandler 手動指定、
+        /// 或自行實作的線上下載 / Addressables handler）。
+        /// </summary>
+        public static void LoadDefaultTables(GameStaticDataManager staticDataManager, KahaGameCore.GameData.IGameStaticDataHandler handler)
+        {
             staticDataManager.Add<Data.TimePhaseData>(handler);
             staticDataManager.Add<Data.PlayerActionData>(handler);
             staticDataManager.Add<Data.LocationData>(handler);

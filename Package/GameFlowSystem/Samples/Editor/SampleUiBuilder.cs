@@ -20,6 +20,7 @@ namespace KahaGameCore.Package.GameFlowSystem.Samples.Editor
     {
         private const string SAMPLES_FOLDER = "Assets/KahaGameCore/Package/GameFlowSystem/Samples";
         private const string PREFAB_FOLDER = SAMPLES_FOLDER + "/Resources/SampleUIViews";
+        private const string SAMPLE_DATA_FOLDER = SAMPLES_FOLDER + "/SampleData";
         private const string ROOT_PREFAB_PATH = SAMPLES_FOLDER + "/GameFlowSampleRoot.prefab";
         private const string SCENE_PATH = SAMPLES_FOLDER + "/GameFlowSampleScene.unity";
         private const string DIALOGUE_VIEW_PREFAB_PATH = "Assets/KahaGameCore/Package/DialogueSystem/Prefabs/DialogueView.prefab";
@@ -361,6 +362,7 @@ namespace KahaGameCore.Package.GameFlowSystem.Samples.Editor
             {
                 SetReference(launcher, "dialogueView", dialogueViewInstance.GetComponent<ProjectBSR.DialogueSystem.View.DialogueView>());
             }
+            SetReferenceArray(launcher, "gameDataTables", LoadSampleDataTables());
 
             // 先存成可拖入任意場景的整合 prefab，再以該 prefab 實例建立示範場景。
             PrefabUtility.SaveAsPrefabAsset(root, ROOT_PREFAB_PATH);
@@ -515,6 +517,39 @@ namespace KahaGameCore.Package.GameFlowSystem.Samples.Editor
             }
             property.objectReferenceValue = value;
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetReferenceArray(Component target, string fieldName, Object[] values)
+        {
+            SerializedObject serializedObject = new SerializedObject(target);
+            SerializedProperty property = serializedObject.FindProperty(fieldName);
+            if (property == null)
+            {
+                Debug.LogError($"[SampleUiBuilder] {target.GetType().Name} 找不到欄位 {fieldName}");
+                return;
+            }
+            property.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+            {
+                property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            }
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>載入 SampleData 內所有表格 TextAsset（檔名 = 資料型別名稱）。</summary>
+        private static Object[] LoadSampleDataTables()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:TextAsset", new[] { SAMPLE_DATA_FOLDER });
+            Object[] tables = new Object[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+            {
+                tables[i] = AssetDatabase.LoadAssetAtPath<TextAsset>(AssetDatabase.GUIDToAssetPath(guids[i]));
+            }
+            if (tables.Length == 0)
+            {
+                Debug.LogWarning($"[SampleUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有表格 TextAsset，SampleGameLauncher 的 gameDataTables 會是空的。");
+            }
+            return tables;
         }
 
         private static string SavePrefab(GameObject root, string prefabName)
