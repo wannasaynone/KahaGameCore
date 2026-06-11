@@ -1,0 +1,23 @@
+{
+    "name": "KahaGameCore.Package.GameFlowSystem.Samples.Editor",
+    "rootNamespace": "",
+    "references": [
+        "KahaGameCore.Package.GameFlowSystem.Samples",
+        "KahaGameCore.Package.UserInterfaceSystem",
+        "ProjectBSR.DialogueSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
