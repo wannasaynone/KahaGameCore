@@ -321,13 +321,15 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultViews.Editor
             scaler.matchWidthOrHeight = 0.5f;
             canvasObject.AddComponent<GraphicRaycaster>();
 
+            // 繪製順序（由下而上）＝階層順序：UIRoot → DialogueView → OverlayRoot → Blackout。
+            // OverlayRoot 必須在 DialogueView 之後，對話中觸發的提示視窗等覆蓋層才不會被對話蓋住。
             GameObject uiRootObject = CreateUIObject("UIRoot", canvasObject.transform);
             StretchFull(uiRootObject.GetComponent<RectTransform>());
 
+            GameObject dialogueViewInstance = InstantiateDialogueView(canvasObject.transform);
+
             GameObject overlayRootObject = CreateUIObject("OverlayRoot", canvasObject.transform);
             StretchFull(overlayRootObject.GetComponent<RectTransform>());
-
-            GameObject dialogueViewInstance = InstantiateDialogueView(canvasObject.transform);
 
             GameObject blackoutObject = CreateUIObject("BlackoutOverlay", canvasObject.transform);
             StretchFull(blackoutObject.GetComponent<RectTransform>());
