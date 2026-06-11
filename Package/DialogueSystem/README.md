@@ -8,9 +8,10 @@
 
 GameFlowSystem 的 `DefaultImplements/DialoguePlayer` 已把本系統包好（UniTask 等待 + 內建指令註冊 + GameEffect 橋接指令）：
 
-1. 拖入 `GameFlowSystem/Samples/GameFlowSampleRoot.prefab`（DialogueView 連同縮放包覆層已接好）。
-2. 表格載入時加一行：`staticDataManager.Add<DialogueData>(new ResourcesJsonStaticDataHandler());`（Resources/GameData/DialogueData.txt）。
-3. 在事件表/行動表用 `StartDialogue(對話ID)` 指令即可播放，對話結束自動接回流程。
+1. 執行選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**——生成的場景已含 DialogueView（連同 1080p 縮放包覆層），並接好 DefaultGameLauncher（其載表流程已包含 DialogueData）。
+2. 在事件表/行動表用 `StartDialogue(對話ID)` 指令即可播放，對話結束自動接回流程。
+
+詳見 `GameFlowSystem/新專案實作指南.md`。
 
 ### B. 單獨使用
 
