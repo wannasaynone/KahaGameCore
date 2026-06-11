@@ -1,0 +1,13 @@
+[
+  { "ID": 190, "Timing": "PhaseStart:Any",  "Condition": "$Satiety<=0", "Priority": 1000, "OneTime": 0, "DialogueID": 90, "PrePerformance": "", "PostPerformance": "", "Commands": "ReturnToTitle()", "Note": "Game Over：餓倒（時段開始檢查）" },
+  { "ID": 191, "Timing": "PhaseStart:Any",  "Condition": "$Spirit<=0",  "Priority": 990,  "OneTime": 0, "DialogueID": 91, "PrePerformance": "", "PostPerformance": "", "Commands": "ReturnToTitle()", "Note": "Game Over：心力交瘁（時段開始檢查）" },
+  { "ID": 192, "Timing": "AfterAction:Any", "Condition": "$Satiety<=0", "Priority": 1000, "OneTime": 0, "DialogueID": 90, "PrePerformance": "", "PostPerformance": "", "Commands": "ReturnToTitle()", "Note": "Game Over：餓倒（行動後檢查）" },
+  { "ID": 193, "Timing": "AfterAction:Any", "Condition": "$Spirit<=0",  "Priority": 990,  "OneTime": 0, "DialogueID": 91, "PrePerformance": "", "PostPerformance": "", "Commands": "ReturnToTitle()", "Note": "Game Over：心力交瘁（行動後檢查）" },
+  { "ID": 1,   "Timing": "GameStart",            "Condition": "",          "Priority": 100, "OneTime": 1, "DialogueID": 1, "PrePerformance": "Opening", "PostPerformance": "", "Commands": "", "Note": "開場（含選項示範與 GameEffect 示範；Opening 演出未註冊，會以佔位 Log 帶過）" },
+  { "ID": 10,  "Timing": "PhaseStart:Morning",   "Condition": "$Day>=2",   "Priority": 100, "OneTime": 1, "DialogueID": 2, "PrePerformance": "", "PostPerformance": "", "Commands": "UnlockLocation(2);SetValue(OutingUnlocked,1);ShowHint(902)", "Note": "第二天早晨：解鎖外出與市集" },
+  { "ID": 11,  "Timing": "EnterLocation:2",      "Condition": "",          "Priority": 100, "OneTime": 1, "DialogueID": 3, "PrePerformance": "", "PostPerformance": "", "Commands": "UnlockLocation(3)", "Note": "初訪市集：老闆介紹公園" },
+  { "ID": 20,  "Timing": "AfterAction:201",      "Condition": "",          "Priority": 10,  "OneTime": 0, "DialogueID": 0, "PrePerformance": "", "PostPerformance": "", "Commands": "AddValue(Supplies,Random(20,35));AddValue(Spirit,-8);AddValue(WorkCount,1);Monologue(WorkDone);AdvanceTime()", "Note": "打工結果：隨機報酬、消耗精神" },
+  { "ID": 21,  "Timing": "AfterAction:302",      "Condition": "",          "Priority": 10,  "OneTime": 0, "DialogueID": 0, "PrePerformance": "", "PostPerformance": "", "Commands": "AddValue(Supplies,Random(5,15));Monologue(Forage);AdvanceTime()", "Note": "撿拾木材結果：隨機收穫" },
+  { "ID": 31,  "Timing": "PhaseStart:Morning",   "Condition": "",          "Priority": 10,  "OneTime": 0, "DialogueID": 0, "PrePerformance": "", "PostPerformance": "", "Commands": "Monologue(MorningIdle)", "Note": "每日早晨自言自語" },
+  { "ID": 40,  "Timing": "PhaseStart:Morning",   "Condition": "$Day>=8",   "Priority": 900, "OneTime": 1, "DialogueID": 5, "PrePerformance": "", "PostPerformance": "", "Commands": "PlayPerformance(Credits);ReturnToTitle()", "Note": "結局：撐過一週" }
+]

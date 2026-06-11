@@ -19,6 +19,7 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultViews.Editor
     {
         private const string PREFAB_FOLDER = "Assets/Resources/GameFlowUIViews";
         private const string SCENE_PATH = "Assets/Scenes/GameFlowGame.unity";
+        private const string SAMPLE_DATA_FOLDER = "Assets/KahaGameCore/Package/GameFlowSystem/DefaultViews/SampleData";
         private const string DIALOGUE_VIEW_PREFAB_PATH = "Assets/KahaGameCore/Package/DialogueSystem/Prefabs/DialogueView.prefab";
 
         /// <summary>設計解析度（CanvasScaler 參考值）。</summary>
@@ -349,6 +350,8 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultViews.Editor
             {
                 SetReference(launcher, "dialogueView", dialogueViewInstance.GetComponent<ProjectBSR.DialogueSystem.View.DialogueView>());
             }
+            // 預設掛上包內 SampleData 測試表，按 Play 即可遊玩；換成自己的表時直接替換此欄位。
+            SetReferenceArray(launcher, "gameDataTables", LoadSampleDataTables());
 
             EditorSceneManager.SaveScene(scene, SCENE_PATH);
         }
@@ -498,6 +501,39 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultViews.Editor
             }
             property.objectReferenceValue = value;
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetReferenceArray(Component target, string fieldName, Object[] values)
+        {
+            SerializedObject serializedObject = new SerializedObject(target);
+            SerializedProperty property = serializedObject.FindProperty(fieldName);
+            if (property == null)
+            {
+                Debug.LogError($"[DefaultUiBuilder] {target.GetType().Name} 找不到欄位 {fieldName}");
+                return;
+            }
+            property.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+            {
+                property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            }
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>載入包內 SampleData 的七張測試表（檔名 = 資料型別名稱）。</summary>
+        private static Object[] LoadSampleDataTables()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:TextAsset", new[] { SAMPLE_DATA_FOLDER });
+            Object[] tables = new Object[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+            {
+                tables[i] = AssetDatabase.LoadAssetAtPath<TextAsset>(AssetDatabase.GUIDToAssetPath(guids[i]));
+            }
+            if (tables.Length == 0)
+            {
+                Debug.LogWarning($"[DefaultUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有表格 TextAsset，gameDataTables 會是空的（將 fallback 到 Resources/GameData）。");
+            }
+            return tables;
         }
 
         private static string SavePrefab(GameObject root, string prefabName)

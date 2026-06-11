@@ -1,0 +1,11 @@
+[
+  { "ID": 101, "Name": "料理",     "Description": "用物資做一頓正式的餐點。",       "Locations": "1",   "VisibleCondition": "", "EnableCondition": "$Supplies>=15", "Commands": "AddValue(Supplies,-15);AddValue(Satiety,20);AddValue(Spirit,8);AdvanceTime()", "SortOrder": 1, "Note": "" },
+  { "ID": 102, "Name": "簡單進食", "Description": "隨便吃點東西果腹。",             "Locations": "1",   "VisibleCondition": "", "EnableCondition": "$Supplies>=5",  "Commands": "AddValue(Supplies,-5);AddValue(Satiety,8);AdvanceTime()", "SortOrder": 2, "Note": "" },
+  { "ID": 103, "Name": "打掃",     "Description": "整理環境，心情會好一點。",       "Locations": "1",   "VisibleCondition": "", "EnableCondition": "", "Commands": "AddValue(Spirit,12);AdvanceTime()", "SortOrder": 3, "Note": "" },
+  { "ID": 104, "Name": "休息",     "Description": "什麼都不做，稍微喘口氣。",       "Locations": "1",   "VisibleCondition": "", "EnableCondition": "", "Commands": "AddValue(Spirit,6);AdvanceTime()", "SortOrder": 4, "Note": "" },
+  { "ID": 105, "Name": "外出",     "Description": "前往鎮上的其他地方。",           "Locations": "1",   "VisibleCondition": "$OutingUnlocked>=1", "EnableCondition": "", "Commands": "OpenLocationMenu()", "SortOrder": 5, "Note": "不消耗時段" },
+  { "ID": 106, "Name": "返回小屋", "Description": "回家，順便讓時間前進。",         "Locations": "2,3", "VisibleCondition": "", "EnableCondition": "", "Commands": "MoveToLocation(1);AdvanceTime()", "SortOrder": 9, "Note": "" },
+  { "ID": 201, "Name": "打工",     "Description": "在市集幫忙搬貨，換取物資。",     "Locations": "2",   "VisibleCondition": "", "EnableCondition": "", "Commands": "", "SortOrder": 1, "Note": "結果由 AfterAction:201 事件決定（隨機報酬）" },
+  { "ID": 301, "Name": "散步",     "Description": "在公園裡走走，放鬆心情。",       "Locations": "3",   "VisibleCondition": "", "EnableCondition": "", "Commands": "AddValue(Spirit,18);AdvanceTime()", "SortOrder": 1, "Note": "" },
+  { "ID": 302, "Name": "撿拾木材", "Description": "在公園邊撿些可用的木材。",       "Locations": "3",   "VisibleCondition": "", "EnableCondition": "", "Commands": "", "SortOrder": 2, "Note": "結果由 AfterAction:302 事件決定（隨機收穫）" }
+]

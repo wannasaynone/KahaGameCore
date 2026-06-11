@@ -1,0 +1,12 @@
+[
+  { "ID": 901,  "Group": "Hint", "Condition": "", "Text": "基本循環：每個時段選一個行動，飽腹與精神會隨時間消耗，\n靠料理與休息維持，物資用完前記得補充。", "Weight": 1, "Note": "開場操作提示" },
+  { "ID": 902,  "Group": "Hint", "Condition": "", "Text": "「外出」已開放：前往市集可以打工換取物資。", "Weight": 1, "Note": "外出解鎖提示" },
+  { "ID": 950,  "Group": "Credits", "Condition": "", "Text": "— 製作人員 —\n\n企劃　你\n程式　你\n美術　你\n\n感謝遊玩", "Weight": 1, "Note": "製作人員名單（DefaultGameLauncher 的 creditsTextId 預設指向此 ID）" },
+  { "ID": 1001, "Group": "MorningIdle", "Condition": "", "Text": "今天也是新的一天。", "Weight": 1, "Note": "" },
+  { "ID": 1002, "Group": "MorningIdle", "Condition": "", "Text": "窗外的天氣看起來不錯。", "Weight": 1, "Note": "" },
+  { "ID": 1003, "Group": "MorningIdle", "Condition": "$Supplies<=20", "Text": "物資快見底了……得想想辦法。", "Weight": 3, "Note": "物資吃緊時較高權重" },
+  { "ID": 1010, "Group": "WorkDone", "Condition": "", "Text": "今天的工錢到手了。", "Weight": 1, "Note": "" },
+  { "ID": 1011, "Group": "WorkDone", "Condition": "", "Text": "搬了一下午的貨，腰有點痠。", "Weight": 1, "Note": "" },
+  { "ID": 1020, "Group": "Forage", "Condition": "", "Text": "撿到一些還能用的木材。", "Weight": 1, "Note": "" },
+  { "ID": 1021, "Group": "Forage", "Condition": "", "Text": "今天的收穫普普通通。", "Weight": 1, "Note": "" }
+]

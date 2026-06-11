@@ -1,0 +1,5 @@
+[
+  { "ID": 1, "Name": "小屋",  "Description": "祖母留下的小屋，現在由你獨自照顧。", "VisibleCondition": "", "ShowInMenu": 0, "SortOrder": 1, "Note": "回家請用「返回小屋」行動" },
+  { "ID": 2, "Name": "市集",  "Description": "鎮上的市集，可以打工換取物資。", "VisibleCondition": "$LocationUnlocked_2>=1", "ShowInMenu": 1, "SortOrder": 2, "Note": "第二天早晨解鎖" },
+  { "ID": 3, "Name": "公園",  "Description": "安靜的公園，散步能讓心情變好。", "VisibleCondition": "$LocationUnlocked_3>=1", "ShowInMenu": 1, "SortOrder": 3, "Note": "初訪市集後解鎖" }
+]

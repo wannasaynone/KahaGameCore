@@ -69,9 +69,10 @@ asmdef `KahaGameCore.Package.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 | `Views/`（9 個腳本） | 主選單、HUD（含 StatValueItem）、行動/移動選單（含按鈕 item）、提示視窗、製作名單。皆繼承 UserInterfaceSystem 的 `AView` |
 | `Presenters/`（5 個腳本） | `IActionMenuPresenter` / `IHintPresenter` / `ILocationMenuPresenter` 的轉接實作＋HUD Presenter＋`IStagePerformance` 範例（CreditsPerformance） |
 | `DefaultGameLauncher.cs` | 預設組裝根：載表（Inspector 指定 TextAsset，留空 fallback 到 Resources/GameData/）→ Builder 組裝 → 主標題/流程切換、返回標題處理 |
-| `Editor/DefaultUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**：在專案內生成 `Assets/Resources/GameFlowUIViews/` 九個 prefab 與 `Assets/Scenes/GameFlowGame.unity`（全部接好、可直接 Play）。全程式化版面（TMP 預設字型＋內建 UISprite），零美術資產依賴，可重複執行覆寫 |
+| `Editor/DefaultUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**：在專案內生成 `Assets/Resources/GameFlowUIViews/` 九個 prefab 與 `Assets/Scenes/GameFlowGame.unity`（全部接好、測試表已掛上、可直接 Play）。全程式化版面（TMP 預設字型＋內建 UISprite），零美術資產依賴，可重複執行覆寫 |
+| `SampleData/*.txt` | 七張測試表：可完整遊玩的迷你生存循環（照顧小屋一週），涵蓋選項對話、GameEffect、Monologue、ShowHint、隨機數值、地點解鎖、Game Over、結局演出等全部系統功能，可當表格寫法範例。builder 會自動拖進 DefaultGameLauncher 的 `gameDataTables` |
 
-新專案最短路徑：複製 KahaGameCore 包 → 跑一次 builder 選單 → 把表格 TextAsset 拖進場景中 DefaultGameLauncher 的欄位 → **Play**。要客製時把對應腳本複製到專案改名修改（別直接改包內版本），prefab 直接改（重跑 builder 會覆寫）。
+新專案最短路徑：複製 KahaGameCore 包 → 跑一次 builder 選單 → 開生成的場景直接 **Play**（測試內容可玩）→ 之後把欄位裡的 TextAsset 換成自己的表。要客製時把對應腳本複製到專案改名修改（別直接改包內版本），prefab 直接改（重跑 builder 會覆寫）。
 
 注意：TMP 預設字型無 CJK，正式中文顯示需自建 TMP Font Asset 後替換 prefab 中的字型。
 

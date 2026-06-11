@@ -1,0 +1,6 @@
+[
+  { "ID": 1, "Key": "Morning",   "DisplayName": "早晨", "NextID": 2, "IsNewDay": 1, "AllowAction": 1, "Note": "換日；每日自言自語在此觸發" },
+  { "ID": 2, "Key": "Noon",      "DisplayName": "中午", "NextID": 3, "IsNewDay": 0, "AllowAction": 1, "Note": "" },
+  { "ID": 3, "Key": "Afternoon", "DisplayName": "下午", "NextID": 4, "IsNewDay": 0, "AllowAction": 1, "Note": "" },
+  { "ID": 4, "Key": "Night",     "DisplayName": "晚上", "NextID": 1, "IsNewDay": 0, "AllowAction": 1, "Note": "行動後換日" }
+]

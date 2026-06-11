@@ -1,0 +1,20 @@
+[
+  { "ID": 1, "Line": 1,  "Command": "Say", "Arg1": "", "Arg2": "祖母離開後，這間小屋就由我獨自照顧了。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 1, "Line": 2,  "Command": "Say", "Arg1": "我", "Arg2": "先撐過這一週吧。今天要從什麼開始呢？", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 1, "Line": 3,  "Command": "AddOption", "Arg1": "先填飽肚子", "Arg2": "1", "Arg3": "6", "Arg4": "", "Arg5": "" },
+  { "ID": 1, "Line": 4,  "Command": "AddOption", "Arg1": "先整理環境", "Arg2": "1", "Arg3": "8", "Arg4": "", "Arg5": "" },
+  { "ID": 1, "Line": 5,  "Command": "ShowOptions", "Arg1": "", "Arg2": "", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 1, "Line": 6,  "Command": "Say", "Arg1": "我", "Arg2": "嗯……肚子確實有點餓了。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 1, "Line": 7,  "Command": "GoToLine", "Arg1": "9", "Arg2": "", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 1, "Line": 8,  "Command": "Say", "Arg1": "我", "Arg2": "環境整潔，做什麼都有精神。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 1, "Line": 9,  "Command": "GameEffect", "Arg1": "ShowHint(901)", "Arg2": "", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 2, "Line": 1,  "Command": "Say", "Arg1": "", "Arg2": "家裡的事大致上了軌道。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 2, "Line": 2,  "Command": "Say", "Arg1": "我", "Arg2": "今天開始可以到鎮上走走了。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 3, "Line": 1,  "Command": "Say", "Arg1": "市集老闆", "Arg2": "喔，新面孔？缺人手的時候歡迎來幫忙搬貨。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 3, "Line": 2,  "Command": "Say", "Arg1": "市集老闆", "Arg2": "對了，累的話去公園走走，那裡很舒服。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 5, "Line": 1,  "Command": "Say", "Arg1": "", "Arg2": "不知不覺，一週過去了。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 5, "Line": 2,  "Command": "Say", "Arg1": "我", "Arg2": "小屋還好好的，我也還好好的。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 5, "Line": 3,  "Command": "Say", "Arg1": "我", "Arg2": "祖母，我做到了喔。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 90, "Line": 1, "Command": "Say", "Arg1": "", "Arg2": "餓得一點力氣也沒有……眼前漸漸暗了下來。", "Arg3": "", "Arg4": "", "Arg5": "" },
+  { "ID": 91, "Line": 1, "Command": "Say", "Arg1": "", "Arg2": "心裡那根緊繃的弦，終於斷了。", "Arg3": "", "Arg4": "", "Arg5": "" }
+]
