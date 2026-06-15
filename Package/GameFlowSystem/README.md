@@ -56,7 +56,7 @@ var services = new GameFlowSystemBuilder(staticDataManager)
 | `Data/` | 六張表的資料類別：TimePhaseData、PlayerActionData、LocationData、GameEventTriggerData、GameValueData、GameTextData（JSON 陣列，欄位規格全文見 `新專案實作指南.md` 第 2 節） |
 | `DataAccess/` | `ResourcesJsonStaticDataHandler`（Resources/GameData/{類別名}.txt）與 `TextAssetJsonStaticDataHandler`（Inspector 手動指定，檔名=型別名） |
 | `Domain/` | GameState（數值鉗制＋事件發佈）、TimeService（階段推進/換日/PhaseDecay）、LocationService（解鎖旗標）、PlayerActionProvider、GameEventTriggerService（優先度＋Any 萬用字＋前後演出）、EffectCommandExecutor、FormulaConditionEvaluator（`$Tag >= 200` 語法 → Calculator）、GameTextProvider、DialoguePlayer、PerformanceRegistry、EffectCommandRegistrar |
-| `Domain/Commands/` | 內建效果指令：AddValue、SetValue、AdvanceTime、SetPhase、MoveToLocation、UnlockLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle、Wait |
+| `Domain/Commands/` | 內建效果指令：AddValue、SetValue、AdvanceTime、SetPhase、MoveToLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle、Wait |
 | `Domain/Events/` | EventBus 事件：GameValueChanged、TimePhaseChanged、LocationChanged、MonologueRequested、ReturnToTitleRequested |
 | `GameFlowSystemBuilder.cs` | 組裝器與 `GameFlowServices` |
 

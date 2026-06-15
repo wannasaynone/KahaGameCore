@@ -47,11 +47,6 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
             EventBus.Publish(new LocationChangedEvent(location));
         }
 
-        public void Unlock(int locationId)
-        {
-            gameState.Set(GameValueTags.LocationUnlocked(locationId), 1);
-        }
-
         public IReadOnlyList<LocationData> GetSelectableLocations()
         {
             return locations

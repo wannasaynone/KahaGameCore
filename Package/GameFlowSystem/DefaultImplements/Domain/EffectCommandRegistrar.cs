@@ -26,7 +26,6 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
             container.RegisterFactory("AdvanceTime", new DelegateEffectCommandFactory(() => new AdvanceTimeCommand(timeService)));
             container.RegisterFactory("SetPhase", new DelegateEffectCommandFactory(() => new SetPhaseCommand(timeService)));
             container.RegisterFactory("MoveToLocation", new DelegateEffectCommandFactory(() => new MoveToLocationCommand(gameState, locationService)));
-            container.RegisterFactory("UnlockLocation", new DelegateEffectCommandFactory(() => new UnlockLocationCommand(gameState, locationService)));
             container.RegisterFactory("StartDialogue", new DelegateEffectCommandFactory(() => new StartDialogueCommand(gameState, dialoguePlayer)));
             container.RegisterFactory("ShowHint", new DelegateEffectCommandFactory(() => new ShowHintCommand(gameState, textProvider, hintPresenter)));
             container.RegisterFactory("Monologue", new DelegateEffectCommandFactory(() => new MonologueCommand(textProvider)));

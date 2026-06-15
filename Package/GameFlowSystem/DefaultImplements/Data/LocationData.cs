@@ -4,7 +4,7 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements.Data
 {
     /// <summary>
     /// 地點表（Google Sheet: LocationData）。
-    /// 地點解鎖透過 UnlockLocation 指令寫入數值（LocationUnlocked_{ID}），再由 VisibleCondition 判斷。
+    /// 地點解鎖透過 `SetValue(LocationUnlocked_{ID},1)` 寫入數值，再由 VisibleCondition 判斷。
     /// </summary>
     public class LocationData : IGameData
     {

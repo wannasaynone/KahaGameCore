@@ -13,7 +13,6 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
         LocationData CurrentLocation { get; }
 
         void MoveTo(int locationId);
-        void Unlock(int locationId);
         /// <summary>取得可在移動選單顯示的地點（ShowInMenu=1、條件成立、且非目前地點）。</summary>
         IReadOnlyList<LocationData> GetSelectableLocations();
     }
