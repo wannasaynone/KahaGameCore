@@ -27,7 +27,7 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
             PlayerActionData[] loadedActions = staticDataManager.GetAllGameData<PlayerActionData>();
             actions = loadedActions == null
                 ? new List<PlayerActionData>()
-                : loadedActions.OrderBy(action => action.SortOrder).ToList();
+                : loadedActions.ToList();
         }
 
         public IReadOnlyList<PlayerActionData> GetVisibleActions(int locationId)

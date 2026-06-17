@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
+using UnityEngine;
 using KahaGameCore.Package.GameFlowSystem;
 
 namespace KahaGameCore.Package.GameFlowSystem.Tests
@@ -48,6 +49,7 @@ namespace KahaGameCore.Package.GameFlowSystem.Tests
             public string Name { get; set; }
             public string Description { get; set; }
             public string Commands { get; set; }
+            public Vector2 AnchoredPosition { get; set; }
         }
 
         private class FakeActionProvider : IGameFlowActionProvider

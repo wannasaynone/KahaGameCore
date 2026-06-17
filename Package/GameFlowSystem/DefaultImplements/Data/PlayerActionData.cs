@@ -1,5 +1,6 @@
 using KahaGameCore.GameData;
 using KahaGameCore.Package.GameFlowSystem;
+using UnityEngine;
 
 namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements.Data
 {
@@ -22,9 +23,30 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements.Data
         public string EnableCondition { get; private set; }
         /// <summary>執行的效果指令串（EffectProcessor 語法）。</summary>
         public string Commands { get; private set; }
-        /// <summary>清單排序（小到大）。</summary>
-        public int SortOrder { get; private set; }
+        /// <summary>按鈕的 UGUI 座標，格式 "x;y"（整數，anchoredPosition）。</summary>
+        public string Position { get; private set; }
         /// <summary>備註欄，僅供企劃閱讀。</summary>
         public string Note { get; private set; }
+
+        /// <summary>解析後的 UGUI 座標（anchoredPosition）；空白或格式錯誤回 (0,0)。</summary>
+        public Vector2 AnchoredPosition => ParsePosition(Position);
+
+        private static Vector2 ParsePosition(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return Vector2.zero;
+            }
+
+            string[] parts = raw.Split(';');
+            if (parts.Length != 2
+                || !int.TryParse(parts[0].Trim(), out int x)
+                || !int.TryParse(parts[1].Trim(), out int y))
+            {
+                return Vector2.zero;
+            }
+
+            return new Vector2(x, y);
+        }
     }
 }
