@@ -21,5 +21,9 @@ namespace KahaGameCore.ActorSystem
         }
 
         public bool HasEffect(string effectTag) => _effects.Contains(effectTag);
+
+        // 越過防禦姿態：帶此標記的命中（突刺 / 重攻擊）使 BlockAction 放行，傷害落到後續 HurtAction。
+        // 字面字串對應 Game 層的 HitEffectTag.BypassBlock（KahaGameCore 不反向相依 Game 層）。
+        public bool CanBypassBlock => HasEffect("BypassBlock");
     }
 }
