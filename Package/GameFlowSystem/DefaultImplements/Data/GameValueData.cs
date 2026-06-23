@@ -22,8 +22,6 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements.Data
         public int MaxValue { get; private set; }
         /// <summary>1 = 顯示於 HUD 狀態列。</summary>
         public int ShowInHUD { get; private set; }
-        /// <summary>每次自然推進時段（AdvanceTime）時扣除的量；0 = 不消耗。SetPhase 跳轉不扣。</summary>
-        public int PhaseDecay { get; private set; }
         /// <summary>備註欄，僅供企劃閱讀。</summary>
         public string Note { get; private set; }
     }

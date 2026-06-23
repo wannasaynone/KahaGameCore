@@ -1,12 +1,12 @@
 [
-  { "ID": 1,  "Tag": "Supplies",           "DisplayName": "物資",     "InitialValue": 60,  "MinValue": 0, "MaxValue": 9999, "ShowInHUD": 1, "PhaseDecay": 0,  "Note": "料理/進食消耗，打工/採集增加" },
-  { "ID": 2,  "Tag": "Satiety",            "DisplayName": "飽腹",     "InitialValue": 100, "MinValue": 0, "MaxValue": 100,  "ShowInHUD": 1, "PhaseDecay": 10, "Note": "每時段自然扣10，歸零 Game Over" },
-  { "ID": 3,  "Tag": "Spirit",             "DisplayName": "精神",     "InitialValue": 100, "MinValue": 0, "MaxValue": 100,  "ShowInHUD": 1, "PhaseDecay": 9,  "Note": "每時段自然扣9，歸零 Game Over" },
-  { "ID": 4,  "Tag": "Day",                "DisplayName": "天數",     "InitialValue": 1,   "MinValue": 1, "MaxValue": 999,  "ShowInHUD": 0, "PhaseDecay": 0,  "Note": "系統使用：HUD 以「第 N 天」顯示" },
-  { "ID": 5,  "Tag": "CurrentPhase",       "DisplayName": "時段",     "InitialValue": 0,   "MinValue": 0, "MaxValue": 99,   "ShowInHUD": 0, "PhaseDecay": 0,  "Note": "系統使用：目前 TimePhaseData 的 ID" },
-  { "ID": 6,  "Tag": "CurrentLocation",    "DisplayName": "所在地",   "InitialValue": 1,   "MinValue": 0, "MaxValue": 99,   "ShowInHUD": 0, "PhaseDecay": 0,  "Note": "系統使用：目前 LocationData 的 ID" },
-  { "ID": 7,  "Tag": "WorkCount",          "DisplayName": "打工次數", "InitialValue": 0,   "MinValue": 0, "MaxValue": 999,  "ShowInHUD": 0, "PhaseDecay": 0,  "Note": "市集打工累計次數" },
-  { "ID": 8,  "Tag": "OutingUnlocked",     "DisplayName": "外出解鎖", "InitialValue": 0,   "MinValue": 0, "MaxValue": 1,    "ShowInHUD": 0, "PhaseDecay": 0,  "Note": "1=家中出現「外出」行動" },
-  { "ID": 9,  "Tag": "LocationUnlocked_2", "DisplayName": "市集解鎖", "InitialValue": 0,   "MinValue": 0, "MaxValue": 1,    "ShowInHUD": 0, "PhaseDecay": 0,  "Note": "" },
-  { "ID": 10, "Tag": "LocationUnlocked_3", "DisplayName": "公園解鎖", "InitialValue": 0,   "MinValue": 0, "MaxValue": 1,    "ShowInHUD": 0, "PhaseDecay": 0,  "Note": "" }
+  { "ID": 1,  "Tag": "Supplies",           "DisplayName": "物資",     "InitialValue": 60,  "MinValue": 0, "MaxValue": 9999, "ShowInHUD": 1, "Note": "料理/進食消耗，打工/採集增加" },
+  { "ID": 2,  "Tag": "Satiety",            "DisplayName": "飽腹",     "InitialValue": 100, "MinValue": 0, "MaxValue": 100,  "ShowInHUD": 1, "Note": "每時段開始由事件188扣10，歸零 Game Over" },
+  { "ID": 3,  "Tag": "Spirit",             "DisplayName": "精神",     "InitialValue": 100, "MinValue": 0, "MaxValue": 100,  "ShowInHUD": 1, "Note": "每時段開始由事件188扣9，歸零 Game Over" },
+  { "ID": 4,  "Tag": "Day",                "DisplayName": "天數",     "InitialValue": 1,   "MinValue": 1, "MaxValue": 999,  "ShowInHUD": 0, "Note": "系統使用：HUD 以「第 N 天」顯示" },
+  { "ID": 5,  "Tag": "CurrentPhase",       "DisplayName": "時段",     "InitialValue": 0,   "MinValue": 0, "MaxValue": 99,   "ShowInHUD": 0, "Note": "系統使用：目前 TimePhaseData 的 ID" },
+  { "ID": 6,  "Tag": "CurrentLocation",    "DisplayName": "所在地",   "InitialValue": 1,   "MinValue": 0, "MaxValue": 99,   "ShowInHUD": 0, "Note": "系統使用：目前 LocationData 的 ID" },
+  { "ID": 7,  "Tag": "WorkCount",          "DisplayName": "打工次數", "InitialValue": 0,   "MinValue": 0, "MaxValue": 999,  "ShowInHUD": 0, "Note": "市集打工累計次數" },
+  { "ID": 8,  "Tag": "OutingUnlocked",     "DisplayName": "外出解鎖", "InitialValue": 0,   "MinValue": 0, "MaxValue": 1,    "ShowInHUD": 0, "Note": "1=家中出現「外出」行動" },
+  { "ID": 9,  "Tag": "LocationUnlocked_2", "DisplayName": "市集解鎖", "InitialValue": 0,   "MinValue": 0, "MaxValue": 1,    "ShowInHUD": 0, "Note": "" },
+  { "ID": 10, "Tag": "LocationUnlocked_3", "DisplayName": "公園解鎖", "InitialValue": 0,   "MinValue": 0, "MaxValue": 1,    "ShowInHUD": 0, "Note": "" }
 ]

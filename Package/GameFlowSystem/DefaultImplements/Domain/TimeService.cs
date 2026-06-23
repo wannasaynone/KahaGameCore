@@ -19,7 +19,6 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
 
         private readonly IGameState gameState;
         private readonly List<TimePhaseData> phases;
-        private readonly List<GameValueData> decayingValues;
 
         public TimeService(GameStaticDataManager staticDataManager, IGameState gameState)
         {
@@ -32,11 +31,6 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
             }
 
             phases = loadedPhases.OrderBy(phase => phase.ID).ToList();
-
-            GameValueData[] valueDefinitions = staticDataManager.GetAllGameData<GameValueData>();
-            decayingValues = (valueDefinitions ?? System.Array.Empty<GameValueData>())
-                .Where(definition => definition.PhaseDecay != 0)
-                .ToList();
         }
 
         public void ResetToFirstPhase()
@@ -54,7 +48,6 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
             }
 
             ApplyPhase(nextPhase, isNewDayCounted: true);
-            ApplyPhaseDecay();
         }
 
         public void SetPhase(string phaseKey)
@@ -67,18 +60,6 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
             }
 
             ApplyPhase(targetPhase, isNewDayCounted: false);
-        }
-
-        /// <summary>
-        /// 時段自然消耗：只在 AdvanceTime（時間自然流逝）時套用，
-        /// SetPhase 屬於劇情跳轉（交易返家、甜蜜的一天等），事件自行定義數值結果，不額外扣除。
-        /// </summary>
-        private void ApplyPhaseDecay()
-        {
-            foreach (GameValueData definition in decayingValues)
-            {
-                gameState.Add(definition.Tag, -definition.PhaseDecay);
-            }
         }
 
         private void ApplyPhase(TimePhaseData phase, bool isNewDayCounted)
