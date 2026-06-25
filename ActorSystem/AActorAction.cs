@@ -9,6 +9,10 @@ namespace KahaGameCore.ActorSystem
         [SerializeField] private string _actionId = "";
         public string ActionId => _actionId;
 
+        // 編輯期動畫下拉選單的來源：拖入此 Action 所用角色的 AnimatorController（如 PlayerAnimator.controller）。
+        // 標了 [AnimationSelector] 的動畫名稱欄位會列出此 Controller 的全部 state 名稱。執行期不使用。
+        [SerializeField] private RuntimeAnimatorController _animatorController;
+
         private readonly List<ChannelBinding> _bindings = new();
         public bool IsInitialized => _isInitialized;
         private bool _isInitialized;
