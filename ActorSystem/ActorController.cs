@@ -175,9 +175,12 @@ namespace KahaGameCore.ActorSystem
                 _tickSnapshot[i].Tick(context);
 
             // Step 4: 執行各 slot 的 handler
+            // 注意：slot 的 Owner/Handler 在 Step 2 拍快照建立；Step 3 tick 期間某 action 可能 Complete →
+            // SetActionInactive 將其 IsActive 設為 false 並移出 _activeActions，但 slot 仍指向其殘留 handler。
+            // 故此處須確認 owner 仍 active 才執行，否則改走 default，避免「已停用 action 的副作用型 handler」被誤觸。
             foreach (var slot in _channelIdToSlot.Values)
             {
-                if (slot.Handler != null)
+                if (slot.Handler != null && slot.Owner != null && slot.Owner.IsActive)
                 {
                     slot.Handler.Invoke(context);
                 }
