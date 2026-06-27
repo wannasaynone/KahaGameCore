@@ -116,5 +116,12 @@ namespace KahaGameCore.ActorSystem
         {
             Completed?.Invoke(this);
         }
+
+        // 自我啟動：只作用於 this（無實例參數），action 結構上無法啟動別人。
+        // 自我結束沿用 Complete()（觸發 Completed → controller SetActionInactive）。
+        protected void ActivateSelf(ActionContext context)
+        {
+            _currentReferenceActor.ActivateInstance(this, context);
+        }
     }
 }
