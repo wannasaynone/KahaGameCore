@@ -17,7 +17,7 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements.Data
         public string VisibleCondition { get; private set; }
         /// <summary>1 = 顯示於移動選單；0 = 不顯示（如「家中」需透過「返回家中」行動回家以推進時間）。</summary>
         public int ShowInMenu { get; private set; }
-        /// <summary>此地點的背景貼圖 Addressables address（空字串 = 不切換背景，維持目前畫面）。</summary>
+        /// <summary>此地點的背景 prefab 的 Resources 路徑（如 Backgrounds/BG_Home；空字串 = 不切換背景，維持目前畫面）。</summary>
         public string Background { get; private set; }
         /// <summary>清單排序（小到大）。</summary>
         public int SortOrder { get; private set; }

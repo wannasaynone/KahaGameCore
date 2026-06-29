@@ -17,7 +17,6 @@ namespace KahaGameCore.Package.GameFlowSystem
     /// </summary>
     public class GameFlowController
     {
-        private readonly IGameFlowState gameState;
         private readonly IGameFlowTimeService timeService;
         private readonly IGameFlowLocationService locationService;
         private readonly IGameFlowActionProvider actionProvider;
@@ -29,7 +28,6 @@ namespace KahaGameCore.Package.GameFlowSystem
         private int lastEnteredLocationId;
 
         public GameFlowController(
-            IGameFlowState gameState,
             IGameFlowTimeService timeService,
             IGameFlowLocationService locationService,
             IGameFlowActionProvider actionProvider,
@@ -37,7 +35,6 @@ namespace KahaGameCore.Package.GameFlowSystem
             IGameFlowCommandExecutor commandExecutor,
             IActionMenuPresenter actionMenuPresenter)
         {
-            this.gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             this.timeService = timeService ?? throw new ArgumentNullException(nameof(timeService));
             this.locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
             this.actionProvider = actionProvider ?? throw new ArgumentNullException(nameof(actionProvider));
@@ -48,8 +45,7 @@ namespace KahaGameCore.Package.GameFlowSystem
 
         public async UniTask RunNewGameAsync(CancellationToken token)
         {
-            gameState.ResetToInitial();
-            timeService.ResetToFirstPhase();
+            // 開新局狀態（GameState / TimeService）由組裝根在呼叫前重置，這裡只取目前地點作為起點。
             lastEnteredLocationId = locationService.CurrentLocationID;
 
             await triggerService.RaiseTimingAsync(GameFlowTimings.GameStart, token);

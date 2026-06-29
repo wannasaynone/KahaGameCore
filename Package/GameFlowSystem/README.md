@@ -132,7 +132,6 @@ asmdef `KahaGameCore.Package.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 
 ```csharp
 var flowController = new GameFlowController(
-    gameState,          // IGameFlowState
     timeService,        // IGameFlowTimeService
     locationService,    // IGameFlowLocationService
     actionProvider,     // IGameFlowActionProvider
@@ -141,11 +140,15 @@ var flowController = new GameFlowController(
     actionMenuPresenter // IActionMenuPresenter
 );
 
+// 開新局的狀態重置由呼叫端（組裝根）負責，於啟動流程前執行：
+gameState.ResetToInitial();
+timeService.ResetToFirstPhase();
+
 flowCts = new CancellationTokenSource();
 flowController.RunNewGameAsync(flowCts.Token).Forget();
 ```
 
-`RunNewGameAsync` 是無限迴圈，**唯一的結束方式是取消 token**。
+`RunNewGameAsync` 是無限迴圈，**唯一的結束方式是取消 token**。`RunNewGameAsync` 本身不再重置狀態——呼叫前須先重置 `IGameFlowState` / `IGameFlowTimeService`。
 
 ### 4. 中止流程（返回標題）
 

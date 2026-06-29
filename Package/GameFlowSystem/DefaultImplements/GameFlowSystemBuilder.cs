@@ -168,7 +168,6 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
                 services.CommandExecutor);
 
             services.FlowController = new GameFlowController(
-                services.GameState,
                 services.TimeService,
                 services.LocationService,
                 services.ActionProvider,

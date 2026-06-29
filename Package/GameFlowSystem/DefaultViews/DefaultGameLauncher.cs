@@ -103,6 +103,10 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultViews
 
             hudPresenter?.Dispose();
             hudPresenter = new GameplayHudPresenter(hudView, staticDataManager, services.GameState, services.TimeService);
+
+            // 開新局：先重置狀態與時段，Refresh 才會讀到正確的初始數值/時段。
+            services.GameState.ResetToInitial();
+            services.TimeService.ResetToFirstPhase();
             hudPresenter.Refresh();
 
             flowCts = new CancellationTokenSource();

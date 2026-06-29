@@ -130,12 +130,16 @@ namespace KahaGameCore.Package.GameFlowSystem.Tests
         private GameFlowController CreateController()
         {
             return new GameFlowController(
-                state, timeService, locationService, actionProvider,
+                timeService, locationService, actionProvider,
                 triggerService, commandExecutor, presenter);
         }
 
         private void Run()
         {
+            // 開新局的重置由組裝根負責，這裡先模擬呼叫端重置，再跑流程。
+            state.ResetToInitial();
+            timeService.ResetToFirstPhase();
+
             // 所有 Fake 都同步完成，整個流程會同步跑完直到取消。
             CreateController().RunNewGameAsync(cancelSource.Token).GetAwaiter().GetResult();
         }
