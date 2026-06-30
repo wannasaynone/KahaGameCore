@@ -14,5 +14,7 @@ namespace KahaGameCore.Package.GameFlowSystem
         string Commands { get; }
         /// <summary>按鈕的 UGUI 座標（anchoredPosition）。</summary>
         Vector2 AnchoredPosition { get; }
+        /// <summary>所屬選單群組；空字串 = 根選單。子選單依此欄位篩選成員。</summary>
+        string MenuGroup { get; }
     }
 }

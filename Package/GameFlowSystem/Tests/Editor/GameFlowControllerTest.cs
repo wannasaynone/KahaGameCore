@@ -50,6 +50,7 @@ namespace KahaGameCore.Package.GameFlowSystem.Tests
             public string Description { get; set; }
             public string Commands { get; set; }
             public Vector2 AnchoredPosition { get; set; }
+            public string MenuGroup { get; set; }
         }
 
         private class FakeActionProvider : IGameFlowActionProvider

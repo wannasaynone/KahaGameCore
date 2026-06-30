@@ -25,6 +25,8 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements.Data
         public string Commands { get; private set; }
         /// <summary>按鈕的 UGUI 座標，格式 "x;y"（整數，anchoredPosition）。</summary>
         public string Position { get; private set; }
+        /// <summary>所屬選單群組（Google Sheet: MenuGroup 欄）；空白 = 根選單。子選單依此欄位篩選成員。</summary>
+        public string MenuGroup { get; private set; }
         /// <summary>備註欄，僅供企劃閱讀。</summary>
         public string Note { get; private set; }
 
