@@ -9,7 +9,6 @@
         "KahaGameCore.Package.EffectProcessor.EffectProcessor",
         "KahaGameCore.Package.EffectProcessor.Data",
         "KahaGameCore.Package.EffectProcessor.Processor",
-        "ProjectBSR.DialogueSystem",
         "UniTask"
     ],
     "includePlatforms": [],

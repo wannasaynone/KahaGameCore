@@ -5,8 +5,10 @@
 包分三層：
 
 - **`Scripts/`（核心）**：`GameFlowController` 與 8 個最小介面，只依賴 UniTask。
-- **`DefaultImplements/`（預設實作）**：表驅動的整套預設服務（GameState、TimeService、LocationService、事件觸發、效果指令、條件式、對話橋接、表格定義）＋ `GameFlowSystemBuilder` 一鍵組裝。依賴 KahaGameCore（GameData/ValueContainer/GameEvent/EffectProcessor）與 DialogueSystem。新專案直接用預設實作，有新需求再自己實作傳入覆寫。
-- **`DefaultViews/`（預設 UI）**：整套 UGUI View / Presenter / `DefaultGameLauncher`（組裝根）腳本＋`DefaultUiBuilder`（Editor 選單一鍵生成全部 prefab 與可運行場景）。純腳本、零美術資產——prefab 在各專案內按需生成。
+- **`DefaultImplements/`（預設實作）**：表驅動的整套預設服務（GameState、TimeService、LocationService、事件觸發、效果指令、條件式、表格定義）＋ `GameFlowSystemBuilder` 一鍵組裝。依賴 KahaGameCore（GameData/ValueContainer/GameEvent/EffectProcessor），**不依賴 DialogueSystem**——對話只透過 `IDialoguePlayer` 抽象，由工廠（`WithDialoguePlayerFactory`）注入。新專案直接用預設實作，有新需求再自己實作傳入覆寫。
+- **`DefaultViews/`（預設 UI＋範例橋接）**：整套 UGUI View / Presenter / `DefaultGameLauncher`（組裝根）腳本＋`DefaultUiBuilder`（Editor 選單一鍵生成全部 prefab 與可運行場景），**並含範例對話橋接 `DialoguePlayer` + `GameEffectDialogueCommand`**（連接具體對話系統 DialogueSystem）。純腳本、零美術資產——prefab 在各專案內按需生成。
+
+> **對話橋接屬於範例／各專案的程式碼，不是套件的共用層。** 核心與 DefaultImplements 刻意與 DialogueSystem 無關（只認 `IDialoguePlayer`）。`DefaultViews` 內附一份範例橋接示範如何接上 DialogueSystem；**各專案請複製一份到自己的組件並依需求修改**（ProjectII 即在自己的 `Presentation` 層自備一份，於 `GameLauncher` 組裝）。
 
 > **開新專案請直接看 [`新專案實作指南.md`](新專案實作指南.md)**——含一鍵生成路線、表格規格全文、手動實作 UI 的完整程式碼與 prefab 結構規格、疑難排解。
 
@@ -21,9 +23,12 @@ var handler = new TextAssetJsonStaticDataHandler(gameDataTables);   // TextAsset
 GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
 staticDataManager.Add<DialogueData>(handler); // 對話表另外加
 
-// 2. 組裝（UI 層是各專案的演出資產，由外部提供；其餘全用預設）
+// 2. 組裝（UI 層與對話系統是各專案的演出資產，由外部提供；其餘全用預設）
+//    對話播放器由工廠提供（本套件不相依具體對話系統）；DialoguePlayer 是各專案自備的橋接，
+//    可從 DefaultViews 的範例橋接複製一份到自己的組件再修改。
 GameFlowServices services = new GameFlowSystemBuilder(staticDataManager)
-    .WithDialogueView(dialogueView)                     // 必要（或 OverrideDialoguePlayer）
+    .WithDialoguePlayerFactory(cmdExec =>               // 必要（或 OverrideDialoguePlayer）
+        new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
     .WithActionMenuPresenter(actionMenuPresenter)       // 必要
     .WithHintPresenter(hintPresenter)                   // 表格有用 ShowHint 才需要
     .WithLocationMenuPresenter(locationMenuPresenter)   // 表格有用 OpenLocationMenu 才需要
@@ -38,7 +43,7 @@ services.FlowController.RunNewGameAsync(flowCts.Token).Forget();
 
 ```csharp
 var services = new GameFlowSystemBuilder(staticDataManager)
-    .WithDialogueView(dialogueView)
+    .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
     .WithActionMenuPresenter(actionMenuPresenter)
     .OverrideTimeService(new MyRealTimeService())        // 例：改用真實時間制
     .OverrideConditionEvaluator(new MyLuaEvaluator())    // 例：改用 Lua 條件式
@@ -55,10 +60,21 @@ var services = new GameFlowSystemBuilder(staticDataManager)
 |---|---|
 | `Data/` | 六張表的資料類別：TimePhaseData、PlayerActionData、LocationData、GameEventTriggerData、GameValueData、GameTextData（JSON 陣列，欄位規格全文見 `新專案實作指南.md` 第 2 節） |
 | `DataAccess/` | `ResourcesJsonStaticDataHandler`（Resources/GameData/{類別名}.txt）與 `TextAssetJsonStaticDataHandler`（Inspector 手動指定，檔名=型別名） |
-| `Domain/` | GameState（數值鉗制＋事件發佈）、TimeService（階段推進/換日）、LocationService（解鎖旗標）、PlayerActionProvider、GameEventTriggerService（優先度＋Any 萬用字＋前後演出）、EffectCommandExecutor、FormulaConditionEvaluator（`$Tag >= 200` 語法 → Calculator）、GameTextProvider、DialoguePlayer、PerformanceRegistry、EffectCommandRegistrar |
+| `Domain/` | GameState（數值鉗制＋事件發佈）、TimeService（階段推進/換日）、LocationService（解鎖旗標）、PlayerActionProvider、GameEventTriggerService（優先度＋Any 萬用字＋前後演出）、EffectCommandExecutor、FormulaConditionEvaluator（`$Tag >= 200` 語法 → Calculator）、GameTextProvider、`IDialoguePlayer`（**僅抽象**，具體實作由各專案／範例提供）、PerformanceRegistry、EffectCommandRegistrar |
 | `Domain/Commands/` | 內建效果指令：AddValue、SetValue、AdvanceTime、SetPhase、MoveToLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle、Wait |
 | `Domain/Events/` | EventBus 事件：GameValueChanged、TimePhaseChanged、LocationChanged、MonologueRequested、ReturnToTitleRequested |
-| `GameFlowSystemBuilder.cs` | 組裝器與 `GameFlowServices` |
+| `GameFlowSystemBuilder.cs` | 組裝器與 `GameFlowServices`；對話播放器以 `WithDialoguePlayerFactory(Func<ICommandExecutor, IDialoguePlayer>)` 注入 |
+
+## 對話橋接（範例／各專案自備）
+
+對話橋接**不是套件的共用組件**，而是範例與各專案各自擁有的程式碼，讓 DefaultImplements 保持與 DialogueSystem 無關。`DefaultViews` 內附一份範例（與 ProjectII 的 `Presentation/` 各有一份等價實作）：
+
+| 內容 | 說明 |
+|---|---|
+| `DialoguePlayer` | 包 DialogueSystem 的 `DialogueManager`/`DialogueView`，補上 UniTask 等待介面、註冊 Say/BlackIn/… 對話指令與 GameEffect 橋接。建構子 `(DialogueView, GameStaticDataManager, ICommandExecutor)`，實作 `IDialoguePlayer` |
+| `GameEffectDialogueCommand` | 對話表指令 `GameEffect`：在對話分支執行效果指令串（如 `AddValue(Spirit,10)`），讓對話直接改遊戲狀態 |
+
+> 換對話系統或客製對話演出，只需改各專案自己的這份橋接（或不用 DialogueSystem 時自行實作 `IDialoguePlayer`）。核心 `Scripts/` 與 `DefaultImplements/` 完全不受影響。
 
 ## 預設 UI（DefaultViews）
 

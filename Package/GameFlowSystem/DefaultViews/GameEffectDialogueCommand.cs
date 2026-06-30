@@ -1,6 +1,7 @@
+using KahaGameCore.Package.GameFlowSystem.DefaultImplements;
 using ProjectBSR.DialogueSystem;
 
-namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
+namespace KahaGameCore.Package.GameFlowSystem.DefaultViews
 {
     /// <summary>
     /// 對話指令「GameEffect」：在對話表中執行遊戲效果指令串。

@@ -2,7 +2,6 @@ using System;
 using KahaGameCore.GameData.Implemented;
 using KahaGameCore.Package.EffectProcessor;
 using KahaGameCore.Package.GameFlowSystem.DefaultImplements.DataAccess;
-using ProjectBSR.DialogueSystem.View;
 using UnityEngine;
 
 namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
@@ -28,14 +27,14 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
     /// <summary>
     /// 預設實作的組裝器：照表驅動慣例把所有服務接好並回傳 GameFlowServices。
     /// 每個服務都有預設實作；新專案有新需求時以 Override 系列方法傳入自己的實作即可。
-    /// UI 層（行動選單、提示、移動選單）與 DialogueView 屬於各專案的演出資產，必須由外部提供。
+    /// UI 層（行動選單、提示、移動選單）屬於各專案的演出資產，必須由外部提供；
+    /// 對話播放器（IDialoguePlayer）亦由外部以 WithDialoguePlayerFactory 注入，本套件不相依具體對話系統。
     /// </summary>
     public class GameFlowSystemBuilder
     {
         private readonly GameStaticDataManager staticDataManager;
 
         // 必要外部件（UI 層）
-        private DialogueView dialogueView;
         private IActionMenuPresenter actionMenuPresenter;
         private IHintPresenter hintPresenter;
         private ILocationMenuPresenter locationMenuPresenter;
@@ -53,6 +52,7 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
         private IGameEventTriggerService triggerService;
 
         private Action<EffectCommandFactoryContainer> extraCommandRegistration;
+        private Func<ICommandExecutor, IDialoguePlayer> dialoguePlayerFactory;
 
         /// <param name="staticDataManager">已載入所有表格的資料管理器（可用 LoadDefaultTables 載入預設表）。</param>
         public GameFlowSystemBuilder(GameStaticDataManager staticDataManager)
@@ -86,8 +86,12 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
 
         // ───────── 必要外部件（UI 層）─────────
 
-        /// <summary>劇情對話 View（KahaGameCore DialogueSystem）。若以 OverrideDialoguePlayer 自管對話則可不提供。</summary>
-        public GameFlowSystemBuilder WithDialogueView(DialogueView view) { dialogueView = view; return this; }
+        /// <summary>
+        /// 對話播放器工廠（必要，除非以 OverrideDialoguePlayer 直接提供）。
+        /// 本套件不認得具體對話系統，對話播放器由外部（各專案／DefaultViews 範例的對話橋接）建構。
+        /// 工廠會收到組裝完成的 ICommandExecutor，方便對話橋接指令（如 GameEffect）重用同一個執行器。
+        /// </summary>
+        public GameFlowSystemBuilder WithDialoguePlayerFactory(Func<ICommandExecutor, IDialoguePlayer> factory) { dialoguePlayerFactory = factory; return this; }
         /// <summary>行動選單（必要）。</summary>
         public GameFlowSystemBuilder WithActionMenuPresenter(IActionMenuPresenter presenter) { actionMenuPresenter = presenter; return this; }
         /// <summary>提示視窗。未提供時表格使用 ShowHint 指令會在執行期出錯。</summary>
@@ -121,9 +125,9 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
             {
                 throw new InvalidOperationException("[GameFlowSystemBuilder] 必須以 WithActionMenuPresenter 提供行動選單實作。");
             }
-            if (dialogueView == null && dialoguePlayer == null)
+            if (dialoguePlayer == null && dialoguePlayerFactory == null)
             {
-                throw new InvalidOperationException("[GameFlowSystemBuilder] 必須以 WithDialogueView 提供對話 View，或以 OverrideDialoguePlayer 提供自訂對話播放器。");
+                throw new InvalidOperationException("[GameFlowSystemBuilder] 必須以 WithDialoguePlayerFactory 提供對話播放器工廠，或以 OverrideDialoguePlayer 提供自訂對話播放器。");
             }
             if (hintPresenter == null)
             {
@@ -145,7 +149,7 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
 
             services.FactoryContainer = new EffectCommandFactoryContainer();
             services.CommandExecutor = commandExecutor ?? new EffectCommandExecutor(services.FactoryContainer, services.GameState);
-            services.DialoguePlayer = dialoguePlayer ?? new DialoguePlayer(dialogueView, staticDataManager, services.CommandExecutor);
+            services.DialoguePlayer = dialoguePlayer ?? dialoguePlayerFactory(services.CommandExecutor);
 
             EffectCommandRegistrar.RegisterAll(
                 services.FactoryContainer,

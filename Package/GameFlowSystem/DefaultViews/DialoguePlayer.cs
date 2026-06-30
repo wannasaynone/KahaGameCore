@@ -1,13 +1,17 @@
 using System;
 using Cysharp.Threading.Tasks;
 using KahaGameCore.GameData.Implemented;
+using KahaGameCore.Package.GameFlowSystem.DefaultImplements;
 using ProjectBSR.DialogueSystem;
 using ProjectBSR.DialogueSystem.DefaultImplements.Command;
 using ProjectBSR.DialogueSystem.View;
 
-namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
+namespace KahaGameCore.Package.GameFlowSystem.DefaultViews
 {
     /// <summary>
+    /// 【範例橋接】本檔屬於 DefaultViews 範例層，把 DefaultImplements 與具體對話系統 DialogueSystem 接起來。
+    /// 各專案請複製一份到自己的組件、依需求修改（ProjectII 即在自己的 Presentation 層自備一份）。
+    ///
     /// KahaGameCore DialogueManager 的包裝：
     /// 1. 補上 UniTask 等待介面；2. 在預設指令之外註冊本專案的 GameEffect 橋接指令，
     ///    讓對話分支可以直接執行效果指令串（例如選項失敗後顯示提示）。

@@ -13,8 +13,8 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
         /// <summary>目前所在地點（LocationData 的 ID）。</summary>
         public const string CurrentLocation = "CurrentLocation";
 
-        /// <summary>一次性事件完成旗標：EventDone_{事件ID}。</summary>
-        public static string EventDone(int eventId) => "EventDone_" + eventId;
+        /// <summary>事件已觸發次數紀錄：EventTriggerCount_{事件ID}。</summary>
+        public static string EventTriggerCount(int eventId) => "EventTriggerCount_" + eventId;
         /// <summary>地點解鎖旗標：LocationUnlocked_{地點ID}。</summary>
         public static string LocationUnlocked(int locationId) => "LocationUnlocked_" + locationId;
     }

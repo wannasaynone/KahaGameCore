@@ -72,6 +72,18 @@ namespace KahaGameCore.UserInterfaceSystem
             blackoutOverlay.gameObject.SetActive(false);
         }
 
+        /// <summary>
+        /// 即時開關目前最上層主 View（不做淡入淡出）。用於黑幕之下隱藏/顯示 HUD：
+        /// 既然畫面已被黑幕蓋住，這裡只需切換 active，避免與黑幕重複淡兩次。
+        /// </summary>
+        public void SetTopViewActive(bool active)
+        {
+            if (m_viewStack.Count > 0)
+            {
+                m_viewStack.Peek().MainView.gameObject.SetActive(active);
+            }
+        }
+
         public T GetView<T>() where T : AView
         {
             foreach (ViewStackEntry entry in m_viewStack)

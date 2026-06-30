@@ -126,7 +126,7 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultViews
 
             // 全部採用預設實作；有專案特殊需求時改用 Override 系列方法傳入。
             services = new GameFlowSystemBuilder(staticDataManager)
-                .WithDialogueView(dialogueView)
+                .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
                 .WithActionMenuPresenter(actionMenuPresenter)
                 .WithHintPresenter(hintPresenter)
                 .WithLocationMenuPresenter(locationMenuPresenter)

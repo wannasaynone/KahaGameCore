@@ -19,8 +19,12 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements.Data
         public string Condition { get; private set; }
         /// <summary>同時機多事件命中時的執行優先度（大到小）。</summary>
         public int Priority { get; private set; }
-        /// <summary>1 = 一生只觸發一次（觸發後自動記錄 EventDone_{ID} = 1）。</summary>
-        public int OneTime { get; private set; }
+        /// <summary>
+        /// 觸發次數上限：0（或空白）= 無上限；N（&gt;0）= 最多觸發 N 次。
+        /// 引擎每次實際執行本事件就累加 EventTriggerCount_{ID}，達上限後不再觸發。
+        /// （舊 OneTime=1 等價於 MaxTriggerTimes=1。）
+        /// </summary>
+        public int MaxTriggerTimes { get; private set; }
         /// <summary>觸發的劇情對話 ID（DialogueData 表），0 = 無對話。</summary>
         public int DialogueID { get; private set; }
         /// <summary>對話前播放的演出 ID（預留給 UGUI 動畫串接），空白 = 無。</summary>

@@ -57,11 +57,8 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
                     continue;
                 }
 
-                // 先標記完成再執行，避免事件內的指令重入同一時機時重複觸發。
-                if (trigger.OneTime == 1)
-                {
-                    gameState.Set(GameValueTags.EventDone(trigger.ID), 1);
-                }
+                // 先累加觸發次數再執行，避免事件內的指令重入同一時機時重複觸發。
+                gameState.Add(GameValueTags.EventTriggerCount(trigger.ID), 1);
 
                 await ExecuteAsync(trigger);
             }
@@ -89,7 +86,8 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
 
         private bool CanExecute(GameEventTriggerData trigger)
         {
-            if (trigger.OneTime == 1 && gameState.Get(GameValueTags.EventDone(trigger.ID)) >= 1)
+            if (trigger.MaxTriggerTimes > 0 &&
+                gameState.Get(GameValueTags.EventTriggerCount(trigger.ID)) >= trigger.MaxTriggerTimes)
             {
                 return false;
             }

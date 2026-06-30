@@ -54,7 +54,7 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultImplements
 
         public void ResetToInitial()
         {
-            // 重建容器以一併清除動態旗標（EventDone_x、LocationUnlocked_x 等），
+            // 重建容器以一併清除動態旗標（EventTriggerCount_x、LocationUnlocked_x 等），
             // 確保返回標題後重新開始是乾淨的狀態。
             container = new GameValueContainer();
 
