@@ -35,7 +35,12 @@ namespace KahaGameCore.Package.GameFlowSystem.DefaultViews
         {
             UniTaskCompletionSource completionSource = new UniTaskCompletionSource();
             dialogueView.gameObject.SetActive(true);
-            dialogueManager.StartDialogue(dialogueId, () => completionSource.TrySetResult());
+            // 範例橋接無 cinematic 裝飾層收尾，故自行在對話完成時收掉視圖（與上方 SetActive(true) 對稱）。
+            dialogueManager.StartDialogue(dialogueId, () =>
+            {
+                dialogueView.gameObject.SetActive(false);
+                completionSource.TrySetResult();
+            });
             return completionSource.Task;
         }
 

@@ -115,7 +115,6 @@ namespace ProjectBSR.DialogueSystem
             if (dialogueQueue.Count == 0)
             {
                 audioManager.StopBGM();
-                dialogueView.gameObject.SetActive(false);
                 return;
             }
 
