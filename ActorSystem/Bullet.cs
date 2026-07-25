@@ -20,6 +20,7 @@ namespace KahaGameCore.ActorSystem
 
         private float _speed;
         private float _lifetime;
+        private int _damage;
         private bool _isInitialized;
         private bool _hasHit;
 
@@ -34,10 +35,11 @@ namespace KahaGameCore.ActorSystem
         // Bullet-side hit predicates: all must return true for the hit to register
         private readonly List<Func<AGameActor, bool>> _hitPredicates = new();
 
-        public void Initialize(float speed, float lifetime, string faction, FactionCollisionTable collisionTable, AGameActor shooter = null, string[] hitEffects = null, params Func<AGameActor, bool>[] hitPredicates)
+        public void Initialize(float speed, float lifetime, int damage, string faction, FactionCollisionTable collisionTable, AGameActor shooter = null, string[] hitEffects = null, params Func<AGameActor, bool>[] hitPredicates)
         {
             _speed = speed;
             _lifetime = lifetime;
+            _damage = damage;
             _faction = faction;
             _collisionTable = collisionTable;
             _shooter = shooter;
@@ -134,7 +136,8 @@ namespace KahaGameCore.ActorSystem
                 bulletFaction: _faction,
                 hitPosition: transform.position,
                 shooter: _shooter,
-                effects: _hitEffects
+                effects: _hitEffects,
+                damage: _damage
             );
             if (!hitbox.Actor.CanBeHitByBullet(context)) return;
 
