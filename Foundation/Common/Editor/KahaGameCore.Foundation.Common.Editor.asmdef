@@ -1,0 +1,18 @@
+{
+    "name": "KahaGameCore.Foundation.Common.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f91d9863fa14b6b47b7e8ece2df6efc7"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

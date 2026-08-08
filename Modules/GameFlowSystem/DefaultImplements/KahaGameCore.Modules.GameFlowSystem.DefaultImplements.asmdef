@@ -1,0 +1,24 @@
+{
+    "name": "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
+    "rootNamespace": "",
+    "references": [
+        "KahaGameCore.Modules.GameFlowSystem",
+        "KahaGameCore.Modules.StaticData",
+        "KahaGameCore.Modules.Serialization",
+        "KahaGameCore.Modules.ValueContainer",
+        "KahaGameCore.GameEvent",
+        "KahaGameCore.Modules.Effects",
+        "KahaGameCore.Modules.Effects.Data",
+        "KahaGameCore.Modules.Effects.Processor",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

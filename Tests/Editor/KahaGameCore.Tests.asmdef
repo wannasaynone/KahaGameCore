@@ -4,13 +4,15 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "KahaGameCore.Common",
-        "KahaGameCore.GameData",
+        "KahaGameCore.Foundation.Common",
+        "KahaGameCore.Modules.StaticData",
+        "KahaGameCore.Modules.Serialization",
+        "KahaGameCore.Modules.Persistence",
         "KahaGameCore.GameEvent",
-        "KahaGameCore.Package.EffectProcessor.EffectProcessor",
-        "KahaGameCore.Package.EffectProcessor.Data",
-        "KahaGameCore.Package.EffectProcessor.Processor",
-        "KahaGameCore.Package.ValueContainer"
+        "KahaGameCore.Modules.Effects",
+        "KahaGameCore.Modules.Effects.Data",
+        "KahaGameCore.Modules.Effects.Processor",
+        "KahaGameCore.Modules.ValueContainer"
     ],
     "includePlatforms": [
         "Editor"

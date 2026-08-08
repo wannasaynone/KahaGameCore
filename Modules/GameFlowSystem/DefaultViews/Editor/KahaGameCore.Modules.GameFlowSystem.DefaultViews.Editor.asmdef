@@ -1,0 +1,23 @@
+{
+    "name": "KahaGameCore.Modules.GameFlowSystem.DefaultViews.Editor",
+    "rootNamespace": "",
+    "references": [
+        "KahaGameCore.Modules.GameFlowSystem.DefaultViews",
+        "KahaGameCore.Modules.UserInterfaceSystem",
+        "KahaGameCore.Modules.Dialogue",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
