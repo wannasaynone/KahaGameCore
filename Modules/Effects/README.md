@@ -503,66 +503,19 @@ public class CompositeCommand : EffectCommandBase
 }
 ```
 
-### 使用 Calculator 進行數值計算
+### 在指令中使用 Expressions
 
-在命令執行過程中，可以使用 Calculator.Calculate 方法進行複雜的數值計算，並利用 ProcessData 中的 caster 和 targets：
+Effects 不負責解讀公式。需要公式的模組應注入 `KahaGameCore.Expressions.Expressions`，並以自己的 `IExpressionContext` 決定 `Caster.Attack`、`Target.Defense` 等符號如何取值：
 
 ```csharp
-public class DamageCommand : EffectCommandBase
+ExpressionResult<float> result = expressions.Calculate(vars[0], expressionContext);
+if (!result.IsSuccess)
 {
-    public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
-    {
-        // 使用 Calculator 計算傷害值
-        float damage = Calculator.Calculate(new Calculator.CalculateData
-        {
-            caster = processData.caster,
-            target = processData.targets[0],
-            formula = vars[0], // 例如: "Caster.Attack * 1.5 - Target.Defense"
-            useBaseValue = false
-        });
-        
-        // 應用傷害
-        ApplyDamage(processData.targets[0], (int)damage);
-        
-        onCompleted?.Invoke();
-    }
-    
-    private void ApplyDamage(IValueContainer target, int damage)
-    {
-        // 實現傷害邏輯
-    }
+    throw new InvalidOperationException(result.Error.ToString());
 }
+
+ApplyDamage(processData.targets[0], (int)result.Value);
+onCompleted?.Invoke();
 ```
 
-Calculator 支持的功能：
-
-1. **基本算術運算**：支持 +, -, *, / 運算符
-2. **屬性引用**：可以使用 Caster.屬性名 和 Target.屬性名 引用施放者和目標的屬性值
-3. **特殊命令**：
-   - `Random(min, max)`：生成指定範圍內的隨機數
-   - `Read(tag)`：讀取之前使用 Calculator.Remember 存儲的值
-
-例如，以下是一些有效的公式：
-
-```csharp
-// 基本傷害計算
-"Caster.Attack - Target.Defense"
-
-// 包含隨機因素的傷害
-"Caster.Attack * Random(0.8, 1.2) - Target.Defense"
-
-// 使用記憶值的複雜計算
-"Read(PreviousDamage) * 1.5 + Caster.Intelligence"
-
-// 包含括號的先乘除後加減
-"(Caster.Attack + Target.Defense)/2 - Target.Defense"
-```
-
-使用 Calculator.Remember 存儲值：
-
-```csharp
-// 存儲計算結果供後續使用
-Calculator.Remember("DamageDealt", damage);
-```
-
-這種方式特別適合實現複雜的遊戲機制，如技能傷害計算、屬性加成、狀態效果等。
+計算式支援 `+`、`-`、`*`、`/`、括號、符號與 `Random(min, max)`。條件式請改呼叫 `EvaluateCondition`；它支援比較、`&&`、`||`、`!`，並刻意禁止 `Random`，避免同一條件重算時產生不穩定結果。

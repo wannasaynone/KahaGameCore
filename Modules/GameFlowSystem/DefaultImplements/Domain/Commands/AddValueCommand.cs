@@ -6,15 +6,17 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
     public class AddValueCommand : KahaGameCore.Effects.EffectCommandBase
     {
         private readonly IGameState gameState;
+        private readonly GameFlowExpressions expressions;
 
-        public AddValueCommand(IGameState gameState)
+        public AddValueCommand(IGameState gameState, GameFlowExpressions expressions)
         {
             this.gameState = gameState;
+            this.expressions = expressions;
         }
 
         public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
         {
-            gameState.Add(vars[0], FormulaPreprocessor.EvaluateInt(gameState, vars[1]));
+            gameState.Add(vars[0], expressions.CalculateInt(vars[1]));
             onCompleted?.Invoke();
         }
     }

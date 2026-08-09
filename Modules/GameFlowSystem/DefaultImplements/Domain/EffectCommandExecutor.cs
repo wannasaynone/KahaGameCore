@@ -11,12 +11,9 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         private const string DEFAULT_TIMING = "Execute";
 
         private readonly EffectCommandDeserializer deserializer;
-        private readonly IGameState gameState;
-
-        public EffectCommandExecutor(EffectCommandFactoryContainer factoryContainer, IGameState gameState)
+        public EffectCommandExecutor(EffectCommandFactoryContainer factoryContainer)
         {
             if (factoryContainer == null) throw new ArgumentNullException(nameof(factoryContainer));
-            this.gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             deserializer = new EffectCommandDeserializer(factoryContainer);
         }
 
@@ -36,8 +33,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
             ProcessData processData = new ProcessData
             {
-                timing = DEFAULT_TIMING,
-                caster = gameState.Container
+                timing = DEFAULT_TIMING
             };
 
             processor.Start(

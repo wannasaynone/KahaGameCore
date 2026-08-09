@@ -10,10 +10,9 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
     public class GameState : IGameState
     {
-        public IValueContainer Container => container;
-
         private IValueContainer container = new GameValueContainer();
         private readonly Dictionary<string, GameValueData> tagToDefinition = new Dictionary<string, GameValueData>();
+        private readonly HashSet<string> knownTags = new HashSet<string>();
 
         public GameState(GameStaticDataManager staticDataManager)
         {
@@ -27,12 +26,19 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             foreach (GameValueData definition in definitions)
             {
                 tagToDefinition[definition.Tag] = definition;
+                knownTags.Add(definition.Tag);
             }
         }
 
         public int Get(string tag)
         {
             return container.GetTotal(tag, baseOnly: false);
+        }
+
+        public bool TryGet(string tag, out int value)
+        {
+            value = Get(tag);
+            return knownTags.Contains(tag);
         }
 
         public void Add(string tag, int amount)
@@ -42,6 +48,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
         public void Set(string tag, int value)
         {
+            knownTags.Add(tag);
             int clamped = Clamp(tag, value);
             if (clamped == Get(tag))
             {
@@ -57,10 +64,12 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             // 重建容器以一併清除動態旗標（EventTriggerCount_x、LocationUnlocked_x 等），
             // 確保返回標題後重新開始是乾淨的狀態。
             container = new GameValueContainer();
+            knownTags.Clear();
 
             foreach (GameValueData definition in tagToDefinition.Values)
             {
                 container.SetBase(definition.Tag, definition.InitialValue);
+                knownTags.Add(definition.Tag);
                 EventBus.Publish(new GameValueChangedEvent(definition.Tag, definition.InitialValue));
             }
         }

@@ -11,8 +11,7 @@
         "KahaGameCore.GameEvent",
         "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Effects.Data",
-        "KahaGameCore.Modules.Effects.Processor",
-        "KahaGameCore.Modules.ValueContainer"
+        "KahaGameCore.Modules.Effects.Processor"
     ],
     "includePlatforms": [
         "Editor"

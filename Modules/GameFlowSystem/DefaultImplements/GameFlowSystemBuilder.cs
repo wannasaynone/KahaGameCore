@@ -140,7 +140,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
             GameFlowServices services = new GameFlowServices();
             services.GameState = gameState ?? new GameState(staticDataManager);
-            services.ConditionEvaluator = conditionEvaluator ?? new FormulaConditionEvaluator(services.GameState);
+            GameFlowExpressions gameFlowExpressions = new GameFlowExpressions(services.GameState);
+            services.ConditionEvaluator = conditionEvaluator ?? gameFlowExpressions;
             services.TimeService = timeService ?? new TimeService(staticDataManager, services.GameState);
             services.LocationService = locationService ?? new LocationService(staticDataManager, services.GameState, services.ConditionEvaluator);
             services.ActionProvider = actionProvider ?? new PlayerActionProvider(staticDataManager, services.ConditionEvaluator);
@@ -148,12 +149,13 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             services.PerformancePlayer = performancePlayer ?? new PerformanceRegistry();
 
             services.FactoryContainer = new EffectCommandFactoryContainer();
-            services.CommandExecutor = commandExecutor ?? new EffectCommandExecutor(services.FactoryContainer, services.GameState);
+            services.CommandExecutor = commandExecutor ?? new EffectCommandExecutor(services.FactoryContainer);
             services.DialoguePlayer = dialoguePlayer ?? dialoguePlayerFactory(services.CommandExecutor);
 
             EffectCommandRegistrar.RegisterAll(
                 services.FactoryContainer,
                 services.GameState,
+                gameFlowExpressions,
                 services.TimeService,
                 services.LocationService,
                 services.DialoguePlayer,

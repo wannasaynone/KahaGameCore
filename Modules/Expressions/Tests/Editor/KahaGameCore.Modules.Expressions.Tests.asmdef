@@ -1,14 +1,10 @@
 {
-    "name": "KahaGameCore.Modules.GameFlowSystem.Tests",
-    "rootNamespace": "",
+    "name": "KahaGameCore.Modules.Expressions.Tests",
+    "rootNamespace": "KahaGameCore.Expressions.Tests",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "KahaGameCore.Modules.GameFlowSystem",
-        "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
-        "KahaGameCore.Modules.Expressions",
-        "KahaGameCore.Modules.Effects",
-        "UniTask"
+        "KahaGameCore.Modules.Expressions"
     ],
     "includePlatforms": [
         "Editor"
@@ -24,5 +20,5 @@
         "UNITY_INCLUDE_TESTS"
     ],
     "versionDefines": [],
-    "noEngineReferences": false
+    "noEngineReferences": true
 }

@@ -1,5 +1,4 @@
 using KahaGameCore.GameFlowSystem;
-using KahaGameCore.ValueContainer;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
@@ -10,10 +9,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
     /// </summary>
     public interface IGameState : IGameFlowState
     {
-        /// <summary>供 KahaGameCore.Calculator 公式以 Caster.Tag 取值。</summary>
-        IValueContainer Container { get; }
-
         int Get(string tag);
+        bool TryGet(string tag, out int value);
         void Add(string tag, int amount);
         void Set(string tag, int value);
     }

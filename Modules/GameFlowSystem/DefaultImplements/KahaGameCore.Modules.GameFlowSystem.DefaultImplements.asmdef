@@ -6,6 +6,7 @@
         "KahaGameCore.Modules.StaticData",
         "KahaGameCore.Modules.Serialization",
         "KahaGameCore.Modules.ValueContainer",
+        "KahaGameCore.Modules.Expressions",
         "KahaGameCore.GameEvent",
         "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Effects.Data",

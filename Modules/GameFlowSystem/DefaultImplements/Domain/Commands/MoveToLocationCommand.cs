@@ -5,18 +5,18 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
     /// <summary>MoveToLocation(地點ID)：移動到指定地點（流程會在指令串結束後觸發 EnterLocation 事件）。</summary>
     public class MoveToLocationCommand : KahaGameCore.Effects.EffectCommandBase
     {
-        private readonly IGameState gameState;
+        private readonly GameFlowExpressions expressions;
         private readonly ILocationService locationService;
 
-        public MoveToLocationCommand(IGameState gameState, ILocationService locationService)
+        public MoveToLocationCommand(GameFlowExpressions expressions, ILocationService locationService)
         {
-            this.gameState = gameState;
+            this.expressions = expressions;
             this.locationService = locationService;
         }
 
         public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
         {
-            locationService.MoveTo(FormulaPreprocessor.EvaluateInt(gameState, vars[0]));
+            locationService.MoveTo(expressions.CalculateInt(vars[0]));
             onCompleted?.Invoke();
         }
     }
