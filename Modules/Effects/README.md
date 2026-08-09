@@ -505,9 +505,13 @@ public class CompositeCommand : EffectCommandBase
 
 ### 在指令中使用 Expressions
 
-Effects 不負責解讀公式。需要公式的模組應注入 `KahaGameCore.Expressions.Expressions`，並以自己的 `IExpressionContext` 決定 `Caster.Attack`、`Target.Defense` 等符號如何取值：
+Effects 不負責解讀公式。需要 Caster／Target 公式的 command 可引用獨立的 `KahaGameCore.Modules.Expressions.ValueContainer` integration assembly；Effects core 本身不需要依賴 Expressions：
 
 ```csharp
+var expressionContext = new ValueContainerExpressionContext(
+    processData.caster,
+    processData.targets[0]);
+
 ExpressionResult<float> result = expressions.Calculate(vars[0], expressionContext);
 if (!result.IsSuccess)
 {

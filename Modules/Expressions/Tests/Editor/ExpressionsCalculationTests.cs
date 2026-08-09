@@ -85,19 +85,18 @@ namespace KahaGameCore.Expressions.Tests
         }
 
         [Test]
-        public void Calculate_ResolvesParameterAndDottedSymbolsThroughContext()
+        public void Calculate_ResolvesParameterSymbolThroughContext()
         {
             Expressions expressions = new Expressions();
             DictionaryContext context = new DictionaryContext(new Dictionary<string, ExpressionValue>
             {
-                ["Supplies"] = ExpressionValue.FromNumber(15f),
-                ["Caster.HP"] = ExpressionValue.FromNumber(20f)
+                ["Supplies"] = ExpressionValue.FromNumber(15f)
             });
 
-            ExpressionResult<float> result = expressions.Calculate("$Supplies + Caster.HP", context);
+            ExpressionResult<float> result = expressions.Calculate("$Supplies + 5", context);
 
             Assert.That(result.IsSuccess, Is.True, result.Error?.ToString());
-            Assert.That(result.Value, Is.EqualTo(35f));
+            Assert.That(result.Value, Is.EqualTo(20f));
         }
 
         [Test]
