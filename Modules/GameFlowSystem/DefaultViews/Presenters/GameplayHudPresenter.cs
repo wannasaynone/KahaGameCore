@@ -1,41 +1,38 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using KahaGameCore.StaticData;
 using KahaGameCore.GameEvent;
-using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Events;
+using KahaGameCore.Parameters;
 
 namespace KahaGameCore.GameFlowSystem.DefaultViews
 {
     /// <summary>
-    /// 監聽遊戲狀態事件並更新 HUD。
-    /// HUD 上顯示哪些數值由 GameValueData 表的 ShowInHUD 欄位決定。
+    /// 監聽 Parameter 與流程事件並更新 HUD。
+    /// HUD 上顯示哪些 Parameter 由 composition root 明列。
     /// </summary>
     public class GameplayHudPresenter : IDisposable
     {
         private readonly GameplayHudView view;
-        private readonly IGameState gameState;
+        private readonly ParameterStore parameters;
         private readonly ITimeService timeService;
-        private readonly List<GameValueData> hudValueDefinitions;
+        private readonly List<ParameterDefinition> hudParameterDefinitions;
 
         public GameplayHudPresenter(
             GameplayHudView view,
-            GameStaticDataManager staticDataManager,
-            IGameState gameState,
+            ParameterStore parameters,
+            IReadOnlyList<ParameterDefinition> hudParameterDefinitions,
             ITimeService timeService)
         {
             this.view = view ? view : throw new ArgumentNullException(nameof(view));
-            this.gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
+            this.parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
             this.timeService = timeService ?? throw new ArgumentNullException(nameof(timeService));
+            this.hudParameterDefinitions = hudParameterDefinitions == null
+                ? throw new ArgumentNullException(nameof(hudParameterDefinitions))
+                : hudParameterDefinitions.ToList();
 
-            GameValueData[] definitions = staticDataManager.GetAllGameData<GameValueData>();
-            hudValueDefinitions = definitions == null
-                ? new List<GameValueData>()
-                : definitions.Where(definition => definition.ShowInHUD == 1).OrderBy(definition => definition.ID).ToList();
-
-            EventBus.Subscribe<GameValueChangedEvent>(OnGameValueChanged);
+            parameters.Changed += OnParameterChanged;
             EventBus.Subscribe<TimePhaseChangedEvent>(OnTimePhaseChanged);
             EventBus.Subscribe<MonologueRequestedEvent>(OnMonologueRequested);
         }
@@ -43,8 +40,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         /// <summary>開新遊戲時重建狀態列。</summary>
         public void Refresh()
         {
-            view.BindStats(hudValueDefinitions
-                .Select(definition => (definition.Tag, definition.DisplayName, gameState.Get(definition.Tag)))
+            view.BindStats(hudParameterDefinitions
+                .Select(definition => (definition.Key, definition.DisplayName, parameters.GetInt(definition.Key)))
                 .ToList());
 
             UpdateDayPhaseText();
@@ -52,14 +49,17 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
 
         public void Dispose()
         {
-            EventBus.Unsubscribe<GameValueChangedEvent>(OnGameValueChanged);
+            parameters.Changed -= OnParameterChanged;
             EventBus.Unsubscribe<TimePhaseChangedEvent>(OnTimePhaseChanged);
             EventBus.Unsubscribe<MonologueRequestedEvent>(OnMonologueRequested);
         }
 
-        private void OnGameValueChanged(GameValueChangedEvent changedEvent)
+        private void OnParameterChanged(ParameterChanged changed)
         {
-            view.TryUpdateStat(changedEvent.Tag, changedEvent.NewValue);
+            if (hudParameterDefinitions.Any(definition => definition.Key == changed.Key))
+            {
+                view.TryUpdateStat(changed.Key, changed.NewValue.AsInt());
+            }
         }
 
         private void OnTimePhaseChanged(TimePhaseChangedEvent changedEvent)

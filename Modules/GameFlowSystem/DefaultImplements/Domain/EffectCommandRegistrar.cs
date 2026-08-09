@@ -1,6 +1,7 @@
 using KahaGameCore.Effects;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Commands;
+using KahaGameCore.Parameters;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
@@ -12,7 +13,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
     {
         public static void RegisterAll(
             EffectCommandFactoryContainer container,
-            IGameState gameState,
+            ParameterStore parameters,
             GameFlowExpressions expressions,
             ITimeService timeService,
             ILocationService locationService,
@@ -22,8 +23,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             IHintPresenter hintPresenter,
             ILocationMenuPresenter locationMenuPresenter)
         {
-            container.RegisterFactory("AddValue", new DelegateEffectCommandFactory(() => new AddValueCommand(gameState, expressions)));
-            container.RegisterFactory("SetValue", new DelegateEffectCommandFactory(() => new SetValueCommand(gameState, expressions)));
+            container.RegisterFactory("AddParameter", new DelegateEffectCommandFactory(() => new AddParameterCommand(parameters, expressions)));
+            container.RegisterFactory("SetParameter", new DelegateEffectCommandFactory(() => new SetParameterCommand(parameters, expressions)));
             container.RegisterFactory("AdvanceTime", new DelegateEffectCommandFactory(() => new AdvanceTimeCommand(timeService)));
             container.RegisterFactory("SetPhase", new DelegateEffectCommandFactory(() => new SetPhaseCommand(timeService)));
             container.RegisterFactory("MoveToLocation", new DelegateEffectCommandFactory(() => new MoveToLocationCommand(expressions, locationService)));

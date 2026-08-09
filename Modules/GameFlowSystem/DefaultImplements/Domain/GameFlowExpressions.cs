@@ -1,5 +1,6 @@
 using System;
 using KahaGameCore.Expressions;
+using KahaGameCore.Parameters;
 using UnityEngine;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements
@@ -9,18 +10,23 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         private readonly Expressions.Expressions expressions;
         private readonly IExpressionContext context;
 
-        public GameFlowExpressions(IGameState gameState)
+        public GameFlowExpressions(ParameterStore parameters)
         {
-            if (gameState == null) throw new ArgumentNullException(nameof(gameState));
+            if (parameters == null) throw new ArgumentNullException(nameof(parameters));
             expressions = new Expressions.Expressions();
-            context = new GameStateExpressionContext(gameState);
+            context = new ParameterExpressionContext(parameters);
         }
 
         public int CalculateInt(string formula)
         {
+            return Mathf.RoundToInt(CalculateNumber(formula));
+        }
+
+        internal float CalculateNumber(string formula)
+        {
             ExpressionResult<float> result = expressions.Calculate(formula, context);
             if (!result.IsSuccess) throw new GameFlowExpressionException(formula, result.Error);
-            return Mathf.RoundToInt(result.Value);
+            return result.Value;
         }
 
         public bool Evaluate(string condition)

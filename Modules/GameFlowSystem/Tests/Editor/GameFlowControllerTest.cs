@@ -17,12 +17,6 @@ namespace KahaGameCore.GameFlowSystem.Tests
             public bool AllowAction { get; set; }
         }
 
-        private class FakeState : IGameFlowState
-        {
-            public int ResetCount { get; private set; }
-            public void ResetToInitial() => ResetCount++;
-        }
-
         private class FakeTimeService : IGameFlowTimeService
         {
             public List<FakePhase> Phases = new List<FakePhase>();
@@ -99,7 +93,6 @@ namespace KahaGameCore.GameFlowSystem.Tests
             }
         }
 
-        private FakeState state;
         private FakeTimeService timeService;
         private FakeLocationService locationService;
         private FakeActionProvider actionProvider;
@@ -111,7 +104,6 @@ namespace KahaGameCore.GameFlowSystem.Tests
         [SetUp]
         public void SetUp()
         {
-            state = new FakeState();
             timeService = new FakeTimeService();
             locationService = new FakeLocationService();
             actionProvider = new FakeActionProvider();
@@ -137,8 +129,6 @@ namespace KahaGameCore.GameFlowSystem.Tests
 
         private void Run()
         {
-            // 開新局的重置由組裝根負責，這裡先模擬呼叫端重置，再跑流程。
-            state.ResetToInitial();
             timeService.ResetToFirstPhase();
 
             // 所有 Fake 都同步完成，整個流程會同步跑完直到取消。
@@ -154,7 +144,6 @@ namespace KahaGameCore.GameFlowSystem.Tests
 
             Run();
 
-            Assert.AreEqual(1, state.ResetCount);
             CollectionAssert.AreEqual(
                 new[] { "GameStart", "PhaseStart:Morning", "PhaseStart:Night" },
                 triggerService.RaisedTimings);
@@ -165,7 +154,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
         public void ActionPhase_ExecutesChosenActionCommands_ThenRaisesAfterAction()
         {
             timeService.Phases.Add(new FakePhase { ID = 1, Key = "Day", AllowAction = true });
-            actionProvider.Actions.Add(new FakeAction { ID = 7, Name = "料理", Commands = "AddValue(Satiety,20)" });
+            actionProvider.Actions.Add(new FakeAction { ID = 7, Name = "料理", Commands = "AddParameter(Satiety,20)" });
             presenter.OnSelect = entries => entries[0].Action;
             triggerService.CancelAfter = 3;
 
@@ -174,7 +163,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
             CollectionAssert.AreEqual(
                 new[] { "GameStart", "PhaseStart:Day", "AfterAction:7" },
                 triggerService.RaisedTimings);
-            CollectionAssert.AreEqual(new[] { "AddValue(Satiety,20)" }, commandExecutor.ExecutedCommands);
+            CollectionAssert.AreEqual(new[] { "AddParameter(Satiety,20)" }, commandExecutor.ExecutedCommands);
         }
 
         [Test]
@@ -217,7 +206,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
         public void PresenterReturnsNull_FlowExitsRoundWithoutExecutingCommands()
         {
             timeService.Phases.Add(new FakePhase { ID = 1, Key = "Day", AllowAction = true });
-            actionProvider.Actions.Add(new FakeAction { ID = 7, Name = "料理", Commands = "AddValue(Satiety,20)" });
+            actionProvider.Actions.Add(new FakeAction { ID = 7, Name = "料理", Commands = "AddParameter(Satiety,20)" });
             presenter.OnSelect = entries =>
             {
                 // 模擬返回標題：取消流程並讓選擇以 null 結束。

@@ -5,7 +5,7 @@
 包分三層：
 
 - **`Scripts/`（核心）**：`GameFlowController` 與 8 個最小介面，只依賴 UniTask。
-- **`DefaultImplements/`（預設實作）**：表驅動的整套預設服務（GameState、TimeService、LocationService、事件觸發、效果指令、條件式、表格定義）＋ `GameFlowSystemBuilder` 一鍵組裝。依賴 KahaGameCore（StaticData/ValueContainer/GameEvent/Effects），**不依賴 Dialogue Module**——對話只透過 `IDialoguePlayer` 抽象，由工廠（`WithDialoguePlayerFactory`）注入。新專案直接用預設實作，有新需求再自己實作傳入覆寫。
+- **`DefaultImplements/`（預設實作）**：表驅動的整套預設服務（Parameters adapter、TimeService、LocationService、事件觸發、效果指令、條件式、表格定義）＋ `GameFlowSystemBuilder` 一鍵組裝。依賴 KahaGameCore（Parameters/Expressions/StaticData/GameEvent/Effects），**不依賴 Dialogue Module**——對話只透過 `IDialoguePlayer` 抽象，由工廠（`WithDialoguePlayerFactory`）注入。
 - **`DefaultViews/`（預設 UI＋範例橋接）**：整套 UGUI View / Presenter / `DefaultGameLauncher`（組裝根）腳本＋`DefaultUiBuilder`（Editor 選單一鍵生成全部 prefab 與可運行場景），**並含範例對話橋接 `DialoguePlayer` + `GameEffectDialogueCommand`**（連接具體 Dialogue Module）。純腳本、零美術資產——prefab 在各專案內按需生成。
 
 > **對話橋接屬於範例／各專案的程式碼，不是 Module 的共用層。** 核心與 DefaultImplements 刻意與 Dialogue Module 無關（只認 `IDialoguePlayer`）。`DefaultViews` 內附一份範例橋接示範如何接上 Dialogue Module；**各專案請複製一份到自己的組件並依需求修改**。
@@ -23,10 +23,18 @@ var handler = new TextAssetJsonStaticDataHandler(gameDataTables);   // TextAsset
 GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
 staticDataManager.Add<DialogueData>(handler); // 對話表另外加
 
+// 可載入多張 .parameters.json 大表；每張表含多列 Parameter。
+var parameterCodec = new ParameterTableJsonCodec();
+ParameterDefinition[] parameterDefinitions = parameterTables
+    .Select(tableAsset => parameterCodec.Read(tableAsset.text))
+    .SelectMany(table => table.Definitions)
+    .ToArray();
+var parameters = new ParameterStore(parameterDefinitions);
+
 // 2. 組裝（UI 層與對話系統是各專案的演出資產，由外部提供；其餘全用預設）
 //    對話播放器由工廠提供（本套件不相依具體對話系統）；DialoguePlayer 是各專案自備的橋接，
 //    可從 DefaultViews 的範例橋接複製一份到自己的組件再修改。
-GameFlowServices services = new GameFlowSystemBuilder(staticDataManager)
+GameFlowServices services = new GameFlowSystemBuilder(staticDataManager, parameters)
     .WithDialoguePlayerFactory(cmdExec =>               // 必要（或 OverrideDialoguePlayer）
         new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
     .WithActionMenuPresenter(actionMenuPresenter)       // 必要
@@ -42,7 +50,7 @@ services.FlowController.RunNewGameAsync(flowCts.Token).Forget();
 有新需求時，實作對應介面後以 `Override` 系列方法傳入，其餘維持預設：
 
 ```csharp
-var services = new GameFlowSystemBuilder(staticDataManager)
+var services = new GameFlowSystemBuilder(staticDataManager, parameters)
     .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
     .WithActionMenuPresenter(actionMenuPresenter)
     .OverrideTimeService(new MyRealTimeService())        // 例：改用真實時間制
@@ -52,16 +60,16 @@ var services = new GameFlowSystemBuilder(staticDataManager)
     .Build();
 ```
 
-`GameFlowServices` 會回傳所有組好的服務（GameState、TimeService、TriggerService、FlowController、FactoryContainer…），HUD 等 Presenter 可直接取用。
+`GameFlowServices` 會回傳所有組好的服務（Parameters、TimeService、LocationService、TriggerService、FlowController、FactoryContainer…）。開新局先呼叫 `services.ResetForNewGame()`，由各 owner 重置自己的狀態。
 
 ## 預設實作內容（DefaultImplements）
 
 | 區塊 | 內容 |
 |---|---|
-| `Data/` | 六張表的資料類別：TimePhaseData、PlayerActionData、LocationData、GameEventTriggerData、GameValueData、GameTextData（JSON 陣列，欄位規格全文見 `新專案實作指南.md` 第 2 節） |
+| `Data/` | 五張表的資料類別：TimePhaseData、PlayerActionData、LocationData、GameEventTriggerData、GameTextData（JSON 陣列）；Parameters 使用可多份的 `.parameters.json` 大表。 |
 | `DataAccess/` | `ResourcesJsonStaticDataHandler`（Resources/GameData/{類別名}.txt）與 `TextAssetJsonStaticDataHandler`（Inspector 手動指定，檔名=型別名） |
-| `Domain/` | GameState（數值鉗制＋事件發佈）、GameFlowExpressions（`$Tag` 計算與條件 adapter）、TimeService（階段推進/換日）、LocationService（解鎖旗標）、PlayerActionProvider、GameEventTriggerService（優先度＋Any 萬用字＋前後演出）、EffectCommandExecutor、GameTextProvider、`IDialoguePlayer`（**僅抽象**，具體實作由各專案／範例提供）、PerformanceRegistry、EffectCommandRegistrar |
-| `Domain/Commands/` | 內建效果指令：AddValue、SetValue、AdvanceTime、SetPhase、MoveToLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle、Wait |
+| `Domain/` | GameFlowExpressions（ParameterStore → Expressions adapter）、TimeService（自持 Phase，Day 寫入 Parameter）、LocationService（自持 current location）、PlayerActionProvider、無 execution count 的 GameEventTriggerService、EffectCommandExecutor、GameTextProvider、`IDialoguePlayer`、PerformanceRegistry、EffectCommandRegistrar |
+| `Domain/Commands/` | 內建效果指令：AddParameter、SetParameter、AdvanceTime、SetPhase、MoveToLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle、Wait |
 | `Domain/Events/` | EventBus 事件：GameValueChanged、TimePhaseChanged、LocationChanged、MonologueRequested、ReturnToTitleRequested |
 | `GameFlowSystemBuilder.cs` | 組裝器與 `GameFlowServices`；對話播放器以 `WithDialoguePlayerFactory(Func<ICommandExecutor, IDialoguePlayer>)` 注入 |
 
@@ -72,7 +80,7 @@ var services = new GameFlowSystemBuilder(staticDataManager)
 | 內容 | 說明 |
 |---|---|
 | `DialoguePlayer` | 包裝 Dialogue Module 的 `DialogueManager`/`DialogueView`，補上 UniTask 等待介面、註冊 Say/BlackIn/… 對話指令與 GameEffect 橋接。建構子 `(DialogueView, GameStaticDataManager, ICommandExecutor)`，實作 `IDialoguePlayer` |
-| `GameEffectDialogueCommand` | 對話表指令 `GameEffect`：在對話分支執行效果指令串（如 `AddValue(Spirit,10)`），讓對話直接改遊戲狀態 |
+| `GameEffectDialogueCommand` | 對話表指令 `GameEffect`：在對話分支執行效果指令串（如 `AddParameter(Spirit,10)`），讓對話直接改 Parameter |
 
 > 換對話系統或客製對話演出，只需改各專案自己的這份橋接（或不用 Dialogue Module 時自行實作 `IDialoguePlayer`）。核心 `Scripts/` 與 `DefaultImplements/` 完全不受影響。
 
@@ -86,7 +94,7 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 | `Presenters/`（5 個腳本） | `IActionMenuPresenter` / `IHintPresenter` / `ILocationMenuPresenter` 的轉接實作＋HUD Presenter＋`IStagePerformance` 範例（CreditsPerformance） |
 | `DefaultGameLauncher.cs` | 預設組裝根：載表（Inspector 指定 TextAsset，留空 fallback 到 Resources/GameData/）→ Builder 組裝 → 主標題/流程切換、返回標題處理 |
 | `Editor/DefaultUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**：在專案內生成 `Assets/Resources/GameFlowUIViews/` 九個 prefab 與 `Assets/Scenes/GameFlowGame.unity`（全部接好、測試表已掛上、可直接 Play）。全程式化版面（TMP 預設字型＋內建 UISprite），零美術資產依賴，可重複執行覆寫 |
-| `SampleData/*.txt` | 七張測試表：可完整遊玩的迷你生存循環（照顧小屋一週），涵蓋選項對話、GameEffect、Monologue、ShowHint、隨機數值、地點解鎖、Game Over、結局演出等全部系統功能，可當表格寫法範例。builder 會自動拖進 DefaultGameLauncher 的 `gameDataTables` |
+| `SampleData/*.txt` + `SampleData/Parameters/*.parameters.json` | 六張測試表與一張含八列的 Parameter 大表；HUD key 由 DefaultViews composition 明列，不存入 Parameter metadata。 |
 
 新專案最短路徑：複製 KahaGameCore 包 → 跑一次 builder 選單 → 開生成的場景直接 **Play**（測試內容可玩）→ 之後把欄位裡的 TextAsset 換成自己的表。要客製時把對應腳本複製到專案改名修改（別直接改包內版本），prefab 直接改（重跑 builder 會覆寫）。
 
@@ -128,7 +136,6 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 
 | 介面 | 成員 | 職責 |
 |---|---|---|
-| `IGameFlowState` | `ResetToInitial()` | 開新遊戲時把所有可變數值重設回初始值 |
 | `IGameFlowTimePhase` | `ID`、`Key`、`AllowAction` | 一個時間階段（通常由表格資料類別實作） |
 | `IGameFlowTimeService` | `CurrentPhase`、`ResetToFirstPhase()`、`AdvanceTime()` | 時間流動；階段順序由實作方定義 |
 | `IGameFlowLocationService` | `CurrentLocationID` | 流程只需要知道目前地點 |
@@ -156,15 +163,15 @@ var flowController = new GameFlowController(
     actionMenuPresenter // IActionMenuPresenter
 );
 
-// 開新局的狀態重置由呼叫端（組裝根）負責，於啟動流程前執行：
-gameState.ResetToInitial();
-timeService.ResetToFirstPhase();
+// 開新局的狀態重置由呼叫端（組裝根）負責。
+// 使用 DefaultImplements 時直接呼叫 services.ResetForNewGame()；
+// 自組核心時則分別重置自己的 Parameters、TimeService 與 LocationService。
 
 flowCts = new CancellationTokenSource();
 flowController.RunNewGameAsync(flowCts.Token).Forget();
 ```
 
-`RunNewGameAsync` 是無限迴圈，**唯一的結束方式是取消 token**。`RunNewGameAsync` 本身不再重置狀態——呼叫前須先重置 `IGameFlowState` / `IGameFlowTimeService`。
+`RunNewGameAsync` 是無限迴圈，**唯一的結束方式是取消 token**。`RunNewGameAsync` 本身不重置狀態；組裝根必須在呼叫前完成新局重置。
 
 ### 4. 中止流程（返回標題）
 
@@ -181,7 +188,7 @@ actionMenuPresenter.CancelPending();   // 2. 讓等待中的選單以 null 結�
 
 | 時機 | 字串 | 說明 |
 |---|---|---|
-| 開新遊戲 | `GameStart` | ResetToInitial / ResetToFirstPhase 之後、第一個階段之前（開場劇情） |
+| 開新遊戲 | `GameStart` | 組裝根完成 Parameters／Phase／Location 重置後、第一個階段之前（開場劇情） |
 | 階段開始 | `PhaseStart:{Key}` | 如 `PhaseStart:Morning` |
 | 行動結束 | `AfterAction:{ID}` | 如 `AfterAction:106` |
 | 進入地點 | `EnterLocation:{ID}` | 如 `EnterLocation:2`，只在地點「改變」時觸發 |

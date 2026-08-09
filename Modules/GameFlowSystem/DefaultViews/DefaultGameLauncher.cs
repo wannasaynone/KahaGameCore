@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using KahaGameCore.StaticData;
@@ -9,6 +12,7 @@ using KahaGameCore.GameFlowSystem.DefaultImplements.Events;
 using KahaGameCore.UserInterfaceSystem;
 using KahaGameCore.Dialogue;
 using KahaGameCore.Dialogue.View;
+using KahaGameCore.Parameters;
 using UnityEngine;
 
 namespace KahaGameCore.GameFlowSystem.DefaultViews
@@ -27,18 +31,23 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         private const string LOCATION_MENU_VIEW_PATH = "GameFlowUIViews/LocationMenuView";
         private const string HINT_POPUP_VIEW_PATH = "GameFlowUIViews/HintPopupView";
         private const string CREDITS_VIEW_PATH = "GameFlowUIViews/CreditsView";
+        private static readonly string[] HUD_PARAMETER_KEYS = { "Supplies", "Satiety", "Spirit" };
 
         [SerializeField] private UserInterfaceController uiController;
         [SerializeField] private DialogueView dialogueView;
         [Tooltip("行動選單、提示視窗等覆蓋層 View 的父節點。")]
         [SerializeField] private RectTransform overlayRoot;
-        [Tooltip("七張表的 JSON TextAsset（檔名需與資料型別名稱一致，如 TimePhaseData.txt）。留空時改從 Resources/GameData/{型別名}.txt 載入。")]
+        [Tooltip("六張表的 JSON TextAsset（檔名需與資料型別名稱一致，如 TimePhaseData.txt，含 DialogueData）。留空時改從 Resources/GameData/{型別名}.txt 載入。")]
         [SerializeField] private TextAsset[] gameDataTables;
+        [Tooltip("可指定多張 .parameters.json 大表。留空時改從 Resources/GameData/Parameters 載入。")]
+        [SerializeField] private TextAsset[] parameterTables;
         [SerializeField] private string gameTitle = "My Game";
         [Tooltip("製作人員名單文字（GameTextData 表的 ID）。")]
         [SerializeField] private int creditsTextId = 950;
 
         private GameStaticDataManager staticDataManager;
+        private ParameterStore parameters;
+        private IReadOnlyList<ParameterDefinition> parameterDefinitions;
         private GameFlowServices services;
         private ActionMenuPresenter actionMenuPresenter;
         private LocationMenuPresenter locationMenuPresenter;
@@ -76,6 +85,22 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                 : new ResourcesJsonStaticDataHandler();
             GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
             staticDataManager.Add<DialogueData>(handler);
+
+            TextAsset[] tableAssets = parameterTables != null && parameterTables.Length > 0
+                ? parameterTables
+                : Resources.LoadAll<TextAsset>("GameData/Parameters");
+            if (tableAssets.Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "[DefaultGameLauncher] 沒有 Parameter Tables。請指定 parameterTables，或放到 Resources/GameData/Parameters。");
+            }
+
+            ParameterTableJsonCodec codec = new ParameterTableJsonCodec();
+            parameterDefinitions = tableAssets
+                .Select(tableAsset => codec.Read(tableAsset.text))
+                .SelectMany(table => table.Definitions)
+                .ToList();
+            parameters = new ParameterStore(parameterDefinitions);
         }
 
         private async UniTaskVoid ShowMainMenuAsync()
@@ -101,11 +126,13 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             GameplayHudView hudView = await uiController.PushView<GameplayHudView>(GAMEPLAY_HUD_VIEW_PATH);
 
             hudPresenter?.Dispose();
-            hudPresenter = new GameplayHudPresenter(hudView, staticDataManager, services.GameState, services.TimeService);
+            IReadOnlyList<ParameterDefinition> hudDefinitions = HUD_PARAMETER_KEYS
+                .Select(key => parameterDefinitions.Single(definition => definition.Key == key))
+                .ToList();
+            hudPresenter = new GameplayHudPresenter(hudView, services.Parameters, hudDefinitions, services.TimeService);
 
-            // 開新局：先重置狀態與時段，Refresh 才會讀到正確的初始數值/時段。
-            services.GameState.ResetToInitial();
-            services.TimeService.ResetToFirstPhase();
+            // 開新局：Parameters、Phase、Location 各由自己的 owner 重置。
+            services.ResetForNewGame();
             hudPresenter.Refresh();
 
             flowCts = new CancellationTokenSource();
@@ -124,7 +151,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             hintPresenter = new HintPresenter(InstantiateOverlayView<HintPopupView>(HINT_POPUP_VIEW_PATH));
 
             // 全部採用預設實作；有專案特殊需求時改用 Override 系列方法傳入。
-            services = new GameFlowSystemBuilder(staticDataManager)
+            services = new GameFlowSystemBuilder(staticDataManager, parameters)
                 .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
                 .WithActionMenuPresenter(actionMenuPresenter)
                 .WithHintPresenter(hintPresenter)

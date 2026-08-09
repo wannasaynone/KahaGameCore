@@ -1,15 +1,16 @@
 using System;
 using KahaGameCore.StaticData;
 using KahaGameCore.Effects;
+using KahaGameCore.Parameters;
 using KahaGameCore.GameFlowSystem.DefaultImplements.DataAccess;
 using UnityEngine;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
-    /// <summary>Build 完成後的服務群組。跨次遊玩共用（開新遊戲時由 GameState.ResetToInitial 重置狀態）。</summary>
+    /// <summary>Build 完成後的服務群組。跨次遊玩共用，開新遊戲時呼叫 ResetForNewGame。</summary>
     public class GameFlowServices
     {
-        public IGameState GameState { get; internal set; }
+        public ParameterStore Parameters { get; internal set; }
         public IConditionEvaluator ConditionEvaluator { get; internal set; }
         public ITimeService TimeService { get; internal set; }
         public ILocationService LocationService { get; internal set; }
@@ -22,6 +23,13 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         public GameFlowController FlowController { get; internal set; }
         /// <summary>效果指令工廠。Build 之後仍可追加註冊專案自訂指令。</summary>
         public EffectCommandFactoryContainer FactoryContainer { get; internal set; }
+
+        public void ResetForNewGame()
+        {
+            Parameters.ResetToInitial();
+            TimeService.ResetToFirstPhase();
+            LocationService.ResetToInitial();
+        }
     }
 
     /// <summary>
@@ -33,6 +41,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
     public class GameFlowSystemBuilder
     {
         private readonly GameStaticDataManager staticDataManager;
+        private readonly ParameterStore parameters;
 
         // 必要外部件（UI 層）
         private IActionMenuPresenter actionMenuPresenter;
@@ -40,7 +49,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         private ILocationMenuPresenter locationMenuPresenter;
 
         // 可覆寫的預設實作
-        private IGameState gameState;
         private IConditionEvaluator conditionEvaluator;
         private ITimeService timeService;
         private ILocationService locationService;
@@ -55,14 +63,15 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         private Func<ICommandExecutor, IDialoguePlayer> dialoguePlayerFactory;
 
         /// <param name="staticDataManager">已載入所有表格的資料管理器（可用 LoadDefaultTables 載入預設表）。</param>
-        public GameFlowSystemBuilder(GameStaticDataManager staticDataManager)
+        public GameFlowSystemBuilder(GameStaticDataManager staticDataManager, ParameterStore parameters)
         {
             this.staticDataManager = staticDataManager ?? throw new ArgumentNullException(nameof(staticDataManager));
+            this.parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
         }
 
         /// <summary>
-        /// 把預設六張表（TimePhaseData、PlayerActionData、LocationData、GameEventTriggerData、
-        /// GameValueData、GameTextData）從 Resources/GameData/{類別名}.txt 載入。
+        /// 把預設五張表（TimePhaseData、PlayerActionData、LocationData、GameEventTriggerData、
+        /// GameTextData）從 Resources/GameData/{類別名}.txt 載入。
         /// DialogueData 等其他表請專案自行 Add。
         /// </summary>
         public static void LoadDefaultTables(GameStaticDataManager staticDataManager)
@@ -80,7 +89,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             staticDataManager.Add<Data.PlayerActionData>(handler);
             staticDataManager.Add<Data.LocationData>(handler);
             staticDataManager.Add<Data.GameEventTriggerData>(handler);
-            staticDataManager.Add<Data.GameValueData>(handler);
             staticDataManager.Add<Data.GameTextData>(handler);
         }
 
@@ -101,7 +109,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
         // ───────── 覆寫預設實作（有新需求再傳入）─────────
 
-        public GameFlowSystemBuilder OverrideGameState(IGameState custom) { gameState = custom; return this; }
         public GameFlowSystemBuilder OverrideConditionEvaluator(IConditionEvaluator custom) { conditionEvaluator = custom; return this; }
         public GameFlowSystemBuilder OverrideTimeService(ITimeService custom) { timeService = custom; return this; }
         public GameFlowSystemBuilder OverrideLocationService(ILocationService custom) { locationService = custom; return this; }
@@ -139,11 +146,11 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             }
 
             GameFlowServices services = new GameFlowServices();
-            services.GameState = gameState ?? new GameState(staticDataManager);
-            GameFlowExpressions gameFlowExpressions = new GameFlowExpressions(services.GameState);
+            services.Parameters = parameters;
+            GameFlowExpressions gameFlowExpressions = new GameFlowExpressions(services.Parameters);
             services.ConditionEvaluator = conditionEvaluator ?? gameFlowExpressions;
-            services.TimeService = timeService ?? new TimeService(staticDataManager, services.GameState);
-            services.LocationService = locationService ?? new LocationService(staticDataManager, services.GameState, services.ConditionEvaluator);
+            services.TimeService = timeService ?? new TimeService(staticDataManager, services.Parameters);
+            services.LocationService = locationService ?? new LocationService(staticDataManager, services.ConditionEvaluator);
             services.ActionProvider = actionProvider ?? new PlayerActionProvider(staticDataManager, services.ConditionEvaluator);
             services.TextProvider = textProvider ?? new GameTextProvider(staticDataManager, services.ConditionEvaluator);
             services.PerformancePlayer = performancePlayer ?? new PerformanceRegistry();
@@ -154,7 +161,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
             EffectCommandRegistrar.RegisterAll(
                 services.FactoryContainer,
-                services.GameState,
+                services.Parameters,
                 gameFlowExpressions,
                 services.TimeService,
                 services.LocationService,
@@ -167,7 +174,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
             services.TriggerService = triggerService ?? new GameEventTriggerService(
                 staticDataManager,
-                services.GameState,
                 services.ConditionEvaluator,
                 services.DialoguePlayer,
                 services.PerformancePlayer,

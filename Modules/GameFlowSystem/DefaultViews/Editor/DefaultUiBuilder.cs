@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using KahaGameCore.UserInterfaceSystem;
 using TMPro;
 using UnityEditor;
@@ -352,6 +353,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
             }
             // 預設掛上包內 SampleData 測試表，按 Play 即可遊玩；換成自己的表時直接替換此欄位。
             SetReferenceArray(launcher, "gameDataTables", LoadSampleDataTables());
+            SetReferenceArray(launcher, "parameterTables", LoadSampleParameterTables());
 
             EditorSceneManager.SaveScene(scene, SCENE_PATH);
         }
@@ -513,20 +515,43 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        /// <summary>載入包內 SampleData 的七張測試表（檔名 = 資料型別名稱）。</summary>
+        /// <summary>載入包內 SampleData 的六張測試表（檔名 = 資料型別名稱）。</summary>
         private static Object[] LoadSampleDataTables()
         {
             string[] guids = AssetDatabase.FindAssets("t:TextAsset", new[] { SAMPLE_DATA_FOLDER });
-            Object[] tables = new Object[guids.Length];
-            for (int i = 0; i < guids.Length; i++)
+            List<Object> tables = new List<Object>();
+            foreach (string guid in guids)
             {
-                tables[i] = AssetDatabase.LoadAssetAtPath<TextAsset>(AssetDatabase.GUIDToAssetPath(guids[i]));
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (path.EndsWith(".txt"))
+                {
+                    tables.Add(AssetDatabase.LoadAssetAtPath<TextAsset>(path));
+                }
             }
-            if (tables.Length == 0)
+            if (tables.Count == 0)
             {
                 Debug.LogWarning($"[DefaultUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有表格 TextAsset，gameDataTables 會是空的（將 fallback 到 Resources/GameData）。");
             }
-            return tables;
+            return tables.ToArray();
+        }
+
+        private static Object[] LoadSampleParameterTables()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:TextAsset", new[] { SAMPLE_DATA_FOLDER });
+            List<Object> tables = new List<Object>();
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (path.EndsWith(".parameters.json"))
+                {
+                    tables.Add(AssetDatabase.LoadAssetAtPath<TextAsset>(path));
+                }
+            }
+            if (tables.Count == 0)
+            {
+                Debug.LogWarning($"[DefaultUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有 .parameters.json，parameterTables 會是空的。");
+            }
+            return tables.ToArray();
         }
 
         private static string SavePrefab(GameObject root, string prefabName)

@@ -1,0 +1,16 @@
+{
+    "name": "KahaGameCore.Modules.Parameters",
+    "rootNamespace": "KahaGameCore.Parameters",
+    "references": [
+        "GUID:3d6d896ea5fe86e44ba0a944120e8174"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

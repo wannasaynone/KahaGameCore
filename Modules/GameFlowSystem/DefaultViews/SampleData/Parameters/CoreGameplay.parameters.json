@@ -1,0 +1,15 @@
+{
+  "SchemaVersion": 1,
+  "TableGuid": "9d02b7c1-1e01-4e00-8000-000000000001",
+  "DisplayName": "Core Gameplay",
+  "Parameters": [
+    { "Key": "Supplies", "DisplayName": "物資", "Type": "Int", "InitialValue": "60", "MinValue": "0", "MaxValue": "9999" },
+    { "Key": "Satiety", "DisplayName": "飽腹", "Type": "Int", "InitialValue": "100", "MinValue": "0", "MaxValue": "100" },
+    { "Key": "Spirit", "DisplayName": "精神", "Type": "Int", "InitialValue": "100", "MinValue": "0", "MaxValue": "100" },
+    { "Key": "Day", "DisplayName": "天數", "Type": "Int", "InitialValue": "1", "MinValue": "1", "MaxValue": "999" },
+    { "Key": "WorkCount", "DisplayName": "打工次數", "Type": "Int", "InitialValue": "0", "MinValue": "0", "MaxValue": "999" },
+    { "Key": "OutingUnlocked", "DisplayName": "外出解鎖", "Type": "Bool", "InitialValue": "false" },
+    { "Key": "LocationUnlocked_2", "DisplayName": "市集解鎖", "Type": "Bool", "InitialValue": "false" },
+    { "Key": "LocationUnlocked_3", "DisplayName": "公園解鎖", "Type": "Bool", "InitialValue": "false" }
+  ]
+}

@@ -7,6 +7,9 @@
         "KahaGameCore.Modules.GameFlowSystem",
         "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
         "KahaGameCore.Modules.Expressions",
+        "KahaGameCore.Modules.Expressions.Parameters",
+        "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.StaticData",
         "KahaGameCore.Modules.Effects",
         "UniTask"
     ],

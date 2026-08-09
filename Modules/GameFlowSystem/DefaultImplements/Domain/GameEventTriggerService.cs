@@ -10,7 +10,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
     public class GameEventTriggerService : IGameEventTriggerService
     {
-        private readonly IGameState gameState;
         private readonly IConditionEvaluator conditionEvaluator;
         private readonly IDialoguePlayer dialoguePlayer;
         private readonly IPerformancePlayer performancePlayer;
@@ -19,13 +18,11 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
         public GameEventTriggerService(
             GameStaticDataManager staticDataManager,
-            IGameState gameState,
             IConditionEvaluator conditionEvaluator,
             IDialoguePlayer dialoguePlayer,
             IPerformancePlayer performancePlayer,
             ICommandExecutor commandExecutor)
         {
-            this.gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             this.conditionEvaluator = conditionEvaluator ?? throw new ArgumentNullException(nameof(conditionEvaluator));
             this.dialoguePlayer = dialoguePlayer ?? throw new ArgumentNullException(nameof(dialoguePlayer));
             this.performancePlayer = performancePlayer ?? throw new ArgumentNullException(nameof(performancePlayer));
@@ -57,9 +54,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                     continue;
                 }
 
-                // 先累加觸發次數再執行，避免事件內的指令重入同一時機時重複觸發。
-                gameState.Add(GameValueTags.EventTriggerCount(trigger.ID), 1);
-
                 await ExecuteAsync(trigger);
             }
         }
@@ -86,12 +80,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
         private bool CanExecute(GameEventTriggerData trigger)
         {
-            if (trigger.MaxTriggerTimes > 0 &&
-                gameState.Get(GameValueTags.EventTriggerCount(trigger.ID)) >= trigger.MaxTriggerTimes)
-            {
-                return false;
-            }
-
             return conditionEvaluator.Evaluate(trigger.Condition);
         }
 

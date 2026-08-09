@@ -5,6 +5,7 @@
         "KahaGameCore.Modules.GameFlowSystem",
         "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
         "KahaGameCore.Modules.StaticData",
+        "KahaGameCore.Modules.Parameters",
         "KahaGameCore.GameEvent",
         "KahaGameCore.Modules.UserInterfaceSystem",
         "KahaGameCore.Modules.Dialogue",

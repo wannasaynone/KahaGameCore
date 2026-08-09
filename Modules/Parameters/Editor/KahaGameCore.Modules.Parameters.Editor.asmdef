@@ -1,0 +1,18 @@
+{
+    "name": "KahaGameCore.Modules.Parameters.Editor",
+    "rootNamespace": "KahaGameCore.Parameters.Editor",
+    "references": [
+        "KahaGameCore.Modules.Parameters"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

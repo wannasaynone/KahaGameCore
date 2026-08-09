@@ -45,7 +45,7 @@ namespace KahaGameCore.GameFlowSystem
 
         public async UniTask RunNewGameAsync(CancellationToken token)
         {
-            // 開新局狀態（GameState / TimeService）由組裝根在呼叫前重置，這裡只取目前地點作為起點。
+            // 開新局狀態（Parameters / TimeService / LocationService）由組裝根在呼叫前重置。
             lastEnteredLocationId = locationService.CurrentLocationID;
 
             await triggerService.RaiseTimingAsync(GameFlowTimings.GameStart, token);

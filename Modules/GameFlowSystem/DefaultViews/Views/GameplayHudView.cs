@@ -10,7 +10,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
 {
     /// <summary>
     /// 遊戲主 HUD：天數/時段、數值狀態列、自言自語浮動文字。
-    /// 顯示哪些數值由 GameValueData 表的 ShowInHUD 欄位決定。
+    /// 顯示哪些 Parameter 由 composition root 明列。
     /// </summary>
     public class GameplayHudView : AView
     {

@@ -37,3 +37,23 @@ Expressions core 不認得 Caster／Target，也不依賴 `IValueContainer`；�
 ### 已知限制
 
 `IValueContainer` 目前沒有 `Contains`／`TryGet`，所以 container 已提供時，`Caster.UnknownTag` 會遵循 `GetTotal` 的既有語意得到 `0`。未知 prefix、缺少對應 container 或不完整的 `Caster.`／`Target.` 則回傳 structured unknown-symbol failure。
+
+## Parameters
+
+需要讓計算式或條件式讀取 `ParameterStore` 時，另外引用 integration assembly：
+
+- `KahaGameCore.Modules.Expressions`
+- `KahaGameCore.Modules.Parameters`
+- `KahaGameCore.Modules.Expressions.Parameters`
+
+```csharp
+var context = new ParameterExpressionContext(parameters);
+
+ExpressionResult<float> result = expressions.Calculate(
+    "$Day + $Supplies * 2",
+    context);
+```
+
+`Int`、`Float` 會映射成 Expressions 的 Number，`Bool` 會映射成 Boolean。Expressions 目前沒有 String 值型別，因此 String Parameter 與不存在的 key 都不會被 context 解讀，最終回傳 structured `UnknownSymbol` failure。
+
+Expressions core 不依賴 Parameters；這個依賴只存在於 adapter assembly。

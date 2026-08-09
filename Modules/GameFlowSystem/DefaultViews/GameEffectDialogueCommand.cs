@@ -5,7 +5,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
 {
     /// <summary>
     /// 對話指令「GameEffect」：在對話表中執行遊戲效果指令串。
-    /// 用法：Command=GameEffect，Arg1=效果指令串（如 ShowHint(901) 或 AddValue(Spirit,10)）。
+    /// 用法：Command=GameEffect，Arg1=效果指令串（如 ShowHint(901) 或 AddParameter(Spirit,10)）。
     /// 對話分支（選項跳線）即可改變遊戲狀態，不必硬寫程式。
     /// </summary>
     public class GameEffectDialogueCommand : DialogueCommandBase

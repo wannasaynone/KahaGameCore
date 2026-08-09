@@ -11,22 +11,26 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
     public class LocationService : ILocationService
     {
-        public int CurrentLocationID => gameState.Get(GameValueTags.CurrentLocation);
+        public int CurrentLocationID => currentLocationId;
         public LocationData CurrentLocation => FindLocation(CurrentLocationID);
 
-        private readonly IGameState gameState;
         private readonly IConditionEvaluator conditionEvaluator;
         private readonly List<LocationData> locations;
+        private readonly int initialLocationId;
+        private int currentLocationId;
 
-        public LocationService(GameStaticDataManager staticDataManager, IGameState gameState, IConditionEvaluator conditionEvaluator)
+        public LocationService(GameStaticDataManager staticDataManager, IConditionEvaluator conditionEvaluator)
         {
-            this.gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             this.conditionEvaluator = conditionEvaluator ?? throw new ArgumentNullException(nameof(conditionEvaluator));
 
-            LocationData[] loadedLocations = staticDataManager.GetAllGameData<LocationData>();
-            locations = loadedLocations == null
-                ? new List<LocationData>()
-                : loadedLocations.OrderBy(location => location.SortOrder).ToList();
+            locations = LoadLocations(staticDataManager);
+            initialLocationId = locations.Count == 0 ? 0 : locations[0].ID;
+            currentLocationId = initialLocationId;
+        }
+
+        public void ResetToInitial()
+        {
+            SetCurrentLocation(initialLocationId);
         }
 
         public void MoveTo(int locationId)
@@ -43,7 +47,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                 return;
             }
 
-            gameState.Set(GameValueTags.CurrentLocation, locationId);
+            SetCurrentLocation(locationId);
             EventBus.Publish(new LocationChangedEvent(location));
         }
 
@@ -59,6 +63,19 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         private LocationData FindLocation(int locationId)
         {
             return locations.Find(location => location.ID == locationId);
+        }
+
+        private static List<LocationData> LoadLocations(GameStaticDataManager staticDataManager)
+        {
+            LocationData[] loadedLocations = staticDataManager.GetAllGameData<LocationData>();
+            return loadedLocations == null
+                ? new List<LocationData>()
+                : loadedLocations.OrderBy(location => location.SortOrder).ToList();
+        }
+
+        private void SetCurrentLocation(int locationId)
+        {
+            currentLocationId = locationId;
         }
     }
 }

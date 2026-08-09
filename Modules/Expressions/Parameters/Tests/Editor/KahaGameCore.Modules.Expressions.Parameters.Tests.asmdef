@@ -1,0 +1,26 @@
+{
+    "name": "KahaGameCore.Modules.Expressions.Parameters.Tests",
+    "rootNamespace": "KahaGameCore.Expressions.Tests",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "KahaGameCore.Modules.Expressions",
+        "KahaGameCore.Modules.Expressions.Parameters",
+        "KahaGameCore.Modules.Parameters"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
