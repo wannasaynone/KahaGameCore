@@ -5,7 +5,7 @@ namespace KahaGameCore.Effects
 {
     public sealed class EffectCommandCall
     {
-        public EffectCommandCall(string name, IEnumerable<string> arguments, int position, int length)
+        internal EffectCommandCall(string name, IEnumerable<string> arguments, int position, int length)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Arguments = new List<string>(arguments ?? throw new ArgumentNullException(nameof(arguments))).AsReadOnly();
@@ -21,7 +21,7 @@ namespace KahaGameCore.Effects
 
     public sealed class EffectTimingBlock
     {
-        public EffectTimingBlock(string name, IEnumerable<EffectCommandCall> commands)
+        internal EffectTimingBlock(string name, IEnumerable<EffectCommandCall> commands)
         {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Commands = new List<EffectCommandCall>(commands ?? throw new ArgumentNullException(nameof(commands))).AsReadOnly();
@@ -33,7 +33,7 @@ namespace KahaGameCore.Effects
 
     public sealed class EffectProgram
     {
-        public EffectProgram(bool usesExplicitTimings, IEnumerable<EffectTimingBlock> blocks)
+        internal EffectProgram(bool usesExplicitTimings, IEnumerable<EffectTimingBlock> blocks)
         {
             UsesExplicitTimings = usesExplicitTimings;
             Blocks = new List<EffectTimingBlock>(blocks ?? throw new ArgumentNullException(nameof(blocks))).AsReadOnly();
