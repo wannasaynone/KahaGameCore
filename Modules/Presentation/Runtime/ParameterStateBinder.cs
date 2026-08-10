@@ -62,8 +62,8 @@ namespace KahaGameCore.Presentation
 
             parameters = parameterStore ?? throw new ArgumentNullException(nameof(parameterStore));
             ValidateConfiguration();
-            parameters.Changed += OnParameterChanged;
             Refresh();
+            parameters.Changed += OnParameterChanged;
         }
 
         public void Refresh()

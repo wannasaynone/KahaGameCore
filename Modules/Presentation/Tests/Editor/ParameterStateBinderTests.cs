@@ -49,6 +49,38 @@ namespace KahaGameCore.Presentation.Tests
             }
         }
 
+        [Test]
+        public void InitializeFailure_DoesNotLeaveChangeSubscription()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Bool("Stage", "Stage", initialValue: false)
+            });
+            GameObject host = new GameObject("Binder Host");
+            GameObject stateRoot = new GameObject("State Root");
+            GameObject stateA = new GameObject("A");
+            stateRoot.transform.SetParent(host.transform);
+            stateA.transform.SetParent(stateRoot.transform);
+
+            try
+            {
+                ParameterStateBinder binder = host.AddComponent<ParameterStateBinder>();
+                binder.Configure(
+                    "Stage",
+                    stateRoot.transform,
+                    new[] { new ParameterChildStateMapping(0, 0) });
+
+                Assert.Throws<ParameterTypeMismatchException>(
+                    () => binder.Initialize(parameters));
+
+                Assert.DoesNotThrow(() => parameters.Set("Stage", true));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
         private static void AssertState(
             GameObject stateA,
             GameObject stateB,
