@@ -5,8 +5,8 @@
 ## 核心型別
 
 - `EffectRuntime`：對外 façade，協調解析、序列化、驗證與執行；parser／serializer implementation 位於 `Runtime/Internal`。
-- `EffectCommandRegistry`：保存可用的 `EffectCommandDefinition`；重複名稱會立即失敗。
-- `EffectCommandDefinition`：名稱、顯示名稱、分類、參數 metadata 與 handler。
+- `EffectCommandRegistry`：保存可用的 `EffectCommandDefinition`；`TryGetDefinition` 提供 metadata 查詢，重複名稱會在 composition 時立即拋出 `InvalidOperationException`。
+- `EffectCommandDefinition`：名稱、顯示名稱、分類與參數 metadata；handler 只由 Effects Runtime 讀取。
 - `IEffectCommand`：非同步 handler，接收 `EffectExecutionContext`、參數與 `CancellationToken`。
 - `EffectExecutionResult`：區分 `Succeeded`、`Failed`、`Cancelled`；非成功結果必須附 `EffectDiagnostic`。
 - `EffectExecutionContext`：Caster、Targets 與每次執行的 CustomData，不保存全域遊戲狀態。
@@ -64,7 +64,7 @@ registry.Register(new EffectCommandDefinition(
     new DebugLogCommand()));
 ```
 
-參數 metadata 是 Runtime validation 與後續 Editor picker 的共同來源。當前支援 `Literal`、`NumberExpression`、`ConditionExpression`、`ParameterKey`、`TextKey`、`AssetKey`。
+Runtime 只以參數 metadata 的數量執行 arity validation，不解讀 `Kind`。參數名稱與 `Kind` 提供後續 Editor／authoring tooling 使用；具體 expression、parameter、text 或 asset 語意由對應整合模組負責。當前 metadata kind 包含 `Literal`、`NumberExpression`、`ConditionExpression`、`ParameterKey`、`TextKey`、`AssetKey`。
 
 ## 執行與錯誤處理
 
