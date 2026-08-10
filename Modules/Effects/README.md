@@ -1,525 +1,116 @@
-# KahaGameCore.Effects 技術文件
+# Effects
 
-## 介紹
+`KahaGameCore.Effects` 是文字效果指令的單一執行核心。它負責解析、序列化、指令定義驗證、依序等待執行，以及把解析錯誤、指令錯誤與取消回報成結構化結果。
 
-KahaGameCore.Effects 是一個效果處理系統，專為遊戲開發設計。它允許開發者定義、序列化和執行一系列命令（效果），這些命令可以按照特定的時序（timing）組織和觸發。
+## 核心型別
 
-EffectProcessor 適用於多種遊戲功能實現，如：
-- 過場動畫（Cutscene）
-- 對話系統
-- 技能效果
-- 事件序列
-- 遊戲流程控制
+- `EffectRuntime`：對外 façade，協調解析、序列化、驗證與執行；parser／serializer implementation 位於 `Runtime/Internal`。
+- `EffectCommandRegistry`：保存可用的 `EffectCommandDefinition`；重複名稱會立即失敗。
+- `EffectCommandDefinition`：名稱、顯示名稱、分類、參數 metadata 與 handler。
+- `IEffectCommand`：非同步 handler，接收 `EffectExecutionContext`、參數與 `CancellationToken`。
+- `EffectExecutionResult`：區分 `Succeeded`、`Failed`、`Cancelled`；非成功結果必須附 `EffectDiagnostic`。
+- `EffectExecutionContext`：Caster、Targets 與每次執行的 CustomData，不保存全域遊戲狀態。
 
-## 系統架構
+Effects 不擁有 Game Event queue；跨事件 FIFO、條件與 priority 屬於 `KahaGameCore.GameEvents`。
 
-EffectProcessor 系統由以下主要組件構成：
+## 指令格式
 
-### 核心組件
+一般 GameFlow／Game Event 使用平面格式：
 
-1. **EffectProcessor**：
-   - 主要處理類，管理效果的執行和時序
-   - 維護時序到效果數據的映射
-   - 提供事件回調：OnProcessEnded, OnProcessQuitted, OnProcessDataUpdated
-
-2. **EffectData**：
-   - 實現 IProcessable 接口
-   - 包含命令實例和參數數組
-   - 負責設置處理數據和執行命令
-
-3. **EffectCommandBase**：
-   - 所有效果命令的基類
-   - 定義 Process 方法，接收參數和回調
-   - 包含處理數據引用
-
-4. **ProcessData**：
-   - 包含處理上下文信息
-   - 包括時序、施放者、目標和條件控制
-
-5. **IValueContainer**：
-   - 值容器接口，用於存儲和操作數值
-   - 提供標籤值的增加、設置和獲取方法
-   - 支持字符串鍵值對的操作
-
-6. **EffectCommandFactoryContainer**：
-   - 管理命令工廠的容器
-   - 註冊和獲取命令工廠
-
-7. **EffectCommandFactoryBase**：
-   - 命令工廠的基類
-   - 定義 Create 方法創建命令實例
-
-8. **EffectCommandDeserializer**：
-   - 從文本格式反序列化命令
-   - 解析時序和命令參數
-
-### 類圖關係
-
-```
-EffectProcessor
-├── Dictionary<string, List<EffectData>> m_timingToData
-├── Dictionary<string, Processor<EffectData>> m_timingToProcesser
-├── event Action OnProcessEnded
-├── event Action OnProcessQuitted
-├── event Action<ProcessData> OnProcessDataUpdated
-├── SetUp(Dictionary<string, List<EffectData>> timingToData)
-├── Start(ProcessData processData)
-└── Dispose()
-
-EffectData : IProcessable
-├── EffectCommandBase command
-├── string[] vars
-├── Process(Action onCompleted, Action onForceQuit)
-└── SetProcessData(ProcessData processData)
-
-EffectCommandBase
-├── ProcessData processData
-├── bool IsIfCommand
-└── abstract void Process(string[] vars, Action onCompleted, Action onForceQuit)
-
-ProcessData
-├── string timing
-├── IValueContainer caster
-├── List<IValueContainer> targets
-└── int skipIfCount
-
-IValueContainer
-├── int GetTotal(string tag, bool baseOnly)
-├── Guid Add(string tag, int value)
-├── void AddToTemp(Guid guid, int value)
-├── void SetTemp(Guid guid, int value)
-├── void AddBase(string tag, int value)
-├── void SetBase(string tag, int value)
-├── void Remove(Guid guid)
-├── void AddStringKeyValue(string key, string value)
-├── string GetStringKeyValue(string key)
-├── void RemoveStringKeyValue(string key)
-├── void SetStringKeyValue(string key, string value)
-└── Dictionary<string, string> GetAllStringKeyValuePairs()
-
-EffectCommandFactoryContainer
-├── Dictionary<string, EffectCommandFactoryBase> m_commandNameToFactory
-├── RegisterFactory(string command, EffectCommandFactoryBase factoryBase)
-└── EffectCommandBase GetEffectCommand(string commandName)
-
-EffectCommandFactoryBase
-└── abstract EffectCommandBase Create()
-
-EffectCommandDeserializer
-├── EffectCommandFactoryContainer m_effectCommandFactoryContainer
-├── DeserializeAsync(string rawCommandString)
-└── Deserialize(string rawCommandString)
+```text
+SetParameter(machine_01_stage,1);ShowHint(machine_started);
 ```
 
-## 快速開始
+需要指定 timing 時可使用 block：
 
-### 1. 創建自定義命令
+```text
+Before{Record(start);}After{Record(done);}
+```
 
-首先，創建一個繼承自 `EffectCommandBase` 的命令類：
+參數可加雙引號；逗號、分號、括號、大括號與跳脫字元會由 codec 保留。`Parse` 後再 `Serialize` 必須能 round-trip。
+
+## 建立與註冊指令
 
 ```csharp
-public class DebugLogCommand : EffectCommandBase
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
+
+public sealed class DebugLogCommand : IEffectCommand
 {
-    public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
+    public UniTask ExecuteAsync(
+        EffectExecutionContext context,
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
     {
-        // 執行命令邏輯
-        Debug.Log(vars[0]);
-        
-        // 完成後調用回調
-        onCompleted?.Invoke();
+        cancellationToken.ThrowIfCancellationRequested();
+        UnityEngine.Debug.Log(arguments[0]);
+        return UniTask.CompletedTask;
     }
 }
-```
 
-### 2. 創建命令工廠
-
-為命令創建一個工廠類：
-
-```csharp
-public class DebugLogCommandFactory : EffectCommandFactoryBase
-{
-    public override EffectCommandBase Create()
+EffectCommandRegistry registry = new EffectCommandRegistry();
+registry.Register(new EffectCommandDefinition(
+    "DebugLog",
+    "Debug Log",
+    "Debug",
+    new[]
     {
-        return new DebugLogCommand();
-    }
-}
-```
-
-### 3. 註冊命令工廠
-
-```csharp
-EffectCommandFactoryContainer factoryContainer = new EffectCommandFactoryContainer();
-factoryContainer.RegisterFactory("DebugLog", new DebugLogCommandFactory());
-```
-
-### 4. 創建效果數據
-
-```csharp
-Dictionary<string, List<EffectProcessor.EffectData>> timingToEffectDatas = 
-    new Dictionary<string, List<EffectProcessor.EffectData>>
-{
-    { 
-        "MyTiming", 
-        new List<EffectProcessor.EffectData> 
-        { 
-            new EffectProcessor.EffectData(
-                new DebugLogCommand(), 
-                new string[] { "Hello, World!" }
-            ) 
-        } 
-    }
-};
-```
-
-### 5. 設置和啟動處理器
-
-```csharp
-EffectProcessor effectProcessor = new EffectProcessor();
-effectProcessor.OnProcessEnded += OnProcessEnded;
-effectProcessor.SetUp(timingToEffectDatas);
-effectProcessor.Start(new ProcessData { timing = "MyTiming" });
-```
-
-### 6. 處理完成回調
-
-```csharp
-private void OnProcessEnded()
-{
-    Debug.Log("All effects processed!");
-}
-```
-
-## 使用範例
-
-### 範例1：從文本反序列化命令
-
-```csharp
-// 命令文本格式
-string commandText = @"
-MyTiming {
-    DebugLog(Hello, World!);
-    Wait(2.5);
-    DebugLog(Processing completed!);
-}
-";
-
-// 創建和註冊工廠
-EffectCommandFactoryContainer factoryContainer = new EffectCommandFactoryContainer();
-factoryContainer.RegisterFactory("DebugLog", new DebugLogCommandFactory());
-factoryContainer.RegisterFactory("Wait", new WaitCommandFactory());
-
-// 反序列化命令
-EffectCommandDeserializer deserializer = new EffectCommandDeserializer(factoryContainer);
-Dictionary<string, List<EffectProcessor.EffectData>> timingToEffectDatas = 
-    deserializer.Deserialize(commandText);
-
-// 設置和啟動處理器
-EffectProcessor effectProcessor = new EffectProcessor();
-effectProcessor.SetUp(timingToEffectDatas);
-effectProcessor.Start(new ProcessData { timing = "MyTiming" });
-```
-
-### 範例2：過場動畫系統
-
-```csharp
-// 註冊過場動畫命令
-effectCommandFactoryContainer.RegisterFactory("MoveActor", new MoveActorCommandFactory());
-effectCommandFactoryContainer.RegisterFactory("PlayAnimation", new PlayAnimationCommandFactory());
-effectCommandFactoryContainer.RegisterFactory("SetCamera", new SetCameraCommandFactory());
-effectCommandFactoryContainer.RegisterFactory("FadeIn", new FadeInCommandFactory());
-effectCommandFactoryContainer.RegisterFactory("FadeOut", new FadeOutCommandFactory());
-
-// 從資源加載過場動畫數據
-string cutsceneData = Resources.Load<TextAsset>("Data/MyCutscene").text;
-Dictionary<string, List<EffectProcessor.EffectData>> cutsceneEffects = 
-    deserializer.Deserialize(cutsceneData);
-
-// 播放過場動畫
-effectProcessor.SetUp(cutsceneEffects);
-effectProcessor.Start(new ProcessData { timing = "IntroScene" });
-```
-
-### 範例3：技能效果系統
-
-```csharp
-// 創建技能效果
-Dictionary<string, List<EffectProcessor.EffectData>> skillEffects = 
-    new Dictionary<string, List<EffectProcessor.EffectData>>
-{
-    { 
-        "CastStart", 
-        new List<EffectProcessor.EffectData> 
-        { 
-            new EffectProcessor.EffectData(new PlayParticleCommand(), new string[] { "CastParticle" }),
-            new EffectProcessor.EffectData(new PlaySoundCommand(), new string[] { "CastSound" })
-        } 
+        new EffectCommandParameterDefinition(
+            "message",
+            EffectCommandParameterKind.Literal)
     },
-    { 
-        "OnHit", 
-        new List<EffectProcessor.EffectData> 
-        { 
-            new EffectProcessor.EffectData(new DamageCommand(), new string[] { "50" }),
-            new EffectProcessor.EffectData(new ApplyStatusCommand(), new string[] { "Stun", "2" })
-        } 
-    }
-};
-
-// 設置技能效果
-EffectProcessor skillProcessor = new EffectProcessor();
-skillProcessor.SetUp(skillEffects);
-
-// 施放技能
-skillProcessor.Start(new ProcessData 
-{ 
-    timing = "CastStart",
-    caster = playerCharacter,
-    targets = new List<IValueContainer> { enemyCharacter }
-});
-
-// 當命中目標時
-skillProcessor.Start(new ProcessData 
-{ 
-    timing = "OnHit",
-    caster = playerCharacter,
-    targets = new List<IValueContainer> { enemyCharacter }
-});
+    new DebugLogCommand()));
 ```
 
-### 範例4：對話系統
+參數 metadata 是 Runtime validation 與後續 Editor picker 的共同來源。當前支援 `Literal`、`NumberExpression`、`ConditionExpression`、`ParameterKey`、`TextKey`、`AssetKey`。
+
+## 執行與錯誤處理
 
 ```csharp
-// 定義對話數據
-string dialogueData = @"
-Dialogue1 {
-    ShowDialogueBox();
-    SetSpeaker(Hero);
-    SetDialogueText(Hello, I'm looking for the ancient artifact.);
-    Wait(2);
-    SetSpeaker(Villager);
-    SetDialogueText(You should check the old ruins to the north.);
-    Wait(2);
-    HideDialogueBox();
-}
-";
+EffectRuntime runtime = new EffectRuntime(registry);
+EffectExecutionResult result = await runtime.ExecuteAsync(
+    "DebugLog(ready);",
+    new EffectExecutionContext(),
+    cancellationToken);
 
-// 註冊對話命令
-effectCommandFactoryContainer.RegisterFactory("ShowDialogueBox", new ShowDialogueBoxCommandFactory());
-effectCommandFactoryContainer.RegisterFactory("SetSpeaker", new SetSpeakerCommandFactory());
-effectCommandFactoryContainer.RegisterFactory("SetDialogueText", new SetDialogueTextCommandFactory());
-effectCommandFactoryContainer.RegisterFactory("Wait", new WaitCommandFactory());
-effectCommandFactoryContainer.RegisterFactory("HideDialogueBox", new HideDialogueBoxCommandFactory());
-
-// 反序列化對話
-Dictionary<string, List<EffectProcessor.EffectData>> dialogueEffects = 
-    deserializer.Deserialize(dialogueData);
-
-// 播放對話
-effectProcessor.SetUp(dialogueEffects);
-effectProcessor.Start(new ProcessData { timing = "Dialogue1" });
-```
-
-## 擴充方式
-
-EffectProcessor 系統設計為高度可擴展，以下是幾種擴展方式：
-
-### 1. 創建自定義命令
-
-創建新的命令是最常見的擴展方式：
-
-```csharp
-public class MyCustomCommand : EffectCommandBase
+if (result.Status == EffectExecutionStatus.Cancelled)
 {
-    public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
-    {
-        // 實現自定義邏輯
-        
-        // 完成後調用回調
-        onCompleted?.Invoke();
-        
-        // 或在需要強制退出時
-        // onForceQuit?.Invoke();
-    }
+    throw new OperationCanceledException(cancellationToken);
 }
 
-public class MyCustomCommandFactory : EffectCommandFactoryBase
-{
-    public override EffectCommandBase Create()
-    {
-        return new MyCustomCommand();
-    }
-}
-```
-
-### 2. 創建條件命令
-
-條件命令可以控制後續命令的執行：
-
-```csharp
-public class IfCommand : EffectCommandBase
-{
-    public IfCommand()
-    {
-        IsIfCommand = true; // 標記為條件命令
-    }
-    
-    public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
-    {
-        bool condition = EvaluateCondition(vars);
-        
-        if (condition)
-        {
-            onCompleted?.Invoke(); // 繼續執行後續命令
-        }
-        else
-        {
-            processData.skipIfCount++; // 增加跳過計數
-            onCompleted?.Invoke(); // 繼續但會跳過非條件命令
-        }
-    }
-    
-    private bool EvaluateCondition(string[] vars)
-    {
-        // 實現條件評估邏輯
-        return true;
-    }
-}
-```
-
-### 3. 擴展 IValueContainer 實現
-
-創建自定義值容器實現：
-
-```csharp
-public class GameCharacter : MonoBehaviour, IValueContainer
-{
-    private Dictionary<string, int> baseValues = new Dictionary<string, int>();
-    private Dictionary<Guid, KeyValuePair<string, int>> guidToValue = new Dictionary<Guid, KeyValuePair<string, int>>();
-    private Dictionary<Guid, int> tempValues = new Dictionary<Guid, int>();
-    private Dictionary<string, string> stringKeyValues = new Dictionary<string, string>();
-    
-    // 實現 IValueContainer 接口方法
-    public int GetTotal(string tag, bool baseOnly)
-    {
-        // 實現邏輯
-        int total = 0;
-        
-        if (baseValues.ContainsKey(tag))
-        {
-            total += baseValues[tag];
-        }
-        
-        if (!baseOnly)
-        {
-            foreach (var kvp in guidToValue)
-            {
-                if (kvp.Value.Key == tag)
-                {
-                    int value = kvp.Value.Value;
-                    if (tempValues.ContainsKey(kvp.Key))
-                    {
-                        value = tempValues[kvp.Key];
-                    }
-                    total += value;
-                }
-            }
-        }
-        
-        return total;
-    }
-    
-    public Guid Add(string tag, int value)
-    {
-        Guid guid = Guid.NewGuid();
-        guidToValue.Add(guid, new KeyValuePair<string, int>(tag, value));
-        return guid;
-    }
-    
-    // 實現其他接口方法...
-}
-```
-
-## 進階功能
-
-### 命令參數解析
-
-處理複雜的命令參數：
-
-```csharp
-public class ComplexCommand : EffectCommandBase
-{
-    public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
-    {
-        // 解析數值參數
-        float value = float.Parse(vars[0]);
-        
-        // 解析向量參數
-        Vector3 position = ParseVector3(vars[1]);
-        
-        // 解析目標參數
-        string targetId = vars[2];
-        GameObject target = GameObject.Find(targetId);
-        
-        // 執行命令邏輯
-        
-        onCompleted?.Invoke();
-    }
-    
-    private Vector3 ParseVector3(string vectorString)
-    {
-        string[] components = vectorString.Split(',');
-        return new Vector3(
-            float.Parse(components[0]),
-            float.Parse(components[1]),
-            float.Parse(components[2])
-        );
-    }
-}
-```
-
-### 命令組合
-
-創建組合命令以執行多個子命令：
-
-```csharp
-public class CompositeCommand : EffectCommandBase
-{
-    private List<EffectCommandBase> subCommands = new List<EffectCommandBase>();
-    
-    public CompositeCommand(params EffectCommandBase[] commands)
-    {
-        subCommands.AddRange(commands);
-    }
-    
-    public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
-    {
-        // 創建子命令處理器
-        Processor<EffectProcessor.EffectData> processor = new Processor<EffectProcessor.EffectData>(
-            subCommands.Select(cmd => new EffectProcessor.EffectData(cmd, vars)).ToArray()
-        );
-        
-        // 啟動處理器
-        processor.Start(onCompleted, onForceQuit);
-    }
-}
-```
-
-### 在指令中使用 Expressions
-
-Effects 不負責解讀公式。需要 Caster／Target 公式的 command 可引用獨立的 `KahaGameCore.Modules.Expressions.ValueContainer` integration assembly；Effects core 本身不需要依賴 Expressions：
-
-```csharp
-var expressionContext = new ValueContainerExpressionContext(
-    processData.caster,
-    processData.targets[0]);
-
-ExpressionResult<float> result = expressions.Calculate(vars[0], expressionContext);
 if (!result.IsSuccess)
 {
-    throw new InvalidOperationException(result.Error.ToString());
+    UnityEngine.Debug.LogError(result.FormatDiagnostic());
 }
-
-ApplyDamage(processData.targets[0], (int)result.Value);
-onCompleted?.Invoke();
 ```
 
-計算式支援 `+`、`-`、`*`、`/`、括號、符號與 `Random(min, max)`。條件式請改呼叫 `EvaluateCondition`；它支援比較、`&&`、`||`、`!`，並刻意禁止 `Random`，避免同一條件重算時產生不穩定結果。
+Runtime 嚴格依 source order 等待每個 handler。未知 command、參數數量不符、handler 例外與語法錯誤不會被靜默略過。
+
+## GameFlow 整合
+
+`GameFlowSystemBuilder` 會建立一份 registry 與 runtime，GameFlow 和 Game Events 共用同一組 command definitions。專案指令透過 `AddCommandRegistration` 追加：
+
+```csharp
+builder.AddCommandRegistration(registry =>
+    registry.Register(new EffectCommandDefinition(
+        "DebugLog",
+        "Debug Log",
+        "Debug",
+        new[]
+        {
+            new EffectCommandParameterDefinition(
+                "message",
+                EffectCommandParameterKind.Literal)
+        },
+        new DebugLogCommand())));
+```
+
+不要另建第二套 parser、factory 或 callback processor；擴充點就是 `EffectCommandDefinition` 與 `IEffectCommand`。
+
+## 測試
+
+EditMode assembly：`KahaGameCore.Modules.Effects.Tests`
+
+測試涵蓋 quoted delimiter、brace literal、escape、nested parentheses、timing、round-trip、source order、未知 command、arity、例外、取消、non-success diagnostic invariant 與重複註冊。
