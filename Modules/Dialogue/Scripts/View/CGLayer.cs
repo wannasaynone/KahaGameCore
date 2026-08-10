@@ -27,6 +27,12 @@ namespace KahaGameCore.Dialogue.View
             DialogueView.OnSpeedStateChanged += OnSpeedStateChanged;
         }
 
+        private void OnDisable()
+        {
+            DialogueView.OnSpeedStateChanged -= OnSpeedStateChanged;
+            CancelFade();
+        }
+
         private void OnSpeedStateChanged(DialogueView.SpeedState speedState)
         {
             if (speedState == DialogueView.SpeedState.Accelerated)
@@ -102,7 +108,6 @@ namespace KahaGameCore.Dialogue.View
 
         private void OnDestroy()
         {
-            DialogueView.OnSpeedStateChanged -= OnSpeedStateChanged;
             CancelFade();
         }
     }
