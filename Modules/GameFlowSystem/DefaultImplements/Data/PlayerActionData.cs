@@ -21,7 +21,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Data
         public string VisibleCondition { get; private set; }
         /// <summary>可點擊條件（不符合時按鈕反灰）。</summary>
         public string EnableCondition { get; private set; }
-        /// <summary>執行的效果指令串（EffectProcessor 語法）。</summary>
+        /// <summary>執行的效果指令串（EffectRuntime 語法）。</summary>
         public string Commands { get; private set; }
         /// <summary>按鈕的 UGUI 座標，格式 "x;y"（整數，anchoredPosition）。</summary>
         public string Position { get; private set; }

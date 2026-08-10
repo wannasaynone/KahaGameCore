@@ -10,7 +10,7 @@ namespace KahaGameCore.GameFlowSystem
         string Name { get; }
         /// <summary>按鈕說明文字。</summary>
         string Description { get; }
-        /// <summary>執行的效果指令串（EffectProcessor 語法）。</summary>
+        /// <summary>執行的效果指令串（EffectRuntime 語法）。</summary>
         string Commands { get; }
         /// <summary>按鈕的 UGUI 座標（anchoredPosition）。</summary>
         Vector2 AnchoredPosition { get; }

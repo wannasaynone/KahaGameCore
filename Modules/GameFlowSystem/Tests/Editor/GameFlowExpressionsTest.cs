@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Commands;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.Parameters;
+using KahaGameCore.Effects;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 
@@ -11,6 +13,21 @@ namespace KahaGameCore.GameFlowSystem.Tests
 {
     public class GameFlowExpressionsTest
     {
+        private sealed class TokenCapturingCommand : IEffectCommand
+        {
+            public CancellationToken ReceivedToken { get; private set; }
+
+            public UniTask ExecuteAsync(
+                EffectExecutionContext context,
+                IReadOnlyList<string> arguments,
+                CancellationToken cancellationToken)
+            {
+                ReceivedToken = cancellationToken;
+                cancellationToken.ThrowIfCancellationRequested();
+                return UniTask.CompletedTask;
+            }
+        }
+
         private sealed class FakeLocationService : ILocationService
         {
             public int CurrentLocationID { get; private set; }
@@ -56,20 +73,86 @@ namespace KahaGameCore.GameFlowSystem.Tests
         }
 
         [Test]
-        public void AddParameter_InvalidExpressionDoesNotMutateParameterOrCompleteCommand()
+        public void CommandExecutor_UsesSharedEffectRuntimeToSetParameter()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Int("Base", "Base", 4, 0, 100),
+                ParameterDefinition.Int("Result", "Result", 0, 0, 100)
+            });
+            GameFlowExpressions expressions = new GameFlowExpressions(parameters);
+            EffectCommandRegistry registry = new EffectCommandRegistry();
+            registry.Register(new EffectCommandDefinition(
+                "SetParameter",
+                "Set Parameter",
+                "Parameters",
+                new[]
+                {
+                    new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
+                    new EffectCommandParameterDefinition("value", EffectCommandParameterKind.NumberExpression)
+                },
+                new SetParameterCommand(parameters, expressions)));
+            EffectRuntime runtime = new EffectRuntime(registry);
+            ICommandExecutor executor = new EffectCommandExecutor(runtime);
+
+            executor.ExecuteAsync("SetParameter(Result,$Base * 3)", CancellationToken.None).GetAwaiter().GetResult();
+
+            Assert.That(parameters.GetInt("Result"), Is.EqualTo(12));
+        }
+
+        [Test]
+        public void CommandExecutor_ForwardsCallerCancellationTokenToEffectCommand()
+        {
+            TokenCapturingCommand command = new TokenCapturingCommand();
+            EffectCommandRegistry registry = new EffectCommandRegistry();
+            registry.Register(new EffectCommandDefinition(
+                "CaptureToken",
+                "Capture Token",
+                "Tests",
+                Array.Empty<EffectCommandParameterDefinition>(),
+                command));
+            ICommandExecutor executor = new EffectCommandExecutor(new EffectRuntime(registry));
+            using CancellationTokenSource cancellation = new CancellationTokenSource();
+
+            executor.ExecuteAsync("CaptureToken()", cancellation.Token).GetAwaiter().GetResult();
+
+            Assert.That(command.ReceivedToken, Is.EqualTo(cancellation.Token));
+        }
+
+        [Test]
+        public void CommandExecutor_CancelledEffectThrowsOperationCanceledExceptionWithCallerToken()
+        {
+            TokenCapturingCommand command = new TokenCapturingCommand();
+            EffectCommandRegistry registry = new EffectCommandRegistry();
+            registry.Register(new EffectCommandDefinition(
+                "CaptureToken",
+                "Capture Token",
+                "Tests",
+                Array.Empty<EffectCommandParameterDefinition>(),
+                command));
+            ICommandExecutor executor = new EffectCommandExecutor(new EffectRuntime(registry));
+            using CancellationTokenSource cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            OperationCanceledException exception = Assert.Throws<OperationCanceledException>(() =>
+                executor.ExecuteAsync("CaptureToken()", cancellation.Token).GetAwaiter().GetResult());
+
+            Assert.That(exception.CancellationToken, Is.EqualTo(cancellation.Token));
+        }
+
+        [Test]
+        public void AddParameter_InvalidExpressionDoesNotMutateParameter()
         {
             ParameterStore parameters = new ParameterStore(new[]
             {
                 ParameterDefinition.Int("Supplies", "物資", initialValue: 12, minValue: 0, maxValue: 9999)
             });
             AddParameterCommand command = new AddParameterCommand(parameters, new GameFlowExpressions(parameters));
-            bool completed = false;
 
             Assert.Throws<GameFlowExpressionException>(() =>
-                command.Process(new[] { "Supplies", "$Missing + 1" }, () => completed = true, null));
+                Execute(command, "Supplies", "$Missing + 1"));
 
             Assert.That(parameters.GetInt("Supplies"), Is.EqualTo(12));
-            Assert.That(completed, Is.False);
         }
 
         [Test]
@@ -81,7 +164,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 ParameterDefinition.Int("Result", "結果", initialValue: 0, minValue: 0, maxValue: 99)
             });
 
-            new SetParameterCommand(parameters, new GameFlowExpressions(parameters)).Process(new[] { "Result", "$Base * 3" }, null, null);
+            Execute(new SetParameterCommand(parameters, new GameFlowExpressions(parameters)), "Result", "$Base * 3");
 
             Assert.That(parameters.GetInt("Result"), Is.EqualTo(12));
         }
@@ -95,10 +178,10 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 ParameterDefinition.Bool("OutingUnlocked", "外出解鎖", initialValue: false)
             });
 
-            new SetParameterCommand(parameters, new GameFlowExpressions(parameters)).Process(
-                new[] { "OutingUnlocked", "$Day >= 2" },
-                null,
-                null);
+            Execute(
+                new SetParameterCommand(parameters, new GameFlowExpressions(parameters)),
+                "OutingUnlocked",
+                "$Day >= 2");
 
             Assert.That(parameters.GetBool("OutingUnlocked"), Is.True);
         }
@@ -112,10 +195,10 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 ParameterDefinition.Float("Bonus", "加成", initialValue: 0.25f, minValue: 0f, maxValue: 1f)
             });
 
-            new AddParameterCommand(parameters, new GameFlowExpressions(parameters)).Process(
-                new[] { "Speed", "$Bonus * 2" },
-                null,
-                null);
+            Execute(
+                new AddParameterCommand(parameters, new GameFlowExpressions(parameters)),
+                "Speed",
+                "$Bonus * 2");
 
             Assert.That(parameters.GetFloat("Speed"), Is.EqualTo(2f));
         }
@@ -128,10 +211,10 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 ParameterDefinition.String("PlayerName", "玩家名稱", initialValue: "Mia")
             });
 
-            new SetParameterCommand(parameters, new GameFlowExpressions(parameters)).Process(
-                new[] { "PlayerName", "Noah" },
-                null,
-                null);
+            Execute(
+                new SetParameterCommand(parameters, new GameFlowExpressions(parameters)),
+                "PlayerName",
+                "Noah");
 
             Assert.That(parameters.GetString("PlayerName"), Is.EqualTo("Noah"));
         }
@@ -144,10 +227,10 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 ParameterDefinition.Float("Speed", "速度", initialValue: 1.5f, minValue: 0f, maxValue: 10f)
             });
 
-            new SetParameterCommand(parameters, new GameFlowExpressions(parameters)).Process(
-                new[] { "Speed", "$Speed + 0.25" },
-                null,
-                null);
+            Execute(
+                new SetParameterCommand(parameters, new GameFlowExpressions(parameters)),
+                "Speed",
+                "$Speed + 0.25");
 
             Assert.That(parameters.GetFloat("Speed"), Is.EqualTo(1.75f));
         }
@@ -161,7 +244,9 @@ namespace KahaGameCore.GameFlowSystem.Tests
             });
             FakeLocationService locations = new FakeLocationService();
 
-            new MoveToLocationCommand(new GameFlowExpressions(parameters), locations).Process(new[] { "$Destination + 1" }, null, null);
+            Execute(
+                new MoveToLocationCommand(new GameFlowExpressions(parameters), locations),
+                "$Destination + 1");
 
             Assert.That(locations.CurrentLocationID, Is.EqualTo(7));
         }
@@ -175,7 +260,9 @@ namespace KahaGameCore.GameFlowSystem.Tests
             });
             FakeDialoguePlayer player = new FakeDialoguePlayer();
 
-            new StartDialogueCommand(new GameFlowExpressions(parameters), player).Process(new[] { "$Dialogue" }, null, null);
+            Execute(
+                new StartDialogueCommand(new GameFlowExpressions(parameters), player),
+                "$Dialogue");
 
             Assert.That(player.PlayedId, Is.EqualTo(9));
         }
@@ -190,10 +277,22 @@ namespace KahaGameCore.GameFlowSystem.Tests
             FakeTextProvider text = new FakeTextProvider();
             FakeHintPresenter presenter = new FakeHintPresenter();
 
-            new ShowHintCommand(new GameFlowExpressions(parameters), text, presenter).Process(new[] { "$Hint" }, null, null);
+            Execute(
+                new ShowHintCommand(new GameFlowExpressions(parameters), text, presenter),
+                "$Hint");
 
             Assert.That(text.RequestedId, Is.EqualTo(11));
             Assert.That(presenter.ShownText, Is.EqualTo("Text 11"));
+        }
+
+        private static void Execute(IEffectCommand command, params string[] arguments)
+        {
+            command.ExecuteAsync(
+                    new EffectExecutionContext(),
+                    arguments,
+                    CancellationToken.None)
+                .GetAwaiter()
+                .GetResult();
         }
     }
 }

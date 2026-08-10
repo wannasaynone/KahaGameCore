@@ -1,5 +1,7 @@
-using System;
+using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 
@@ -9,7 +11,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
     /// OpenLocationMenu()：開啟移動選單讓玩家選擇地點；取消則不移動。
     /// 實際的 EnterLocation 事件由流程層在指令串結束後統一觸發。
     /// </summary>
-    public class OpenLocationMenuCommand : KahaGameCore.Effects.EffectCommandBase
+    public class OpenLocationMenuCommand : IEffectCommand
     {
         private readonly ILocationService locationService;
         private readonly ILocationMenuPresenter locationMenuPresenter;
@@ -20,20 +22,19 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
             this.locationMenuPresenter = locationMenuPresenter;
         }
 
-        public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
+        public async UniTask ExecuteAsync(
+            EffectExecutionContext context,
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken)
         {
-            SelectAsync(onCompleted).Forget();
-        }
-
-        private async UniTaskVoid SelectAsync(Action onCompleted)
-        {
-            LocationData selected = await locationMenuPresenter.SelectLocationAsync(locationService.GetSelectableLocations());
+            cancellationToken.ThrowIfCancellationRequested();
+            LocationData selected = await locationMenuPresenter
+                .SelectLocationAsync(locationService.GetSelectableLocations())
+                .AttachExternalCancellation(cancellationToken);
             if (selected != null)
             {
                 locationService.MoveTo(selected.ID);
             }
-
-            onCompleted?.Invoke();
         }
     }
 }

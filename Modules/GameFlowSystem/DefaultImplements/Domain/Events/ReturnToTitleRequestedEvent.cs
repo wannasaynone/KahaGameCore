@@ -1,9 +1,9 @@
-using KahaGameCore.GameEvent;
+using KahaGameCore.Foundation.Messaging;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements.Events
 {
     /// <summary>要求結束目前遊戲流程並返回主標題（由 ReturnToTitle 指令發出）。</summary>
-    public class ReturnToTitleRequestedEvent : GameEventBase
+    public class ReturnToTitleRequestedEvent : MessageBase
     {
     }
 }

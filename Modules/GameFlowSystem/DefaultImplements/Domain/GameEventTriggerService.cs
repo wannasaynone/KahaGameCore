@@ -54,7 +54,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                     continue;
                 }
 
-                await ExecuteAsync(trigger);
+                await ExecuteAsync(trigger, cancellationToken);
             }
         }
 
@@ -83,7 +83,9 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             return conditionEvaluator.Evaluate(trigger.Condition);
         }
 
-        private async UniTask ExecuteAsync(GameEventTriggerData trigger)
+        private async UniTask ExecuteAsync(
+            GameEventTriggerData trigger,
+            CancellationToken cancellationToken)
         {
             await performancePlayer.PlayAsync(trigger.PrePerformance);
 
@@ -92,7 +94,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                 await dialoguePlayer.PlayAsync(trigger.DialogueID);
             }
 
-            await commandExecutor.ExecuteAsync(trigger.Commands);
+            await commandExecutor.ExecuteAsync(trigger.Commands, cancellationToken);
             await performancePlayer.PlayAsync(trigger.PostPerformance);
         }
     }

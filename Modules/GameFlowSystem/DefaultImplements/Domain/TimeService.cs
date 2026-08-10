@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using KahaGameCore.StaticData;
-using KahaGameCore.GameEvent;
+using KahaGameCore.Foundation.Messaging;
 using KahaGameCore.GameFlowSystem;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Events;
@@ -79,7 +79,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                 parameters.Add(DayParameterKey, 1);
             }
 
-            EventBus.Publish(new TimePhaseChangedEvent(phase, CurrentDay));
+            MessageBus.Publish(new TimePhaseChangedEvent(phase, CurrentDay));
         }
     }
 }

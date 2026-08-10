@@ -98,7 +98,7 @@ namespace KahaGameCore.GameFlowSystem
                 return;
             }
 
-            await commandExecutor.ExecuteAsync(chosenAction.Commands);
+            await commandExecutor.ExecuteAsync(chosenAction.Commands, token);
             await triggerService.RaiseTimingAsync(GameFlowTimings.AfterAction(chosenAction.ID), token);
             await RaiseLocationTimingsIfMovedAsync(token);
         }

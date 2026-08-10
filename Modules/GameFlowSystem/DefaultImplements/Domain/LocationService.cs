@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using KahaGameCore.StaticData;
-using KahaGameCore.GameEvent;
+using KahaGameCore.Foundation.Messaging;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Events;
 using UnityEngine;
@@ -48,7 +48,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             }
 
             SetCurrentLocation(locationId);
-            EventBus.Publish(new LocationChangedEvent(location));
+            MessageBus.Publish(new LocationChangedEvent(location));
         }
 
         public IReadOnlyList<LocationData> GetSelectableLocations()

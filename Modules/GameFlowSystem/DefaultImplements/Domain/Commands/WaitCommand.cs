@@ -1,28 +1,33 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Threading;
 using Cysharp.Threading.Tasks;
-using UnityEngine;
+using KahaGameCore.Effects;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
 {
     /// <summary>Wait(秒數)：暫停指令串指定秒數（演出節奏調整用）。</summary>
-    public class WaitCommand : KahaGameCore.Effects.EffectCommandBase
+    public class WaitCommand : IEffectCommand
     {
-        public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
+        public async UniTask ExecuteAsync(
+            EffectExecutionContext context,
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken)
         {
-            if (!float.TryParse(vars[0], out float seconds))
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!float.TryParse(
+                    arguments[0],
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out float seconds))
             {
-                Debug.LogError($"[WaitCommand] 無法解析秒數：{vars[0]}");
-                onCompleted?.Invoke();
-                return;
+                throw new FormatException($"Wait seconds is invalid: '{arguments[0]}'.");
             }
 
-            WaitAsync(seconds, onCompleted).Forget();
-        }
-
-        private async UniTaskVoid WaitAsync(float seconds, Action onCompleted)
-        {
-            await UniTask.Delay(TimeSpan.FromSeconds(seconds));
-            onCompleted?.Invoke();
+            await UniTask.Delay(
+                TimeSpan.FromSeconds(seconds),
+                cancellationToken: cancellationToken);
         }
     }
 }

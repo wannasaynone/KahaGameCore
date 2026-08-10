@@ -1,9 +1,12 @@
-using System;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
 {
     /// <summary>AdvanceTime()：推進到下一個時間階段（依 TimePhaseData.NextID）。</summary>
-    public class AdvanceTimeCommand : KahaGameCore.Effects.EffectCommandBase
+    public class AdvanceTimeCommand : IEffectCommand
     {
         private readonly ITimeService timeService;
 
@@ -12,10 +15,14 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
             this.timeService = timeService;
         }
 
-        public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
+        public UniTask ExecuteAsync(
+            EffectExecutionContext context,
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             timeService.AdvanceTime();
-            onCompleted?.Invoke();
+            return UniTask.CompletedTask;
         }
     }
 }

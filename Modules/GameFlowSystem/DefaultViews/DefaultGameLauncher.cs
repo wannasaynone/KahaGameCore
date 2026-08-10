@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using KahaGameCore.StaticData;
-using KahaGameCore.GameEvent;
+using KahaGameCore.Foundation.Messaging;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.GameFlowSystem.DefaultImplements.DataAccess;
@@ -13,6 +13,8 @@ using KahaGameCore.UserInterfaceSystem;
 using KahaGameCore.Dialogue;
 using KahaGameCore.Dialogue.View;
 using KahaGameCore.Parameters;
+using KahaGameCore.GameEvents;
+using KahaGameCore.Presentation;
 using UnityEngine;
 
 namespace KahaGameCore.GameFlowSystem.DefaultViews
@@ -41,6 +43,11 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         [SerializeField] private TextAsset[] gameDataTables;
         [Tooltip("可指定多張 .parameters.json 大表。留空時改從 Resources/GameData/Parameters 載入。")]
         [SerializeField] private TextAsset[] parameterTables;
+        [Tooltip("Game Event catalog。由 composition root 明確指定，不自動掃描 Resources。")]
+        [SerializeField] private TextAsset[] gameEventFiles;
+        [SerializeField] private SceneGameEventTrigger[] sceneGameEventTriggers;
+        [SerializeField] private ParameterStateBinder[] parameterStateBinders;
+        [SerializeField] private GameObject gameEventSampleRoot;
         [SerializeField] private string gameTitle = "My Game";
         [Tooltip("製作人員名單文字（GameTextData 表的 ID）。")]
         [SerializeField] private int creditsTextId = 950;
@@ -55,6 +62,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         private GameplayHudPresenter hudPresenter;
         private CancellationTokenSource flowCts;
         private bool isGameRunning;
+        private GameEventRunner gameEventRunner;
 
         private void Awake()
         {
@@ -62,7 +70,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             Application.runInBackground = true;
 
             LoadStaticData();
-            EventBus.Subscribe<ReturnToTitleRequestedEvent>(OnReturnToTitleRequested);
+            gameEventSampleRoot?.SetActive(false);
+            MessageBus.Subscribe<ReturnToTitleRequestedEvent>(OnReturnToTitleRequested);
         }
 
         private void Start()
@@ -72,7 +81,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
 
         private void OnDestroy()
         {
-            EventBus.Unsubscribe<ReturnToTitleRequestedEvent>(OnReturnToTitleRequested);
+            MessageBus.Unsubscribe<ReturnToTitleRequestedEvent>(OnReturnToTitleRequested);
             CancelFlow();
             hudPresenter?.Dispose();
         }
@@ -134,6 +143,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             // 開新局：Parameters、Phase、Location 各由自己的 owner 重置。
             services.ResetForNewGame();
             hudPresenter.Refresh();
+            gameEventSampleRoot?.SetActive(true);
 
             flowCts = new CancellationTokenSource();
             services.FlowController.RunNewGameAsync(flowCts.Token).Forget();
@@ -157,6 +167,31 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                 .WithHintPresenter(hintPresenter)
                 .WithLocationMenuPresenter(locationMenuPresenter)
                 .Build();
+
+            GameEventDocumentJsonCodec gameEventCodec = new GameEventDocumentJsonCodec();
+            GameEventCatalog gameEventCatalog = new GameEventCatalog(
+                gameEventFiles ?? Array.Empty<TextAsset>(),
+                gameEventCodec);
+            gameEventRunner = new GameEventRunner(
+                gameEventCatalog,
+                services.EffectRuntime,
+                services.Parameters,
+                gameEventCodec);
+            EventContext eventContext = new EventContext(CancellationToken.None);
+            foreach (SceneGameEventTrigger trigger in sceneGameEventTriggers ?? Array.Empty<SceneGameEventTrigger>())
+            {
+                if (trigger != null)
+                {
+                    trigger.Initialize(gameEventRunner, eventContext);
+                }
+            }
+            foreach (ParameterStateBinder binder in parameterStateBinders ?? Array.Empty<ParameterStateBinder>())
+            {
+                if (binder != null)
+                {
+                    binder.Initialize(services.Parameters);
+                }
+            }
 
             RegisterPerformances();
         }
@@ -198,6 +233,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             hudPresenter = null;
 
             dialogueView.gameObject.SetActive(false);
+            gameEventSampleRoot?.SetActive(false);
             isGameRunning = false;
 
             ShowMainMenuAsync().Forget();

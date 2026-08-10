@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using KahaGameCore.GameEvent;
+using KahaGameCore.Foundation.Messaging;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Events;
 using KahaGameCore.Parameters;
@@ -33,8 +33,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                 : hudParameterDefinitions.ToList();
 
             parameters.Changed += OnParameterChanged;
-            EventBus.Subscribe<TimePhaseChangedEvent>(OnTimePhaseChanged);
-            EventBus.Subscribe<MonologueRequestedEvent>(OnMonologueRequested);
+            MessageBus.Subscribe<TimePhaseChangedEvent>(OnTimePhaseChanged);
+            MessageBus.Subscribe<MonologueRequestedEvent>(OnMonologueRequested);
         }
 
         /// <summary>開新遊戲時重建狀態列。</summary>
@@ -50,8 +50,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         public void Dispose()
         {
             parameters.Changed -= OnParameterChanged;
-            EventBus.Unsubscribe<TimePhaseChangedEvent>(OnTimePhaseChanged);
-            EventBus.Unsubscribe<MonologueRequestedEvent>(OnMonologueRequested);
+            MessageBus.Unsubscribe<TimePhaseChangedEvent>(OnTimePhaseChanged);
+            MessageBus.Unsubscribe<MonologueRequestedEvent>(OnMonologueRequested);
         }
 
         private void OnParameterChanged(ParameterChanged changed)

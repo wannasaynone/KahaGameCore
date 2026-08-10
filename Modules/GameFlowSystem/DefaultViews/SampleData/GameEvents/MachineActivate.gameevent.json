@@ -1,0 +1,9 @@
+{
+  "SchemaVersion": 1,
+  "DocumentGuid": "4c920099-f4f8-4ed6-b7f4-7acf7e105be8",
+  "DisplayName": "啟動機關",
+  "TriggerTiming": "machine_interact",
+  "Condition": "$machine_01_stage == 0",
+  "Priority": 100,
+  "Commands": "SetParameter(machine_01_stage,1);"
+}

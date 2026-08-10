@@ -1,67 +1,49 @@
 using System;
-using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using KahaGameCore.Effects;
-using KahaGameCore.Effects.Data;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
     public class EffectCommandExecutor : ICommandExecutor
     {
-        private const string DEFAULT_TIMING = "Execute";
+        private readonly EffectRuntime runtime;
 
-        private readonly EffectCommandDeserializer deserializer;
-        public EffectCommandExecutor(EffectCommandFactoryContainer factoryContainer)
+        public EffectCommandExecutor(EffectRuntime runtime)
         {
-            if (factoryContainer == null) throw new ArgumentNullException(nameof(factoryContainer));
-            deserializer = new EffectCommandDeserializer(factoryContainer);
+            this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         }
 
         public void Execute(string rawCommands, Action onCompleted)
         {
-            if (string.IsNullOrWhiteSpace(rawCommands))
+            ExecuteWithRuntimeAsync(rawCommands, CancellationToken.None, onCompleted).Forget();
+        }
+
+        public UniTask ExecuteAsync(string rawCommands, CancellationToken cancellationToken)
+        {
+            return ExecuteWithRuntimeAsync(rawCommands, cancellationToken, null);
+        }
+
+        private async UniTask ExecuteWithRuntimeAsync(
+            string rawCommands,
+            CancellationToken cancellationToken,
+            Action onCompleted)
+        {
+            EffectExecutionResult result = await runtime.ExecuteAsync(
+                rawCommands,
+                new EffectExecutionContext(),
+                cancellationToken);
+            if (result.Status == EffectExecutionStatus.Cancelled)
             {
-                onCompleted?.Invoke();
-                return;
+                throw new OperationCanceledException(result.FormatDiagnostic(), cancellationToken);
             }
 
-            Dictionary<string, List<EffectProcessor.EffectData>> timingToData =
-                deserializer.Deserialize(WrapWithDefaultTiming(rawCommands));
-
-            EffectProcessor processor = new EffectProcessor();
-            processor.SetUp(timingToData);
-
-            ProcessData processData = new ProcessData
+            if (result.Status == EffectExecutionStatus.Failed)
             {
-                timing = DEFAULT_TIMING
-            };
+                throw new InvalidOperationException(result.FormatDiagnostic());
+            }
 
-            processor.Start(
-                processData,
-                onEnded: () =>
-                {
-                    processor.Dispose();
-                    onCompleted?.Invoke();
-                },
-                onQuitted: () =>
-                {
-                    processor.Dispose();
-                    onCompleted?.Invoke();
-                });
-        }
-
-        public UniTask ExecuteAsync(string rawCommands)
-        {
-            UniTaskCompletionSource completionSource = new UniTaskCompletionSource();
-            Execute(rawCommands, () => completionSource.TrySetResult());
-            return completionSource.Task;
-        }
-
-        private static string WrapWithDefaultTiming(string rawCommands)
-        {
-            return rawCommands.Contains("{")
-                ? rawCommands
-                : DEFAULT_TIMING + "{" + rawCommands + "}";
+            onCompleted?.Invoke();
         }
     }
 }

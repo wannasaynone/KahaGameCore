@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
 using KahaGameCore.Parameters;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
 {
     /// <summary>AddParameter(Key, Formula)：將 Int／Float Parameter 加上公式結果。</summary>
-    public sealed class AddParameterCommand : KahaGameCore.Effects.EffectCommandBase
+    public sealed class AddParameterCommand : IEffectCommand
     {
         private readonly ParameterStore parameters;
         private readonly GameFlowExpressions expressions;
@@ -15,27 +19,31 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
             this.expressions = expressions ?? throw new ArgumentNullException(nameof(expressions));
         }
 
-        public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
+        public UniTask ExecuteAsync(
+            EffectExecutionContext context,
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken)
         {
-            if (!parameters.TryGetValue(vars[0], out ParameterValue currentValue))
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!parameters.TryGetValue(arguments[0], out ParameterValue currentValue))
             {
-                throw new UnknownParameterException(vars[0]);
+                throw new UnknownParameterException(arguments[0]);
             }
 
             switch (currentValue.Type)
             {
                 case ParameterType.Int:
-                    parameters.Add(vars[0], expressions.CalculateInt(vars[1]));
+                    parameters.Add(arguments[0], expressions.CalculateInt(arguments[1]));
                     break;
                 case ParameterType.Float:
-                    parameters.Add(vars[0], expressions.CalculateNumber(vars[1]));
+                    parameters.Add(arguments[0], expressions.CalculateNumber(arguments[1]));
                     break;
                 default:
                     throw new InvalidOperationException(
-                        $"AddParameter does not support {currentValue.Type} parameter '{vars[0]}'.");
+                        $"AddParameter does not support {currentValue.Type} parameter '{arguments[0]}'.");
             }
 
-            onCompleted?.Invoke();
+            return UniTask.CompletedTask;
         }
     }
 }

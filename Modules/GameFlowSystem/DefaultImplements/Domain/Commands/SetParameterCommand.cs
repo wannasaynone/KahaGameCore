@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
 using KahaGameCore.Parameters;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
 {
     /// <summary>SetParameter(Key, Value)：依目標型別解讀 calculation、condition 或 string literal。</summary>
-    public sealed class SetParameterCommand : KahaGameCore.Effects.EffectCommandBase
+    public sealed class SetParameterCommand : IEffectCommand
     {
         private readonly ParameterStore parameters;
         private readonly GameFlowExpressions expressions;
@@ -15,33 +19,41 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
             this.expressions = expressions ?? throw new ArgumentNullException(nameof(expressions));
         }
 
-        public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
+        public UniTask ExecuteAsync(
+            EffectExecutionContext context,
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken)
         {
-            if (!parameters.TryGetValue(vars[0], out ParameterValue currentValue))
+            cancellationToken.ThrowIfCancellationRequested();
+            ExecuteCore(arguments);
+            return UniTask.CompletedTask;
+        }
+
+        private void ExecuteCore(IReadOnlyList<string> arguments)
+        {
+            if (!parameters.TryGetValue(arguments[0], out ParameterValue currentValue))
             {
-                throw new UnknownParameterException(vars[0]);
+                throw new UnknownParameterException(arguments[0]);
             }
 
             switch (currentValue.Type)
             {
                 case ParameterType.Int:
-                    parameters.Set(vars[0], expressions.CalculateInt(vars[1]));
+                    parameters.Set(arguments[0], expressions.CalculateInt(arguments[1]));
                     break;
                 case ParameterType.Float:
-                    parameters.Set(vars[0], expressions.CalculateNumber(vars[1]));
+                    parameters.Set(arguments[0], expressions.CalculateNumber(arguments[1]));
                     break;
                 case ParameterType.Bool:
-                    parameters.Set(vars[0], expressions.Evaluate(vars[1]));
+                    parameters.Set(arguments[0], expressions.Evaluate(arguments[1]));
                     break;
                 case ParameterType.String:
-                    parameters.Set(vars[0], vars[1]);
+                    parameters.Set(arguments[0], arguments[1]);
                     break;
                 default:
                     throw new InvalidOperationException(
-                        $"SetParameter does not support {currentValue.Type} parameter '{vars[0]}'.");
+                        $"SetParameter does not support {currentValue.Type} parameter '{arguments[0]}'.");
             }
-
-            onCompleted?.Invoke();
         }
     }
 }

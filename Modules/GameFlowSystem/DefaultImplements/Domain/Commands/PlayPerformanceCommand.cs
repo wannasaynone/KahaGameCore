@@ -1,10 +1,12 @@
-using System;
+using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
 {
     /// <summary>PlayPerformance(演出ID)：播放一段已註冊的 UGUI 演出並等待結束。</summary>
-    public class PlayPerformanceCommand : KahaGameCore.Effects.EffectCommandBase
+    public class PlayPerformanceCommand : IEffectCommand
     {
         private readonly IPerformancePlayer performancePlayer;
 
@@ -13,15 +15,14 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
             this.performancePlayer = performancePlayer;
         }
 
-        public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
+        public async UniTask ExecuteAsync(
+            EffectExecutionContext context,
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken)
         {
-            PlayAsync(vars[0], onCompleted).Forget();
-        }
-
-        private async UniTaskVoid PlayAsync(string performanceId, Action onCompleted)
-        {
-            await performancePlayer.PlayAsync(performanceId);
-            onCompleted?.Invoke();
+            cancellationToken.ThrowIfCancellationRequested();
+            await performancePlayer.PlayAsync(arguments[0])
+                .AttachExternalCancellation(cancellationToken);
         }
     }
 }

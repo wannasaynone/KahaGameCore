@@ -21,8 +21,9 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         public IDialoguePlayer DialoguePlayer { get; internal set; }
         public IGameEventTriggerService TriggerService { get; internal set; }
         public GameFlowController FlowController { get; internal set; }
-        /// <summary>效果指令工廠。Build 之後仍可追加註冊專案自訂指令。</summary>
-        public EffectCommandFactoryContainer FactoryContainer { get; internal set; }
+        /// <summary>效果指令定義。所有 GameFlow 與 Game Event 執行共用此 registry。</summary>
+        public EffectCommandRegistry CommandRegistry { get; internal set; }
+        public EffectRuntime EffectRuntime { get; internal set; }
 
         public void ResetForNewGame()
         {
@@ -59,7 +60,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         private IDialoguePlayer dialoguePlayer;
         private IGameEventTriggerService triggerService;
 
-        private Action<EffectCommandFactoryContainer> extraCommandRegistration;
+        private Action<EffectCommandRegistry> extraCommandRegistration;
         private Func<ICommandExecutor, IDialoguePlayer> dialoguePlayerFactory;
 
         /// <param name="staticDataManager">已載入所有表格的資料管理器（可用 LoadDefaultTables 載入預設表）。</param>
@@ -120,7 +121,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         public GameFlowSystemBuilder OverrideTriggerService(IGameEventTriggerService custom) { triggerService = custom; return this; }
 
         /// <summary>在內建指令之外追加專案自訂的效果指令。</summary>
-        public GameFlowSystemBuilder AddCommandRegistration(Action<EffectCommandFactoryContainer> register)
+        public GameFlowSystemBuilder AddCommandRegistration(Action<EffectCommandRegistry> register)
         {
             extraCommandRegistration += register;
             return this;
@@ -155,12 +156,13 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             services.TextProvider = textProvider ?? new GameTextProvider(staticDataManager, services.ConditionEvaluator);
             services.PerformancePlayer = performancePlayer ?? new PerformanceRegistry();
 
-            services.FactoryContainer = new EffectCommandFactoryContainer();
-            services.CommandExecutor = commandExecutor ?? new EffectCommandExecutor(services.FactoryContainer);
+            services.CommandRegistry = new EffectCommandRegistry();
+            services.EffectRuntime = new EffectRuntime(services.CommandRegistry);
+            services.CommandExecutor = commandExecutor ?? new EffectCommandExecutor(services.EffectRuntime);
             services.DialoguePlayer = dialoguePlayer ?? dialoguePlayerFactory(services.CommandExecutor);
 
             EffectCommandRegistrar.RegisterAll(
-                services.FactoryContainer,
+                services.CommandRegistry,
                 services.Parameters,
                 gameFlowExpressions,
                 services.TimeService,
@@ -170,7 +172,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                 services.TextProvider,
                 hintPresenter,
                 locationMenuPresenter);
-            extraCommandRegistration?.Invoke(services.FactoryContainer);
+            extraCommandRegistration?.Invoke(services.CommandRegistry);
 
             services.TriggerService = triggerService ?? new GameEventTriggerService(
                 staticDataManager,

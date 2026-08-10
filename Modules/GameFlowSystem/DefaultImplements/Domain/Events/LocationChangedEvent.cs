@@ -1,9 +1,9 @@
-using KahaGameCore.GameEvent;
+using KahaGameCore.Foundation.Messaging;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements.Events
 {
-    public class LocationChangedEvent : GameEventBase
+    public class LocationChangedEvent : MessageBase
     {
         public LocationData Location { get; }
 

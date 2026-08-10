@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
@@ -37,7 +38,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 onCompleted?.Invoke();
             }
 
-            public UniTask ExecuteAsync(string rawCommands)
+            public UniTask ExecuteAsync(string rawCommands, CancellationToken cancellationToken)
             {
                 ExecutionCount++;
                 return UniTask.CompletedTask;
@@ -165,7 +166,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
         }
 
         [Test]
-        public void SampleParameterTables_LoadEightDefinitionsWithoutFlowStateKeys()
+        public void SampleParameterTables_LoadNineDefinitionsWithoutFlowStateKeys()
         {
             const string folder = "Assets/KahaGameCore/Modules/GameFlowSystem/DefaultViews/SampleData/Parameters";
             string[] paths = AssetDatabase.FindAssets("t:TextAsset", new[] { folder })
@@ -183,10 +184,11 @@ namespace KahaGameCore.GameFlowSystem.Tests
             ParameterStore store = new ParameterStore(definitions);
 
             Assert.That(tables, Has.Length.EqualTo(1));
-            Assert.That(definitions, Has.Length.EqualTo(8));
+            Assert.That(definitions, Has.Length.EqualTo(9));
             Assert.That(store.TryGetValue("Day", out _), Is.True);
             Assert.That(store.TryGetValue("CurrentPhase", out _), Is.False);
             Assert.That(store.TryGetValue("CurrentLocation", out _), Is.False);
+            Assert.That(store.GetInt("machine_01_stage"), Is.EqualTo(0));
         }
 
         private static void AddTable<T>(GameStaticDataManager staticData, string json)

@@ -25,7 +25,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Data
         public string PrePerformance { get; private set; }
         /// <summary>對話與指令結束後播放的演出 ID，空白 = 無。</summary>
         public string PostPerformance { get; private set; }
-        /// <summary>對話結束後執行的效果指令串（EffectProcessor 語法）。</summary>
+        /// <summary>對話結束後執行的效果指令串（EffectRuntime 語法）。</summary>
         public string Commands { get; private set; }
         /// <summary>備註欄，僅供企劃閱讀。</summary>
         public string Note { get; private set; }

@@ -1,10 +1,12 @@
-using System;
+using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
 {
     /// <summary>StartDialogue(對話ID)：播放一段劇情對話並等待結束。</summary>
-    public class StartDialogueCommand : KahaGameCore.Effects.EffectCommandBase
+    public class StartDialogueCommand : IEffectCommand
     {
         private readonly GameFlowExpressions expressions;
         private readonly IDialoguePlayer dialoguePlayer;
@@ -15,16 +17,14 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
             this.dialoguePlayer = dialoguePlayer;
         }
 
-        public override void Process(string[] vars, Action onCompleted, Action onForceQuit)
+        public async UniTask ExecuteAsync(
+            EffectExecutionContext context,
+            IReadOnlyList<string> arguments,
+            CancellationToken cancellationToken)
         {
-            int dialogueId = expressions.CalculateInt(vars[0]);
-            PlayAsync(dialogueId, onCompleted).Forget();
-        }
-
-        private async UniTaskVoid PlayAsync(int dialogueId, Action onCompleted)
-        {
-            await dialoguePlayer.PlayAsync(dialogueId);
-            onCompleted?.Invoke();
+            cancellationToken.ThrowIfCancellationRequested();
+            int dialogueId = expressions.CalculateInt(arguments[0]);
+            await dialoguePlayer.PlayAsync(dialogueId).AttachExternalCancellation(cancellationToken);
         }
     }
 }

@@ -77,9 +77,12 @@ namespace KahaGameCore.GameFlowSystem.Tests
         private class FakeCommandExecutor : IGameFlowCommandExecutor
         {
             public readonly List<string> ExecutedCommands = new List<string>();
-            public UniTask ExecuteAsync(string rawCommands)
+            public readonly List<CancellationToken> ReceivedTokens = new List<CancellationToken>();
+
+            public UniTask ExecuteAsync(string rawCommands, CancellationToken cancellationToken)
             {
                 ExecutedCommands.Add(rawCommands);
+                ReceivedTokens.Add(cancellationToken);
                 return UniTask.CompletedTask;
             }
         }
@@ -164,6 +167,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 new[] { "GameStart", "PhaseStart:Day", "AfterAction:7" },
                 triggerService.RaisedTimings);
             CollectionAssert.AreEqual(new[] { "AddParameter(Satiety,20)" }, commandExecutor.ExecutedCommands);
+            CollectionAssert.AreEqual(new[] { cancelSource.Token }, commandExecutor.ReceivedTokens);
         }
 
         [Test]

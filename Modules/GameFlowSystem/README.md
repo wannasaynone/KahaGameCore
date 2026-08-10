@@ -55,12 +55,15 @@ var services = new GameFlowSystemBuilder(staticDataManager, parameters)
     .WithActionMenuPresenter(actionMenuPresenter)
     .OverrideTimeService(new MyRealTimeService())        // 例：改用真實時間制
     .OverrideConditionEvaluator(new MyLuaEvaluator())    // 例：改用 Lua 條件式
-    .AddCommandRegistration(c => c.RegisterFactory(      // 例：追加專案自訂效果指令
-        "MyCommand", new DelegateEffectCommandFactory(() => new MyCommand())))
+    .AddCommandRegistration(registry => registry.Register( // 例：追加專案自訂效果指令
+        new EffectCommandDefinition(
+            "MyCommand", "My Command", "Project", false,
+            System.Array.Empty<EffectCommandParameterDefinition>(),
+            new MyCommand())))
     .Build();
 ```
 
-`GameFlowServices` 會回傳所有組好的服務（Parameters、TimeService、LocationService、TriggerService、FlowController、FactoryContainer…）。開新局先呼叫 `services.ResetForNewGame()`，由各 owner 重置自己的狀態。
+`GameFlowServices` 會回傳所有組好的服務（Parameters、TimeService、LocationService、TriggerService、FlowController、CommandRegistry、EffectRuntime…）。開新局先呼叫 `services.ResetForNewGame()`，由各 owner 重置自己的狀態。
 
 ## 預設實作內容（DefaultImplements）
 
@@ -70,7 +73,7 @@ var services = new GameFlowSystemBuilder(staticDataManager, parameters)
 | `DataAccess/` | `ResourcesJsonStaticDataHandler`（Resources/GameData/{類別名}.txt）與 `TextAssetJsonStaticDataHandler`（Inspector 手動指定，檔名=型別名） |
 | `Domain/` | GameFlowExpressions（ParameterStore → Expressions adapter）、TimeService（自持 Phase，Day 寫入 Parameter）、LocationService（自持 current location）、PlayerActionProvider、無 execution count 的 GameEventTriggerService、EffectCommandExecutor、GameTextProvider、`IDialoguePlayer`、PerformanceRegistry、EffectCommandRegistrar |
 | `Domain/Commands/` | 內建效果指令：AddParameter、SetParameter、AdvanceTime、SetPhase、MoveToLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle、Wait |
-| `Domain/Events/` | EventBus 事件：GameValueChanged、TimePhaseChanged、LocationChanged、MonologueRequested、ReturnToTitleRequested |
+| `Domain/Events/` | MessageBus 訊息：GameValueChanged、TimePhaseChanged、LocationChanged、MonologueRequested、ReturnToTitleRequested |
 | `GameFlowSystemBuilder.cs` | 組裝器與 `GameFlowServices`；對話播放器以 `WithDialoguePlayerFactory(Func<ICommandExecutor, IDialoguePlayer>)` 注入 |
 
 ## 對話橋接（範例／各專案自備）
@@ -142,7 +145,7 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 | `IGameFlowAction` | `ID`、`Name`、`Description`、`Commands` | 一個玩家行動（通常由表格資料類別實作） |
 | `IGameFlowActionProvider` | `GetVisibleActions(locationId)`、`IsEnabled(action)` | 依地點與條件過濾出可顯示的行動 |
 | `IGameFlowEventTriggerService` | `RaiseTimingAsync(timing, token)` | 在時機點查事件表並依序執行命中的事件 |
-| `IGameFlowCommandExecutor` | `ExecuteAsync(rawCommands)` | 執行行動的效果指令串（建議接 EffectProcessor） |
+| `IGameFlowCommandExecutor` | `ExecuteAsync(rawCommands, token)` | 執行行動的效果指令串，並把流程取消傳入同一份 `EffectRuntime` |
 | `IActionMenuPresenter` | `SelectActionAsync(entries)` | 顯示行動選單並等待玩家選擇；**回傳 null 表示流程被中止** |
 
 實作時的約定：
@@ -208,4 +211,4 @@ actionMenuPresenter.CancelPending();   // 2. 讓等待中的選單以 null 結�
 
 - **核心介面如何對接具體表格型別**：見 `DefaultImplements/` 本身——`ITimeService : IGameFlowTimeService`（以 `new TimePhaseData CurrentPhase` 覆蓋成具體型別供 HUD 使用，`TimeService` 再顯式實作 `IGameFlowTimeService.CurrentPhase`）、`TimePhaseData`（`bool IGameFlowTimePhase.AllowAction => AllowAction == 1;`）、`PlayerActionProvider`（利用 `IReadOnlyList<T>` 協變顯式實作 `IGameFlowActionProvider`）。
 - **組裝根與 UI 層**：`DefaultViews/DefaultGameLauncher.cs`（Builder 用法、返回標題的 CancelFlow + CancelPending）與 `DefaultViews/Presenters/`。
-- **Effect 執行**：`EffectProcessor` 位於 `KahaGameCore.Effects`，Game Flow 透過 `EffectCommandExecutor` 將文字指令轉成 Effect command 後執行。
+- **Effect 執行**：`EffectRuntime` 位於 `KahaGameCore.Effects`；Game Flow 與 Game Events 共用 `GameFlowServices.CommandRegistry`／`EffectRuntime`，`EffectCommandExecutor` 只做 GameFlow 介面轉接。
