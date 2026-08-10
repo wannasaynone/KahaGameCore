@@ -8,10 +8,8 @@
         "KahaGameCore.Modules.StaticData",
         "KahaGameCore.Modules.Serialization",
         "KahaGameCore.Modules.Persistence",
-        "KahaGameCore.GameEvent",
-        "KahaGameCore.Modules.Effects",
-        "KahaGameCore.Modules.Effects.Data",
-        "KahaGameCore.Modules.Effects.Processor"
+        "KahaGameCore.Foundation.Messaging",
+        "KahaGameCore.Modules.Effects"
     ],
     "includePlatforms": [
         "Editor"
