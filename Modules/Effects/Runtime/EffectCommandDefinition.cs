@@ -56,6 +56,6 @@ namespace KahaGameCore.Effects
         public string DisplayName { get; }
         public string Category { get; }
         public IReadOnlyList<EffectCommandParameterDefinition> Parameters { get; }
-        public IEffectCommand Command { get; }
+        internal IEffectCommand Command { get; }
     }
 }

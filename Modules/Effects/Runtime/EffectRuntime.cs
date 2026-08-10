@@ -77,7 +77,7 @@ namespace KahaGameCore.Effects
                         call.Length));
                 }
 
-                if (!registry.TryGet(call.Name, out EffectCommandDefinition definition))
+                if (!registry.TryGetDefinition(call.Name, out EffectCommandDefinition definition))
                 {
                     return EffectExecutionResult.Failed(new EffectDiagnostic(
                         "UnknownCommand",

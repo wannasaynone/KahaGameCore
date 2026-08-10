@@ -139,6 +139,20 @@ namespace KahaGameCore.Effects.Tests
         }
 
         [Test]
+        public void Registry_TryGetDefinitionReturnsRegisteredMetadata()
+        {
+            EffectCommandRegistry registry = new EffectCommandRegistry();
+            EffectCommandDefinition definition = Define("Known", new ThrowingCommand());
+            registry.Register(definition);
+
+            bool found = registry.TryGetDefinition("Known", out EffectCommandDefinition actual);
+
+            Assert.That(found, Is.True);
+            Assert.That(actual, Is.SameAs(definition));
+            Assert.That(registry.TryGetDefinition("Missing", out _), Is.False);
+        }
+
+        [Test]
         public void ExecuteAsync_UnknownCommandReturnsStructuredFailure()
         {
             EffectRuntime runtime = new EffectRuntime(new EffectCommandRegistry());

@@ -17,7 +17,7 @@ namespace KahaGameCore.Effects
             definitions.Add(definition.Name, definition);
         }
 
-        public bool TryGet(string name, out EffectCommandDefinition definition)
+        public bool TryGetDefinition(string name, out EffectCommandDefinition definition)
         {
             return definitions.TryGetValue(name, out definition);
         }
