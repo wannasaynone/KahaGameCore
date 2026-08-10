@@ -69,21 +69,8 @@ namespace KahaGameCore.Presentation
         public void Refresh()
         {
             ValidateConfiguration();
-            if (!parameters.TryGetValue(parameterKey, out ParameterValue value))
-            {
-                throw new UnknownParameterException(parameterKey);
-            }
-
-            if (value.Type != ParameterType.Int)
-            {
-                throw new ParameterTypeMismatchException(
-                    parameterKey,
-                    value.Type,
-                    ParameterType.Int);
-            }
-
+            int currentValue = parameters.GetInt(parameterKey);
             int activeChildIndex = -1;
-            int currentValue = value.AsInt();
             for (int index = 0; index < mappings.Count; index++)
             {
                 if (mappings[index].Value == currentValue)

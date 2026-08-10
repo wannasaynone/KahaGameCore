@@ -93,6 +93,22 @@ namespace KahaGameCore.Parameters.Tests
         }
 
         [Test]
+        public void TypedGetter_WrongTypeReportsExpectedAndActualTypes()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Bool("OutingUnlocked", "外出解鎖", initialValue: false)
+            });
+
+            ParameterTypeMismatchException error = Assert.Throws<ParameterTypeMismatchException>(
+                () => parameters.GetInt("OutingUnlocked"));
+
+            Assert.That(error.ExpectedType, Is.EqualTo(ParameterType.Int));
+            Assert.That(error.ActualType, Is.EqualTo(ParameterType.Bool));
+            StringAssert.Contains("expects Int, but received Bool", error.Message);
+        }
+
+        [Test]
         public void Definition_RejectsInitialValueOutsideBounds()
         {
             InvalidParameterDefinitionException error = Assert.Throws<InvalidParameterDefinitionException>(

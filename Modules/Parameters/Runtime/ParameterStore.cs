@@ -214,7 +214,7 @@ namespace KahaGameCore.Parameters
             ParameterValue value = GetValue(key);
             if (value.Type != expectedType)
             {
-                throw new ParameterTypeMismatchException(key, value.Type, expectedType);
+                throw new ParameterTypeMismatchException(key, expectedType, value.Type);
             }
 
             return value;
