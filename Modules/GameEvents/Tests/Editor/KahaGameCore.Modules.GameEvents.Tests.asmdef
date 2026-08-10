@@ -1,0 +1,32 @@
+{
+    "name": "KahaGameCore.Modules.GameEvents.Tests",
+    "rootNamespace": "KahaGameCore.GameEvents.Tests",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.Effects",
+        "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Expressions",
+        "KahaGameCore.Modules.Expressions.Parameters",
+        "KahaGameCore.Modules.ValueContainer",
+        "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
+        "UnityEngine.UI",
+        "UniTask"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

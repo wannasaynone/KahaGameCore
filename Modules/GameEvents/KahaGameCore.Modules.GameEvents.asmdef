@@ -1,0 +1,22 @@
+{
+    "name": "KahaGameCore.Modules.GameEvents",
+    "rootNamespace": "KahaGameCore.GameEvents",
+    "references": [
+        "KahaGameCore.Modules.Effects",
+        "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Expressions",
+        "KahaGameCore.Modules.Expressions.Parameters",
+        "KahaGameCore.Modules.ValueContainer",
+        "GUID:3d6d896ea5fe86e44ba0a944120e8174",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
