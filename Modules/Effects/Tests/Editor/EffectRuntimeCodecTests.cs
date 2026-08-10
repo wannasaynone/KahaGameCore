@@ -64,5 +64,21 @@ namespace KahaGameCore.Effects.Tests
             Assert.That(reparsed.Program.Blocks[0].Commands[0].Arguments[0],
                 Is.EqualTo("Use { and } literally"));
         }
+
+        [TestCase("  Missing();", 2)]
+        [TestCase("Start{\n  Missing();\n}", 9)]
+        public void Parse_CommandSpanExcludesSurroundingWhitespace(
+            string source,
+            int expectedPosition)
+        {
+            EffectRuntime runtime = new EffectRuntime(new EffectCommandRegistry());
+
+            EffectParseResult parsed = runtime.Parse(source);
+
+            Assert.That(parsed.IsSuccess, Is.True, parsed.FormatDiagnostics());
+            EffectCommandCall command = parsed.Program.Blocks[0].Commands[0];
+            Assert.That(command.Position, Is.EqualTo(expectedPosition));
+            Assert.That(command.Length, Is.EqualTo("Missing()".Length));
+        }
     }
 }

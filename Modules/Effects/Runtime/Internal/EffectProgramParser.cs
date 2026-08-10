@@ -151,9 +151,23 @@ namespace KahaGameCore.Effects.Internal
                 string commandSource = source.Substring(commandStart, index - commandStart);
                 if (!string.IsNullOrWhiteSpace(commandSource))
                 {
+                    int contentStart = 0;
+                    while (contentStart < commandSource.Length &&
+                           char.IsWhiteSpace(commandSource[contentStart]))
+                    {
+                        contentStart++;
+                    }
+
+                    int contentEnd = commandSource.Length;
+                    while (contentEnd > contentStart &&
+                           char.IsWhiteSpace(commandSource[contentEnd - 1]))
+                    {
+                        contentEnd--;
+                    }
+
                     EffectParseResult commandResult = ParseCommand(
-                        commandSource,
-                        offset + commandStart);
+                        commandSource.Substring(contentStart, contentEnd - contentStart),
+                        offset + commandStart + contentStart);
                     if (!commandResult.IsSuccess)
                     {
                         return commandResult;
