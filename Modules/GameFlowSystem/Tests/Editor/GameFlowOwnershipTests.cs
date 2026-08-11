@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using KahaGameCore.GameEvents;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.GameFlowSystem.DefaultImplements.DataAccess;
@@ -22,27 +23,11 @@ namespace KahaGameCore.GameFlowSystem.Tests
             public UniTask PlayAsync(int dialogueId) => UniTask.CompletedTask;
         }
 
-        private sealed class NoOpPerformancePlayer : IPerformancePlayer
+        private sealed class NoOpTriggerService : IGameFlowEventTriggerService
         {
-            public void Register(string performanceId, IStagePerformance performance) { }
-            public UniTask PlayAsync(string performanceId) => UniTask.CompletedTask;
-        }
-
-        private sealed class RecordingCommandExecutor : ICommandExecutor
-        {
-            public int ExecutionCount { get; private set; }
-
-            public void Execute(string rawCommands, Action onCompleted)
-            {
-                ExecutionCount++;
-                onCompleted?.Invoke();
-            }
-
-            public UniTask ExecuteAsync(string rawCommands, CancellationToken cancellationToken)
-            {
-                ExecutionCount++;
-                return UniTask.CompletedTask;
-            }
+            public UniTask RaiseTimingAsync(
+                string timing,
+                CancellationToken cancellationToken = default) => UniTask.CompletedTask;
         }
 
         private sealed class NoOpActionMenuPresenter : IActionMenuPresenter
@@ -57,8 +42,8 @@ namespace KahaGameCore.GameFlowSystem.Tests
         public void TimeService_AdvancingIntoNewDay_ChangesDayParameterAndOwnsCurrentPhase()
         {
             TextAsset phases = new TextAsset(
-                "[{\"ID\":1,\"Key\":\"Morning\",\"DisplayName\":\"早晨\",\"NextID\":2,\"IsNewDay\":1,\"AllowAction\":1}," +
-                "{\"ID\":2,\"Key\":\"Night\",\"DisplayName\":\"晚上\",\"NextID\":1,\"IsNewDay\":0,\"AllowAction\":1}]")
+                "[{\"ID\":1,\"Key\":\"Morning\",\"DisplayName\":\"早晨\",\"NextID\":2,\"IsNewDay\":1}," +
+                "{\"ID\":2,\"Key\":\"Night\",\"DisplayName\":\"晚上\",\"NextID\":1,\"IsNewDay\":0}]")
             {
                 name = nameof(TimePhaseData)
             };
@@ -71,8 +56,8 @@ namespace KahaGameCore.GameFlowSystem.Tests
             TimeService time = new TimeService(staticData, parameters);
 
             time.ResetToFirstPhase();
-            time.AdvanceTime();
-            time.AdvanceTime();
+            time.AdvancePhase();
+            time.AdvancePhase();
 
             Assert.That(parameters.GetInt("Day"), Is.EqualTo(2));
             Assert.That(time.CurrentDay, Is.EqualTo(2));
@@ -104,42 +89,15 @@ namespace KahaGameCore.GameFlowSystem.Tests
         }
 
         [Test]
-        public void GameEventTriggerService_RepeatedTiming_DoesNotKeepExecutionCounts()
-        {
-            TextAsset triggers = new TextAsset(
-                "[{\"ID\":1,\"Timing\":\"GameStart\",\"Condition\":\"\",\"Priority\":100," +
-                "\"DialogueID\":0,\"PrePerformance\":\"\",\"PostPerformance\":\"\",\"Commands\":\"Ping()\"}]")
-            {
-                name = nameof(GameEventTriggerData)
-            };
-            GameStaticDataManager staticData = new GameStaticDataManager();
-            staticData.Add<GameEventTriggerData>(new TextAssetJsonStaticDataHandler(new[] { triggers }));
-            ParameterStore parameters = new ParameterStore(new ParameterDefinition[0]);
-            RecordingCommandExecutor commands = new RecordingCommandExecutor();
-            GameEventTriggerService service = new GameEventTriggerService(
-                staticData,
-                new GameFlowExpressions(parameters),
-                new NoOpDialoguePlayer(),
-                new NoOpPerformancePlayer(),
-                commands);
-
-            service.RaiseTimingAsync("GameStart").GetAwaiter().GetResult();
-            service.RaiseTimingAsync("GameStart").GetAwaiter().GetResult();
-
-            Assert.That(commands.ExecutionCount, Is.EqualTo(2));
-        }
-
-        [Test]
         public void Builder_UsesCompositionRootParameterStoreAcrossDefaultServices()
         {
             GameStaticDataManager staticData = new GameStaticDataManager();
             AddTable<TimePhaseData>(staticData,
-                "[{\"ID\":1,\"Key\":\"Morning\",\"DisplayName\":\"早晨\",\"NextID\":1,\"IsNewDay\":0,\"AllowAction\":1}]");
+                "[{\"ID\":1,\"Key\":\"Morning\",\"DisplayName\":\"早晨\",\"NextID\":1,\"IsNewDay\":0}]");
             AddTable<LocationData>(staticData,
                 "[{\"ID\":1,\"Name\":\"小屋\",\"VisibleCondition\":\"\",\"ShowInMenu\":0,\"SortOrder\":1}," +
                 "{\"ID\":2,\"Name\":\"市集\",\"VisibleCondition\":\"\",\"ShowInMenu\":1,\"SortOrder\":2}]");
             AddTable<PlayerActionData>(staticData, "[]");
-            AddTable<GameEventTriggerData>(staticData, "[]");
             AddTable<GameTextData>(staticData, "[]");
             ParameterStore parameters = new ParameterStore(new[]
             {
@@ -150,6 +108,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
             GameFlowServices services = new GameFlowSystemBuilder(staticData, parameters)
                 .WithActionMenuPresenter(new NoOpActionMenuPresenter())
                 .OverrideDialoguePlayer(new NoOpDialoguePlayer())
+                .WithEventTriggerFactory(_ => new NoOpTriggerService())
                 .Build();
 
             Assert.That(services.Parameters, Is.SameAs(parameters));
@@ -166,7 +125,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
         }
 
         [Test]
-        public void SampleParameterTables_LoadNineDefinitionsWithoutFlowStateKeys()
+        public void SampleParameterTables_LoadEightDefinitionsWithoutFlowStateKeys()
         {
             const string folder = "Assets/KahaGameCore/Modules/GameFlowSystem/DefaultViews/SampleData/Parameters";
             string[] paths = AssetDatabase.FindAssets("t:TextAsset", new[] { folder })
@@ -184,11 +143,48 @@ namespace KahaGameCore.GameFlowSystem.Tests
             ParameterStore store = new ParameterStore(definitions);
 
             Assert.That(tables, Has.Length.EqualTo(1));
-            Assert.That(definitions, Has.Length.EqualTo(9));
+            Assert.That(definitions, Has.Length.EqualTo(8));
             Assert.That(store.TryGetValue("Day", out _), Is.True);
             Assert.That(store.TryGetValue("CurrentPhase", out _), Is.False);
             Assert.That(store.TryGetValue("CurrentLocation", out _), Is.False);
-            Assert.That(store.GetInt("machine_01_stage"), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void SampleActions_AllReferenceCatalogGameEventTimings()
+        {
+            const string sampleFolder =
+                "Assets/KahaGameCore/Modules/GameFlowSystem/DefaultViews/SampleData";
+            string[] eventPaths = AssetDatabase
+                .FindAssets("t:TextAsset", new[] { sampleFolder + "/GameEvents" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Where(path => path.EndsWith(".gameevent.json"))
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToArray();
+            TextAsset[] eventFiles = eventPaths
+                .Select(path => AssetDatabase.LoadAssetAtPath<TextAsset>(path))
+                .ToArray();
+            GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
+
+            Assert.DoesNotThrow(() => new GameEventCatalog(eventFiles, codec));
+            HashSet<string> catalogTimings = eventFiles
+                .Select(file => codec.Read(file.text).TriggerTiming)
+                .ToHashSet(StringComparer.Ordinal);
+
+            TextAsset actionTable = AssetDatabase.LoadAssetAtPath<TextAsset>(
+                sampleFolder + "/PlayerActionData.txt");
+            GameStaticDataManager staticData = new GameStaticDataManager();
+            staticData.Add<PlayerActionData>(
+                new TextAssetJsonStaticDataHandler(new[] { actionTable }));
+            PlayerActionData[] actions = staticData.GetAllGameData<PlayerActionData>();
+
+            Assert.That(actions, Has.Length.GreaterThan(0));
+            foreach (PlayerActionData action in actions)
+            {
+                Assert.That(
+                    catalogTimings,
+                    Does.Contain(action.TriggerTiming),
+                    $"Action {action.ID} references missing timing '{action.TriggerTiming}'.");
+            }
         }
 
         private static void AddTable<T>(GameStaticDataManager staticData, string json)

@@ -46,7 +46,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             ApplyPhase(phases[0], isNewDayCounted: false);
         }
 
-        public void AdvanceTime()
+        public void AdvancePhase()
         {
             TimePhaseData nextPhase = phases.Find(phase => phase.ID == CurrentPhase.NextID);
             if (nextPhase == null)

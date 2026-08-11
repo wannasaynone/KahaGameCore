@@ -10,7 +10,6 @@
     { "Key": "WorkCount", "DisplayName": "打工次數", "Type": "Int", "InitialValue": "0", "MinValue": "0", "MaxValue": "999" },
     { "Key": "OutingUnlocked", "DisplayName": "外出解鎖", "Type": "Bool", "InitialValue": "false" },
     { "Key": "LocationUnlocked_2", "DisplayName": "市集解鎖", "Type": "Bool", "InitialValue": "false" },
-    { "Key": "LocationUnlocked_3", "DisplayName": "公園解鎖", "Type": "Bool", "InitialValue": "false" },
-    { "Key": "machine_01_stage", "DisplayName": "機關階段", "Type": "Int", "InitialValue": "0", "MinValue": "0", "MaxValue": "2" }
+    { "Key": "LocationUnlocked_3", "DisplayName": "公園解鎖", "Type": "Bool", "InitialValue": "false" }
   ]
 }

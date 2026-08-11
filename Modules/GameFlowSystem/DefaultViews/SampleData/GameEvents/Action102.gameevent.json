@@ -1,0 +1,9 @@
+{
+  "SchemaVersion": 1,
+  "DocumentGuid": "11111111-1111-4111-8111-111111111102",
+  "DisplayName": "簡單進食",
+  "TriggerTiming": "Action:102",
+  "Condition": "",
+  "Priority": 100,
+  "Commands": "AddParameter(Supplies,-5);AddParameter(Satiety,8);AdvancePhase();"
+}

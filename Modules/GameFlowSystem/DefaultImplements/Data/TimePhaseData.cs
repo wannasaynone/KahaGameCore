@@ -18,11 +18,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Data
         public int NextID { get; private set; }
         /// <summary>1 = 進入此階段時天數 +1（換日）。</summary>
         public int IsNewDay { get; private set; }
-        /// <summary>1 = 此階段開放玩家選擇行動；0 = 觸發完事件後自動推進。</summary>
-        public int AllowAction { get; private set; }
         /// <summary>備註欄，僅供企劃閱讀。</summary>
         public string Note { get; private set; }
 
-        bool IGameFlowTimePhase.AllowAction => AllowAction == 1;
     }
 }

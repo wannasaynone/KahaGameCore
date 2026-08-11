@@ -21,8 +21,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Data
         public string VisibleCondition { get; private set; }
         /// <summary>可點擊條件（不符合時按鈕反灰）。</summary>
         public string EnableCondition { get; private set; }
-        /// <summary>執行的效果指令串（EffectRuntime 語法）。</summary>
-        public string Commands { get; private set; }
+        /// <summary>選擇行動後觸發的 Game Event timing。</summary>
+        public string TriggerTiming { get; private set; }
         /// <summary>按鈕的 UGUI 座標，格式 "x;y"（整數，anchoredPosition）。</summary>
         public string Position { get; private set; }
         /// <summary>所屬選單群組（Google Sheet: MenuGroup 欄）；空白 = 根選單。子選單依此欄位篩選成員。</summary>

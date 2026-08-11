@@ -35,8 +35,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                 Parameter("key", EffectCommandParameterKind.ParameterKey),
                 Parameter("value", EffectCommandParameterKind.Literal)));
             registry.Register(Define(
-                "AdvanceTime", "Game Flow",
-                new AdvanceTimeCommand(timeService)));
+                "AdvancePhase", "Game Flow",
+                new AdvancePhaseCommand(timeService)));
             registry.Register(Define(
                 "SetPhase", "Game Flow",
                 new SetPhaseCommand(timeService),

@@ -5,53 +5,12 @@ using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Commands;
 using KahaGameCore.Parameters;
 using NUnit.Framework;
-using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 namespace KahaGameCore.GameEvents.Tests
 {
     public sealed class SceneGameEventTriggerTests
     {
-        [Test]
-        public void GameFlowSample_TriggerButtonPersistsSceneTriggerCall()
-        {
-            Scene scene = EditorSceneManager.OpenScene(
-                "Assets/Scenes/GameFlowGame.unity",
-                OpenSceneMode.Additive);
-
-            try
-            {
-                Button triggerButton = null;
-                GameObject[] roots = scene.GetRootGameObjects();
-                for (int index = 0; index < roots.Length && triggerButton == null; index++)
-                {
-                    Button[] buttons = roots[index].GetComponentsInChildren<Button>(true);
-                    for (int buttonIndex = 0; buttonIndex < buttons.Length; buttonIndex++)
-                    {
-                        if (buttons[buttonIndex].name == "TriggerButton")
-                        {
-                            triggerButton = buttons[buttonIndex];
-                            break;
-                        }
-                    }
-                }
-
-                Assert.That(triggerButton, Is.Not.Null);
-                SceneGameEventTrigger trigger = triggerButton.GetComponent<SceneGameEventTrigger>();
-                Assert.That(trigger, Is.Not.Null);
-                Assert.That(triggerButton.onClick.GetPersistentEventCount(), Is.EqualTo(1));
-                Assert.That(triggerButton.onClick.GetPersistentTarget(0), Is.SameAs(trigger));
-                Assert.That(triggerButton.onClick.GetPersistentMethodName(0),
-                    Is.EqualTo(nameof(SceneGameEventTrigger.Trigger)));
-            }
-            finally
-            {
-                EditorSceneManager.CloseScene(scene, true);
-            }
-        }
-
         [Test]
         public void TriggerAsync_RunsDirectlyReferencedGameEventFile()
         {

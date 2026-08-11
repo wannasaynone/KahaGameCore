@@ -5,12 +5,12 @@ using KahaGameCore.Effects;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
 {
-    /// <summary>AdvanceTime()：推進到下一個時間階段（依 TimePhaseData.NextID）。</summary>
-    public class AdvanceTimeCommand : IEffectCommand
+    /// <summary>AdvancePhase()：依 TimePhaseData.NextID 推進到下一個 Phase。</summary>
+    public sealed class AdvancePhaseCommand : IEffectCommand
     {
         private readonly ITimeService timeService;
 
-        public AdvanceTimeCommand(ITimeService timeService)
+        public AdvancePhaseCommand(ITimeService timeService)
         {
             this.timeService = timeService;
         }
@@ -21,7 +21,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            timeService.AdvanceTime();
+            timeService.AdvancePhase();
             return UniTask.CompletedTask;
         }
     }

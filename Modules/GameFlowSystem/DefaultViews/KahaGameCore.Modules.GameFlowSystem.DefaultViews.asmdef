@@ -9,6 +9,7 @@
         "KahaGameCore.Modules.Effects",
         "KahaGameCore.Foundation.Messaging",
         "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.GameFlowSystem.GameEventsIntegration",
         "KahaGameCore.Modules.Presentation",
         "KahaGameCore.Modules.UserInterfaceSystem",
         "KahaGameCore.Modules.Dialogue",

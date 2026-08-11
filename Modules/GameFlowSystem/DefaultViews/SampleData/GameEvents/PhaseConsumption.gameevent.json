@@ -1,0 +1,9 @@
+{
+  "SchemaVersion": 1,
+  "DocumentGuid": "22222222-2222-4222-8222-222222222188",
+  "DisplayName": "Phase 自然消耗",
+  "TriggerTiming": "PhaseStart",
+  "Condition": "",
+  "Priority": 2000,
+  "Commands": "AddParameter(Satiety,-10);AddParameter(Spirit,-9);"
+}

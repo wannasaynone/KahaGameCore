@@ -14,6 +14,7 @@ using KahaGameCore.Dialogue;
 using KahaGameCore.Dialogue.View;
 using KahaGameCore.Parameters;
 using KahaGameCore.GameEvents;
+using KahaGameCore.GameFlowSystem.GameEventsIntegration;
 using KahaGameCore.Presentation;
 using UnityEngine;
 
@@ -39,7 +40,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         [SerializeField] private DialogueView dialogueView;
         [Tooltip("行動選單、提示視窗等覆蓋層 View 的父節點。")]
         [SerializeField] private RectTransform overlayRoot;
-        [Tooltip("六張表的 JSON TextAsset（檔名需與資料型別名稱一致，如 TimePhaseData.txt，含 DialogueData）。留空時改從 Resources/GameData/{型別名}.txt 載入。")]
+        [Tooltip("五張表的 JSON TextAsset（檔名需與資料型別名稱一致，如 TimePhaseData.txt，含 DialogueData）。留空時改從 Resources/GameData/{型別名}.txt 載入。")]
         [SerializeField] private TextAsset[] gameDataTables;
         [Tooltip("可指定多張 .parameters.json 大表。留空時改從 Resources/GameData/Parameters 載入。")]
         [SerializeField] private TextAsset[] parameterTables;
@@ -47,7 +48,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         [SerializeField] private TextAsset[] gameEventFiles;
         [SerializeField] private SceneGameEventTrigger[] sceneGameEventTriggers;
         [SerializeField] private ParameterStateBinder[] parameterStateBinders;
-        [SerializeField] private GameObject gameEventSampleRoot;
         [SerializeField] private string gameTitle = "My Game";
         [Tooltip("製作人員名單文字（GameTextData 表的 ID）。")]
         [SerializeField] private int creditsTextId = 950;
@@ -70,7 +70,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             Application.runInBackground = true;
 
             LoadStaticData();
-            gameEventSampleRoot?.SetActive(false);
             MessageBus.Subscribe<ReturnToTitleRequestedEvent>(OnReturnToTitleRequested);
         }
 
@@ -146,7 +145,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
 
             flowCts = new CancellationTokenSource();
             InitializeSceneGameEventTriggers(flowCts.Token);
-            gameEventSampleRoot?.SetActive(true);
             services.FlowController.RunNewGameAsync(flowCts.Token).Forget();
         }
 
@@ -161,23 +159,27 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             locationMenuPresenter = new LocationMenuPresenter(InstantiateOverlayView<LocationMenuView>(LOCATION_MENU_VIEW_PATH));
             hintPresenter = new HintPresenter(InstantiateOverlayView<HintPopupView>(HINT_POPUP_VIEW_PATH));
 
-            // 全部採用預設實作；有專案特殊需求時改用 Override 系列方法傳入。
+            GameEventDocumentJsonCodec gameEventCodec = new GameEventDocumentJsonCodec();
+            GameEventCatalog gameEventCatalog = new GameEventCatalog(
+                gameEventFiles ?? Array.Empty<TextAsset>(),
+                gameEventCodec);
+
+            // 全部採用預設實作；Game Events 由可選 integration assembly 接入。
             services = new GameFlowSystemBuilder(staticDataManager, parameters)
                 .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
                 .WithActionMenuPresenter(actionMenuPresenter)
                 .WithHintPresenter(hintPresenter)
                 .WithLocationMenuPresenter(locationMenuPresenter)
+                .WithEventTriggerFactory(effectRuntime =>
+                {
+                    gameEventRunner = new GameEventRunner(
+                        gameEventCatalog,
+                        effectRuntime,
+                        parameters,
+                        gameEventCodec);
+                    return new GameFlowGameEventAdapter(gameEventRunner);
+                })
                 .Build();
-
-            GameEventDocumentJsonCodec gameEventCodec = new GameEventDocumentJsonCodec();
-            GameEventCatalog gameEventCatalog = new GameEventCatalog(
-                gameEventFiles ?? Array.Empty<TextAsset>(),
-                gameEventCodec);
-            gameEventRunner = new GameEventRunner(
-                gameEventCatalog,
-                services.EffectRuntime,
-                services.Parameters,
-                gameEventCodec);
             ParameterStateBinder[] binders = parameterStateBinders ?? Array.Empty<ParameterStateBinder>();
             for (int index = 0; index < binders.Length; index++)
             {
@@ -249,7 +251,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             hudPresenter = null;
 
             dialogueView.gameObject.SetActive(false);
-            gameEventSampleRoot?.SetActive(false);
             isGameRunning = false;
 
             ShowMainMenuAsync().Forget();

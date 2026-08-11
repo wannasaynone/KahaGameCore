@@ -1,10 +1,8 @@
 using System.Collections.Generic;
-using KahaGameCore.GameEvents;
-using KahaGameCore.Presentation;
+using System.Linq;
 using KahaGameCore.UserInterfaceSystem;
 using TMPro;
 using UnityEditor;
-using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -52,77 +50,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
 
             AssetDatabase.SaveAssets();
             Debug.Log("[DefaultUiBuilder] UI prefabs 與 Game 場景建置完成（3840x2160）。");
-        }
-
-        [MenuItem("KahaGameCore/GameFlowSystem/Update Game Event Sample In Existing Scene")]
-        public static void UpdateGameEventSampleInExistingScene()
-        {
-            Scene previousActiveScene = SceneManager.GetActiveScene();
-            Scene scene = SceneManager.GetSceneByPath(SCENE_PATH);
-            bool closeAfterUpdate = !scene.IsValid() || !scene.isLoaded;
-            if (closeAfterUpdate)
-            {
-                scene = EditorSceneManager.OpenScene(SCENE_PATH, OpenSceneMode.Additive);
-            }
-
-            try
-            {
-                DefaultGameLauncher launcher = null;
-                Canvas canvas = null;
-                foreach (GameObject root in scene.GetRootGameObjects())
-                {
-                    launcher ??= root.GetComponentInChildren<DefaultGameLauncher>(true);
-                    canvas ??= root.GetComponentInChildren<Canvas>(true);
-                }
-
-                if (launcher == null || canvas == null)
-                {
-                    throw new System.InvalidOperationException(
-                        $"{SCENE_PATH} 必須包含 DefaultGameLauncher 與 Canvas。");
-                }
-
-                Transform existingSample = canvas.transform.Find("MachineEventSample");
-                if (existingSample != null)
-                {
-                    Object.DestroyImmediate(existingSample.gameObject);
-                }
-
-                Object[] gameEventFiles = LoadSampleGameEventFiles();
-                if (gameEventFiles.Length == 0)
-                {
-                    throw new System.InvalidOperationException("找不到 Game Event sample file。");
-                }
-
-                GameObject sampleRoot = BuildGameEventSample(
-                    canvas.transform,
-                    (TextAsset)gameEventFiles[0],
-                    out SceneGameEventTrigger sceneTrigger,
-                    out ParameterStateBinder stateBinder);
-                SetReferenceArray(launcher, "gameEventFiles", gameEventFiles);
-                SetReference(launcher, "gameEventSampleRoot", sampleRoot);
-                SetReferenceArray(launcher, "sceneGameEventTriggers", new Object[] { sceneTrigger });
-                SetReferenceArray(launcher, "parameterStateBinders", new Object[] { stateBinder });
-
-                EditorSceneManager.MarkSceneDirty(scene);
-                if (!EditorSceneManager.SaveScene(scene))
-                {
-                    throw new System.InvalidOperationException($"無法儲存 {SCENE_PATH}。");
-                }
-
-                Debug.Log("[DefaultUiBuilder] Game Event sample 已更新至既有 GameFlowGame 場景。");
-            }
-            finally
-            {
-                if (closeAfterUpdate && scene.IsValid() && scene.isLoaded)
-                {
-                    EditorSceneManager.CloseScene(scene, true);
-                }
-
-                if (previousActiveScene.IsValid() && previousActiveScene.isLoaded)
-                {
-                    SceneManager.SetActiveScene(previousActiveScene);
-                }
-            }
         }
 
         #region Item Prefabs
@@ -430,102 +357,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
             SetReferenceArray(launcher, "parameterTables", LoadSampleParameterTables());
             Object[] gameEventFiles = LoadSampleGameEventFiles();
             SetReferenceArray(launcher, "gameEventFiles", gameEventFiles);
-            if (gameEventFiles.Length > 0)
-            {
-                GameObject sampleRoot = BuildGameEventSample(
-                    canvasObject.transform,
-                    (TextAsset)gameEventFiles[0],
-                    out SceneGameEventTrigger sceneTrigger,
-                    out ParameterStateBinder stateBinder);
-                SetReference(launcher, "gameEventSampleRoot", sampleRoot);
-                SetReferenceArray(launcher, "sceneGameEventTriggers", new Object[] { sceneTrigger });
-                SetReferenceArray(launcher, "parameterStateBinders", new Object[] { stateBinder });
-            }
 
             EditorSceneManager.SaveScene(scene, SCENE_PATH);
-        }
-
-        private static GameObject BuildGameEventSample(
-            Transform parent,
-            TextAsset gameEventFile,
-            out SceneGameEventTrigger sceneTrigger,
-            out ParameterStateBinder stateBinder)
-        {
-            GameObject root = CreateUIObject("MachineEventSample", parent);
-            RectTransform rootRect = root.GetComponent<RectTransform>();
-            rootRect.anchorMin = new Vector2(0.5f, 0f);
-            rootRect.anchorMax = new Vector2(0.5f, 0f);
-            rootRect.pivot = new Vector2(0.5f, 0f);
-            rootRect.sizeDelta = new Vector2(960f, 420f);
-            rootRect.anchoredPosition = new Vector2(0f, 80f);
-            Image panel = root.AddComponent<Image>();
-            panel.color = panelColor;
-
-            GameObject stateRoot = CreateUIObject("MachineStates", root.transform);
-            SetRect(
-                stateRoot.GetComponent<RectTransform>(),
-                new Vector2(0f, 0.42f),
-                Vector2.one,
-                new Vector2(36f, 24f),
-                new Vector2(-36f, -24f));
-
-            GameObject closed = CreateUIObject("Closed", stateRoot.transform);
-            StretchFull(closed.GetComponent<RectTransform>());
-            Image closedImage = closed.AddComponent<Image>();
-            closedImage.color = new Color(0.25f, 0.28f, 0.34f, 1f);
-            TextMeshProUGUI closedLabel = CreateText(
-                "Label",
-                closed.transform,
-                "機關：待機",
-                64f,
-                TextAlignmentOptions.Center);
-            StretchFull(closedLabel.rectTransform);
-
-            GameObject active = CreateUIObject("Active", stateRoot.transform);
-            StretchFull(active.GetComponent<RectTransform>());
-            Image activeImage = active.AddComponent<Image>();
-            activeImage.color = new Color(0.12f, 0.52f, 0.30f, 1f);
-            TextMeshProUGUI activeLabel = CreateText(
-                "Label",
-                active.transform,
-                "機關：已啟動",
-                64f,
-                TextAlignmentOptions.Center);
-            StretchFull(activeLabel.rectTransform);
-
-            stateBinder = root.AddComponent<ParameterStateBinder>();
-            stateBinder.Configure(
-                "machine_01_stage",
-                stateRoot.transform,
-                new[]
-                {
-                    new ParameterChildStateMapping(0, 0),
-                    new ParameterChildStateMapping(1, 1),
-                    new ParameterChildStateMapping(2, 0)
-                });
-
-            GameObject buttonObject = CreateButtonObject("TriggerButton", root.transform, out Button button);
-            SetRect(
-                buttonObject.GetComponent<RectTransform>(),
-                new Vector2(0.5f, 0f),
-                new Vector2(0.5f, 0f),
-                Vector2.zero,
-                Vector2.zero);
-            buttonObject.GetComponent<RectTransform>().sizeDelta = new Vector2(600f, 144f);
-            buttonObject.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, 44f);
-            TextMeshProUGUI buttonLabel = CreateText(
-                "Label",
-                buttonObject.transform,
-                "啟動機關",
-                56f,
-                TextAlignmentOptions.Center);
-            StretchFull(buttonLabel.rectTransform);
-
-            sceneTrigger = buttonObject.AddComponent<SceneGameEventTrigger>();
-            sceneTrigger.Configure(gameEventFile);
-            UnityEventTools.AddPersistentListener(button.onClick, sceneTrigger.Trigger);
-            root.SetActive(false);
-            return root;
         }
 
         /// <summary>
@@ -685,19 +518,10 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        /// <summary>載入包內 SampleData 的六張測試表（檔名 = 資料型別名稱）。</summary>
+        /// <summary>載入包內 SampleData 的五張測試表（含 DialogueData）。</summary>
         private static Object[] LoadSampleDataTables()
         {
-            string[] guids = AssetDatabase.FindAssets("t:TextAsset", new[] { SAMPLE_DATA_FOLDER });
-            List<Object> tables = new List<Object>();
-            foreach (string guid in guids)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (path.EndsWith(".txt"))
-                {
-                    tables.Add(AssetDatabase.LoadAssetAtPath<TextAsset>(path));
-                }
-            }
+            List<Object> tables = FindSampleTextAssets(".txt");
             if (tables.Count == 0)
             {
                 Debug.LogWarning($"[DefaultUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有表格 TextAsset，gameDataTables 會是空的（將 fallback 到 Resources/GameData）。");
@@ -707,16 +531,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
 
         private static Object[] LoadSampleParameterTables()
         {
-            string[] guids = AssetDatabase.FindAssets("t:TextAsset", new[] { SAMPLE_DATA_FOLDER });
-            List<Object> tables = new List<Object>();
-            foreach (string guid in guids)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (path.EndsWith(".parameters.json"))
-                {
-                    tables.Add(AssetDatabase.LoadAssetAtPath<TextAsset>(path));
-                }
-            }
+            List<Object> tables = FindSampleTextAssets(".parameters.json");
             if (tables.Count == 0)
             {
                 Debug.LogWarning($"[DefaultUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有 .parameters.json，parameterTables 會是空的。");
@@ -726,21 +541,22 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
 
         private static Object[] LoadSampleGameEventFiles()
         {
-            string[] guids = AssetDatabase.FindAssets("t:TextAsset", new[] { SAMPLE_DATA_FOLDER });
-            List<Object> files = new List<Object>();
-            foreach (string guid in guids)
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (path.EndsWith(".gameevent.json"))
-                {
-                    files.Add(AssetDatabase.LoadAssetAtPath<TextAsset>(path));
-                }
-            }
+            List<Object> files = FindSampleTextAssets(".gameevent.json");
             if (files.Count == 0)
             {
                 Debug.LogWarning($"[DefaultUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有 .gameevent.json，Game Event sample 不會建立。");
             }
             return files.ToArray();
+        }
+
+        private static List<Object> FindSampleTextAssets(string extension)
+        {
+            return AssetDatabase.FindAssets("t:TextAsset", new[] { SAMPLE_DATA_FOLDER })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Where(path => path.EndsWith(extension))
+                .OrderBy(path => path, System.StringComparer.Ordinal)
+                .Select(path => (Object)AssetDatabase.LoadAssetAtPath<TextAsset>(path))
+                .ToList();
         }
 
         private static string SavePrefab(GameObject root, string prefabName)

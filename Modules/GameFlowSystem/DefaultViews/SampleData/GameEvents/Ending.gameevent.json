@@ -1,0 +1,9 @@
+{
+  "SchemaVersion": 1,
+  "DocumentGuid": "33333333-3333-4333-8333-333333333040",
+  "DisplayName": "結局",
+  "TriggerTiming": "PhaseStart:Morning",
+  "Condition": "$Day>=8",
+  "Priority": 900,
+  "Commands": "StartDialogue(5);PlayPerformance(Credits);ReturnToTitle();"
+}

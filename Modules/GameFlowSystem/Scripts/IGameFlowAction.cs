@@ -10,8 +10,8 @@ namespace KahaGameCore.GameFlowSystem
         string Name { get; }
         /// <summary>按鈕說明文字。</summary>
         string Description { get; }
-        /// <summary>執行的效果指令串（EffectRuntime 語法）。</summary>
-        string Commands { get; }
+        /// <summary>選擇此行動時交給 Game Event runner 的時機名稱。</summary>
+        string TriggerTiming { get; }
         /// <summary>按鈕的 UGUI 座標（anchoredPosition）。</summary>
         Vector2 AnchoredPosition { get; }
         /// <summary>所屬選單群組；空字串 = 根選單。子選單依此欄位篩選成員。</summary>

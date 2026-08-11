@@ -11,7 +11,7 @@ namespace KahaGameCore.GameFlowSystem
     /// 表驅動遊戲主流程。流程骨架固定為：
     ///   開新遊戲 → GameStart 事件 → ┐
     ///   ┌──────────────────────────┘
-    ///   │ 階段開始 → PhaseStart 事件 → （可行動階段）行動選擇 → 行動指令 → AfterAction 事件 → …
+    ///   │ 階段開始 → PhaseStart 事件 → 行動選擇 → Action TriggerTiming → AfterAction 事件 → …
     ///   └─ 階段切換（由表中指令推動）後回到階段開始
     /// 所有劇情、條件與數值變化都由各專案的表格定義，本類別不含任何劇情內容。
     /// </summary>
@@ -21,8 +21,8 @@ namespace KahaGameCore.GameFlowSystem
         private readonly IGameFlowLocationService locationService;
         private readonly IGameFlowActionProvider actionProvider;
         private readonly IGameFlowEventTriggerService triggerService;
-        private readonly IGameFlowCommandExecutor commandExecutor;
         private readonly IActionMenuPresenter actionMenuPresenter;
+        private readonly HashSet<int> automaticallyAdvancedPhaseIds = new HashSet<int>();
 
         /// <summary>最後一次已觸發 EnterLocation 事件的地點，用於偵測指令造成的移動。</summary>
         private int lastEnteredLocationId;
@@ -32,14 +32,12 @@ namespace KahaGameCore.GameFlowSystem
             IGameFlowLocationService locationService,
             IGameFlowActionProvider actionProvider,
             IGameFlowEventTriggerService triggerService,
-            IGameFlowCommandExecutor commandExecutor,
             IActionMenuPresenter actionMenuPresenter)
         {
             this.timeService = timeService ?? throw new ArgumentNullException(nameof(timeService));
             this.locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
             this.actionProvider = actionProvider ?? throw new ArgumentNullException(nameof(actionProvider));
             this.triggerService = triggerService ?? throw new ArgumentNullException(nameof(triggerService));
-            this.commandExecutor = commandExecutor ?? throw new ArgumentNullException(nameof(commandExecutor));
             this.actionMenuPresenter = actionMenuPresenter ?? throw new ArgumentNullException(nameof(actionMenuPresenter));
         }
 
@@ -47,6 +45,7 @@ namespace KahaGameCore.GameFlowSystem
         {
             // 開新局狀態（Parameters / TimeService / LocationService）由組裝根在呼叫前重置。
             lastEnteredLocationId = locationService.CurrentLocationID;
+            automaticallyAdvancedPhaseIds.Clear();
 
             await triggerService.RaiseTimingAsync(GameFlowTimings.GameStart, token);
             await RaiseLocationTimingsIfMovedAsync(token);
@@ -61,7 +60,13 @@ namespace KahaGameCore.GameFlowSystem
         {
             IGameFlowTimePhase phase = timeService.CurrentPhase;
 
-            await triggerService.RaiseTimingAsync(GameFlowTimings.PhaseStart(phase.Key), token);
+            await triggerService.RaiseTimingAsync(GameFlowTimings.PhaseStart, token);
+            if (token.IsCancellationRequested || timeService.CurrentPhase.ID != phase.ID)
+            {
+                return;
+            }
+
+            await triggerService.RaiseTimingAsync(GameFlowTimings.PhaseStartFor(phase.Key), token);
             await RaiseLocationTimingsIfMovedAsync(token);
 
             // 事件指令（SetPhase 等）可能已切換階段，直接進入新階段。
@@ -70,37 +75,57 @@ namespace KahaGameCore.GameFlowSystem
                 return;
             }
 
-            if (!phase.AllowAction)
-            {
-                timeService.AdvanceTime();
-                return;
-            }
-
             while (!token.IsCancellationRequested && timeService.CurrentPhase.ID == phase.ID)
             {
-                await RunActionRoundAsync(token);
+                IReadOnlyList<ActionMenuEntry> entries = BuildActionMenuEntries();
+                if (!entries.Any(entry => entry.IsEnabled))
+                {
+                    AdvancePhaseOrThrowCycle(phase);
+                    return;
+                }
+
+                automaticallyAdvancedPhaseIds.Clear();
+                await RunActionRoundAsync(entries, token);
             }
         }
 
-        private async UniTask RunActionRoundAsync(CancellationToken token)
+        private async UniTask RunActionRoundAsync(
+            IReadOnlyList<ActionMenuEntry> entries,
+            CancellationToken token)
         {
-            IReadOnlyList<ActionMenuEntry> entries = BuildActionMenuEntries();
-            if (entries.Count == 0)
-            {
-                Debug.LogWarning($"[GameFlowController] 地點 {locationService.CurrentLocationID} 於階段 {timeService.CurrentPhase.Key} 沒有任何可選行動，自動推進時間以避免卡死。請檢查行動表。");
-                timeService.AdvanceTime();
-                return;
-            }
-
             IGameFlowAction chosenAction = await actionMenuPresenter.SelectActionAsync(entries);
             if (chosenAction == null)
             {
                 return;
             }
 
-            await commandExecutor.ExecuteAsync(chosenAction.Commands, token);
-            await triggerService.RaiseTimingAsync(GameFlowTimings.AfterAction(chosenAction.ID), token);
+            if (string.IsNullOrWhiteSpace(chosenAction.TriggerTiming))
+            {
+                throw new InvalidOperationException(
+                    $"[GameFlowController] Action {chosenAction.ID} 的 TriggerTiming 不可為空白。");
+            }
+
+            await triggerService.RaiseTimingAsync(chosenAction.TriggerTiming, token);
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            await triggerService.RaiseTimingAsync(GameFlowTimings.AfterAction, token);
             await RaiseLocationTimingsIfMovedAsync(token);
+        }
+
+        private void AdvancePhaseOrThrowCycle(IGameFlowTimePhase phase)
+        {
+            if (!automaticallyAdvancedPhaseIds.Add(phase.ID))
+            {
+                throw new InvalidOperationException(
+                    $"[GameFlowController] 無可用 Action 的 Phase 自動推進形成循環；Phase {phase.Key} ({phase.ID}) 再次出現。");
+            }
+
+            Debug.LogWarning(
+                $"[GameFlowController] 地點 {locationService.CurrentLocationID} 於 Phase {phase.Key} 沒有 enabled Action，自動推進 Phase。");
+            timeService.AdvancePhase();
         }
 
         private IReadOnlyList<ActionMenuEntry> BuildActionMenuEntries()

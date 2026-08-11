@@ -6,7 +6,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
     /// <summary>
     /// 時間流動服務。階段順序與換日規則完全由 TimePhaseData 表定義。
     /// CurrentPhase 由本服務持有；換日時只遞增 Day Parameter，並發佈 TimePhaseChangedEvent。
-    /// ResetToFirstPhase / AdvanceTime 繼承自 IGameFlowTimeService。
+    /// ResetToFirstPhase / AdvancePhase 繼承自 IGameFlowTimeService。
     /// </summary>
     public interface ITimeService : IGameFlowTimeService
     {

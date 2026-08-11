@@ -2,10 +2,11 @@
 
 表驅動遊戲主流程包。提供固定的流程骨架，所有劇情、條件與數值變化都由各專案的表格定義，包內不含任何劇情內容。
 
-包分三層：
+包分四層：
 
-- **`Scripts/`（核心）**：`GameFlowController` 與 8 個最小介面，只依賴 UniTask。
-- **`DefaultImplements/`（預設實作）**：表驅動的整套預設服務（Parameters adapter、TimeService、LocationService、事件觸發、效果指令、條件式、表格定義）＋ `GameFlowSystemBuilder` 一鍵組裝。依賴 KahaGameCore（Parameters/Expressions/StaticData/GameEvent/Effects），**不依賴 Dialogue Module**——對話只透過 `IDialoguePlayer` 抽象，由工廠（`WithDialoguePlayerFactory`）注入。
+- **`Scripts/`（核心）**：`GameFlowController` 與 7 個最小介面，只依賴 UniTask。
+- **`DefaultImplements/`（預設實作）**：Parameters adapter、TimeService、LocationService、效果指令、條件式與表格定義，加上 `GameFlowSystemBuilder`。不依賴 GameEvents 或 Dialogue。
+- **`GameEventsIntegration/`（可選整合）**：`GameFlowGameEventAdapter`；這是 GameFlow core 與 GameEvents 唯一互相認識的位置。
 - **`DefaultViews/`（預設 UI＋範例橋接）**：整套 UGUI View / Presenter / `DefaultGameLauncher`（組裝根）腳本＋`DefaultUiBuilder`（Editor 選單一鍵生成全部 prefab 與可運行場景），**並含範例對話橋接 `DialoguePlayer` + `GameEffectDialogueCommand`**（連接具體 Dialogue Module）。純腳本、零美術資產——prefab 在各專案內按需生成。
 
 > **對話橋接屬於範例／各專案的程式碼，不是 Module 的共用層。** 核心與 DefaultImplements 刻意與 Dialogue Module 無關（只認 `IDialoguePlayer`）。`DefaultViews` 內附一份範例橋接示範如何接上 Dialogue Module；**各專案請複製一份到自己的組件並依需求修改**。
@@ -30,6 +31,9 @@ ParameterDefinition[] parameterDefinitions = parameterTables
     .SelectMany(table => table.Definitions)
     .ToArray();
 var parameters = new ParameterStore(parameterDefinitions);
+var eventCodec = new GameEventDocumentJsonCodec();
+var eventCatalog = new GameEventCatalog(gameEventFiles, eventCodec);
+GameEventRunner eventRunner = null;
 
 // 2. 組裝（UI 層與對話系統是各專案的演出資產，由外部提供；其餘全用預設）
 //    對話播放器由工廠提供（本套件不相依具體對話系統）；DialoguePlayer 是各專案自備的橋接，
@@ -40,6 +44,11 @@ GameFlowServices services = new GameFlowSystemBuilder(staticDataManager, paramet
     .WithActionMenuPresenter(actionMenuPresenter)       // 必要
     .WithHintPresenter(hintPresenter)                   // 表格有用 ShowHint 才需要
     .WithLocationMenuPresenter(locationMenuPresenter)   // 表格有用 OpenLocationMenu 才需要
+    .WithEventTriggerFactory(effectRuntime =>           // 必要；共用 Builder 建立的唯一 runtime
+    {
+        eventRunner = new GameEventRunner(eventCatalog, effectRuntime, parameters, eventCodec);
+        return new GameFlowGameEventAdapter(eventRunner);
+    })
     .Build();
 
 // 3. 啟動流程
@@ -53,11 +62,12 @@ services.FlowController.RunNewGameAsync(flowCts.Token).Forget();
 var services = new GameFlowSystemBuilder(staticDataManager, parameters)
     .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
     .WithActionMenuPresenter(actionMenuPresenter)
+    .WithEventTriggerFactory(CreateEventAdapter)         // 同上：用 Builder 的 EffectRuntime 建 runner
     .OverrideTimeService(new MyRealTimeService())        // 例：改用真實時間制
     .OverrideConditionEvaluator(new MyLuaEvaluator())    // 例：改用 Lua 條件式
     .AddCommandRegistration(registry => registry.Register( // 例：追加專案自訂效果指令
         new EffectCommandDefinition(
-            "MyCommand", "My Command", "Project", false,
+            "MyCommand", "My Command", "Project",
             System.Array.Empty<EffectCommandParameterDefinition>(),
             new MyCommand())))
     .Build();
@@ -69,10 +79,10 @@ var services = new GameFlowSystemBuilder(staticDataManager, parameters)
 
 | 區塊 | 內容 |
 |---|---|
-| `Data/` | 五張表的資料類別：TimePhaseData、PlayerActionData、LocationData、GameEventTriggerData、GameTextData（JSON 陣列）；Parameters 使用可多份的 `.parameters.json` 大表。 |
+| `Data/` | 四張表的資料類別：TimePhaseData、PlayerActionData、LocationData、GameTextData（JSON 陣列）；Parameters 使用可多份的 `.parameters.json` 大表。 |
 | `DataAccess/` | `ResourcesJsonStaticDataHandler`（Resources/GameData/{類別名}.txt）與 `TextAssetJsonStaticDataHandler`（Inspector 手動指定，檔名=型別名） |
-| `Domain/` | GameFlowExpressions（ParameterStore → Expressions adapter）、TimeService（自持 Phase，Day 寫入 Parameter）、LocationService（自持 current location）、PlayerActionProvider、無 execution count 的 GameEventTriggerService、EffectCommandExecutor、GameTextProvider、`IDialoguePlayer`、PerformanceRegistry、EffectCommandRegistrar |
-| `Domain/Commands/` | 內建效果指令：AddParameter、SetParameter、AdvanceTime、SetPhase、MoveToLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle、Wait |
+| `Domain/` | GameFlowExpressions、TimeService、LocationService、PlayerActionProvider、EffectCommandExecutor、GameTextProvider、`IDialoguePlayer`、PerformanceRegistry、EffectCommandRegistrar |
+| `Domain/Commands/` | 內建效果指令：AddParameter、SetParameter、AdvancePhase、SetPhase、MoveToLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle、Wait |
 | `Domain/Events/` | MessageBus 訊息：GameValueChanged、TimePhaseChanged、LocationChanged、MonologueRequested、ReturnToTitleRequested |
 | `GameFlowSystemBuilder.cs` | 組裝器與 `GameFlowServices`；對話播放器以 `WithDialoguePlayerFactory(Func<ICommandExecutor, IDialoguePlayer>)` 注入 |
 
@@ -97,7 +107,7 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 | `Presenters/`（5 個腳本） | `IActionMenuPresenter` / `IHintPresenter` / `ILocationMenuPresenter` 的轉接實作＋HUD Presenter＋`IStagePerformance` 範例（CreditsPerformance） |
 | `DefaultGameLauncher.cs` | 預設組裝根：載表（Inspector 指定 TextAsset，留空 fallback 到 Resources/GameData/）→ Builder 組裝 → 主標題/流程切換、返回標題處理 |
 | `Editor/DefaultUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**：在專案內生成 `Assets/Resources/GameFlowUIViews/` 九個 prefab 與 `Assets/Scenes/GameFlowGame.unity`（全部接好、測試表已掛上、可直接 Play）。全程式化版面（TMP 預設字型＋內建 UISprite），零美術資產依賴，可重複執行覆寫 |
-| `SampleData/*.txt` + `SampleData/Parameters/*.parameters.json` | 六張測試表與一張含八列的 Parameter 大表；HUD key 由 DefaultViews composition 明列，不存入 Parameter metadata。 |
+| `SampleData/*.txt`、`SampleData/GameEvents/*.gameevent.json` + `SampleData/Parameters/*.parameters.json` | 五張測試表、Game Event documents 與 Parameter table；HUD key 由 composition root 明列。 |
 
 新專案最短路徑：複製 KahaGameCore 包 → 跑一次 builder 選單 → 開生成的場景直接 **Play**（測試內容可玩）→ 之後把欄位裡的 TextAsset 換成自己的表。要客製時把對應腳本複製到專案改名修改（別直接改包內版本），prefab 直接改（重跑 builder 會覆寫）。
 
@@ -112,7 +122,7 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 ```
 開新遊戲 → GameStart 事件 → ┐
 ┌──────────────────────────┘
-│ 階段開始 → PhaseStart 事件 → （可行動階段）行動選擇 → 行動指令 → AfterAction 事件 → …
+│ 階段開始 → PhaseStart 事件 → 行動選擇 → Action TriggerTiming → AfterAction → …
 └─ 階段切換（由表中指令推動）後回到階段開始
 ```
 
@@ -133,24 +143,23 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 "references": [ "KahaGameCore.Modules.GameFlowSystem", "UniTask" ]
 ```
 
-### 2. 實作 8 個介面
+### 2. 實作 7 個介面
 
 每個 Interface 都刻意縮到最小，大多只有一兩個成員。建議讓專案既有的 Interface／資料類別直接繼承，不用另寫 Adapter。
 
 | 介面 | 成員 | 職責 |
 |---|---|---|
-| `IGameFlowTimePhase` | `ID`、`Key`、`AllowAction` | 一個時間階段（通常由表格資料類別實作） |
-| `IGameFlowTimeService` | `CurrentPhase`、`ResetToFirstPhase()`、`AdvanceTime()` | 時間流動；階段順序由實作方定義 |
+| `IGameFlowTimePhase` | `ID`、`Key` | 一個時間階段（通常由表格資料類別實作） |
+| `IGameFlowTimeService` | `CurrentPhase`、`ResetToFirstPhase()`、`AdvancePhase()` | Phase 推進；順序由實作方定義 |
 | `IGameFlowLocationService` | `CurrentLocationID` | 流程只需要知道目前地點 |
-| `IGameFlowAction` | `ID`、`Name`、`Description`、`Commands` | 一個玩家行動（通常由表格資料類別實作） |
+| `IGameFlowAction` | `ID`、`Name`、`Description`、`TriggerTiming` | 一個玩家行動；效果由對應 Game Event 定義 |
 | `IGameFlowActionProvider` | `GetVisibleActions(locationId)`、`IsEnabled(action)` | 依地點與條件過濾出可顯示的行動 |
 | `IGameFlowEventTriggerService` | `RaiseTimingAsync(timing, token)` | 在時機點查事件表並依序執行命中的事件 |
-| `IGameFlowCommandExecutor` | `ExecuteAsync(rawCommands, token)` | 執行行動的效果指令串，並把流程取消傳入同一份 `EffectRuntime` |
 | `IActionMenuPresenter` | `SelectActionAsync(entries)` | 顯示行動選單並等待玩家選擇；**回傳 null 表示流程被中止** |
 
 實作時的約定：
 
-- `IGameFlowTimePhase.AllowAction`：true = 此階段開放玩家選行動；false = 觸發完 PhaseStart 事件後流程自動呼叫 `AdvanceTime()`。表格若以 int 儲存（0/1），用顯式實作轉型即可。
+- Phase 是否可行動不再有獨立旗標；目前地點若沒有任何 visible + enabled Action，Controller 自動 `AdvancePhase()`。
 - `IGameFlowTimeService.CurrentPhase` 的 `ID` 是流程偵測「事件是否切換了階段」的依據——事件指令（如 SetPhase）改變階段後，流程會放棄目前階段、直接進入新階段。
 - `RaiseTimingAsync` 收到取消的 token 後，不應再執行佇列中剩餘的事件（返回標題等中止情境）。
 
@@ -162,7 +171,6 @@ var flowController = new GameFlowController(
     locationService,    // IGameFlowLocationService
     actionProvider,     // IGameFlowActionProvider
     triggerService,     // IGameFlowEventTriggerService
-    commandExecutor,    // IGameFlowCommandExecutor
     actionMenuPresenter // IActionMenuPresenter
 );
 
@@ -192,15 +200,18 @@ actionMenuPresenter.CancelPending();   // 2. 讓等待中的選單以 null 結�
 | 時機 | 字串 | 說明 |
 |---|---|---|
 | 開新遊戲 | `GameStart` | 組裝根完成 Parameters／Phase／Location 重置後、第一個階段之前（開場劇情） |
-| 階段開始 | `PhaseStart:{Key}` | 如 `PhaseStart:Morning` |
-| 行動結束 | `AfterAction:{ID}` | 如 `AfterAction:106` |
+| 階段開始（共通） | `PhaseStart` | 每個 Phase 先觸發一次 |
+| 階段開始（指定） | `PhaseStart:{Key}` | 共通 timing 完成後觸發，如 `PhaseStart:Morning` |
+| 玩家行動 | `IGameFlowAction.TriggerTiming` | 由 Action data 明確指定，如 `Action:106` |
+| 行動完成（共通） | `AfterAction` | Action timing 的 queue 完整結束後觸發 |
 | 進入地點 | `EnterLocation:{ID}` | 如 `EnterLocation:2`，只在地點「改變」時觸發 |
 
-字串一律用 `GameFlowTimings` 的常數／方法產生，不要手刻。萬用字（如 `PhaseStart:Any`）是事件表 Implementation 的慣例（見 `DefaultImplements/Domain/GameEventTriggerService.cs`），不是核心 Module 的功能。
+Game Event timing 是 ordinal exact match，沒有 `Any` 萬用字。Action 自己的 timing 存在資料中；固定 lifecycle timing 用 `GameFlowTimings` 產生。
 
 ## 內建防呆行為
 
-- 可行動階段若查無任何可選行動，流程會輸出 LogWarning 並自動 `AdvanceTime()`，避免卡死——看到這個警告請檢查行動表。
+- 若沒有任何 visible + enabled Action，流程會輸出 LogWarning 並自動 `AdvancePhase()`。
+- 連續自動推進再次遇到同一個 Phase ID 時丟出 `InvalidOperationException`，避免資料形成無限循環。
 - `SelectActionAsync` 回傳 null 時，該輪行動直接略過（不執行指令、不發 AfterAction），由外層迴圈依 token / 階段狀態決定去留。
 
 ## 測試
@@ -209,6 +220,6 @@ actionMenuPresenter.CancelPending();   // 2. 讓等待中的選單以 null 結�
 
 ## 參考實作
 
-- **核心介面如何對接具體表格型別**：見 `DefaultImplements/` 本身——`ITimeService : IGameFlowTimeService`（以 `new TimePhaseData CurrentPhase` 覆蓋成具體型別供 HUD 使用，`TimeService` 再顯式實作 `IGameFlowTimeService.CurrentPhase`）、`TimePhaseData`（`bool IGameFlowTimePhase.AllowAction => AllowAction == 1;`）、`PlayerActionProvider`（利用 `IReadOnlyList<T>` 協變顯式實作 `IGameFlowActionProvider`）。
+- **核心介面如何對接具體表格型別**：見 `DefaultImplements/` 本身——`ITimeService : IGameFlowTimeService`、`TimePhaseData`、`PlayerActionData.TriggerTiming` 與 `PlayerActionProvider`。
 - **組裝根與 UI 層**：`DefaultViews/DefaultGameLauncher.cs`（Builder 用法、返回標題的 CancelFlow + CancelPending）與 `DefaultViews/Presenters/`。
-- **Effect 執行**：`EffectRuntime` 位於 `KahaGameCore.Effects`；Game Flow 與 Game Events 共用 `GameFlowServices.CommandRegistry`／`EffectRuntime`，`EffectCommandExecutor` 只做 GameFlow 介面轉接。
+- **Game Events 整合**：`GameFlowGameEventAdapter` 位於可選 integration assembly；GameFlow 與 Game Events 共用 `GameFlowServices.CommandRegistry`／`EffectRuntime`。`EffectCommandExecutor` 僅供 Dialogue bridge 等 DefaultImplements integration 使用。

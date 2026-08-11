@@ -19,7 +19,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         public IPerformancePlayer PerformancePlayer { get; internal set; }
         public ICommandExecutor CommandExecutor { get; internal set; }
         public IDialoguePlayer DialoguePlayer { get; internal set; }
-        public IGameEventTriggerService TriggerService { get; internal set; }
+        public IGameFlowEventTriggerService TriggerService { get; internal set; }
         public GameFlowController FlowController { get; internal set; }
         /// <summary>效果指令定義。所有 GameFlow 與 Game Event 執行共用此 registry。</summary>
         public EffectCommandRegistry CommandRegistry { get; internal set; }
@@ -58,7 +58,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         private IPerformancePlayer performancePlayer;
         private ICommandExecutor commandExecutor;
         private IDialoguePlayer dialoguePlayer;
-        private IGameEventTriggerService triggerService;
+        private Func<EffectRuntime, IGameFlowEventTriggerService> eventTriggerFactory;
 
         private Action<EffectCommandRegistry> extraCommandRegistration;
         private Func<ICommandExecutor, IDialoguePlayer> dialoguePlayerFactory;
@@ -71,8 +71,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         }
 
         /// <summary>
-        /// 把預設五張表（TimePhaseData、PlayerActionData、LocationData、GameEventTriggerData、
-        /// GameTextData）從 Resources/GameData/{類別名}.txt 載入。
+        /// 把預設四張表（TimePhaseData、PlayerActionData、LocationData、GameTextData）
+        /// 從 Resources/GameData/{類別名}.txt 載入。
         /// DialogueData 等其他表請專案自行 Add。
         /// </summary>
         public static void LoadDefaultTables(GameStaticDataManager staticDataManager)
@@ -81,7 +81,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         }
 
         /// <summary>
-        /// 以指定的 handler 載入預設六張表（例如 TextAssetJsonStaticDataHandler 手動指定、
+        /// 以指定的 handler 載入預設四張表（例如 TextAssetJsonStaticDataHandler 手動指定、
         /// 或自行實作的線上下載 / Addressables handler）。
         /// </summary>
         public static void LoadDefaultTables(GameStaticDataManager staticDataManager, KahaGameCore.StaticData.IGameStaticDataHandler handler)
@@ -89,7 +89,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             staticDataManager.Add<Data.TimePhaseData>(handler);
             staticDataManager.Add<Data.PlayerActionData>(handler);
             staticDataManager.Add<Data.LocationData>(handler);
-            staticDataManager.Add<Data.GameEventTriggerData>(handler);
             staticDataManager.Add<Data.GameTextData>(handler);
         }
 
@@ -107,6 +106,16 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         public GameFlowSystemBuilder WithHintPresenter(IHintPresenter presenter) { hintPresenter = presenter; return this; }
         /// <summary>移動選單。未提供時表格使用 OpenLocationMenu 指令會在執行期出錯。</summary>
         public GameFlowSystemBuilder WithLocationMenuPresenter(ILocationMenuPresenter presenter) { locationMenuPresenter = presenter; return this; }
+        /// <summary>
+        /// 建立 Timing trigger adapter。工廠收到本次組裝唯一的 EffectRuntime，
+        /// 讓 Game Events 與 GameFlow 共用同一個 command registry／runtime。
+        /// </summary>
+        public GameFlowSystemBuilder WithEventTriggerFactory(
+            Func<EffectRuntime, IGameFlowEventTriggerService> factory)
+        {
+            eventTriggerFactory = factory;
+            return this;
+        }
 
         // ───────── 覆寫預設實作（有新需求再傳入）─────────
 
@@ -118,7 +127,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         public GameFlowSystemBuilder OverridePerformancePlayer(IPerformancePlayer custom) { performancePlayer = custom; return this; }
         public GameFlowSystemBuilder OverrideCommandExecutor(ICommandExecutor custom) { commandExecutor = custom; return this; }
         public GameFlowSystemBuilder OverrideDialoguePlayer(IDialoguePlayer custom) { dialoguePlayer = custom; return this; }
-        public GameFlowSystemBuilder OverrideTriggerService(IGameEventTriggerService custom) { triggerService = custom; return this; }
 
         /// <summary>在內建指令之外追加專案自訂的效果指令。</summary>
         public GameFlowSystemBuilder AddCommandRegistration(Action<EffectCommandRegistry> register)
@@ -136,6 +144,11 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             if (dialoguePlayer == null && dialoguePlayerFactory == null)
             {
                 throw new InvalidOperationException("[GameFlowSystemBuilder] 必須以 WithDialoguePlayerFactory 提供對話播放器工廠，或以 OverrideDialoguePlayer 提供自訂對話播放器。");
+            }
+            if (eventTriggerFactory == null)
+            {
+                throw new InvalidOperationException(
+                    "[GameFlowSystemBuilder] 必須以 WithEventTriggerFactory 提供 Game Event timing adapter。");
             }
             if (hintPresenter == null)
             {
@@ -174,19 +187,15 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                 locationMenuPresenter);
             extraCommandRegistration?.Invoke(services.CommandRegistry);
 
-            services.TriggerService = triggerService ?? new GameEventTriggerService(
-                staticDataManager,
-                services.ConditionEvaluator,
-                services.DialoguePlayer,
-                services.PerformancePlayer,
-                services.CommandExecutor);
+            services.TriggerService = eventTriggerFactory(services.EffectRuntime)
+                ?? throw new InvalidOperationException(
+                    "[GameFlowSystemBuilder] WithEventTriggerFactory 不可回傳 null。");
 
             services.FlowController = new GameFlowController(
                 services.TimeService,
                 services.LocationService,
                 services.ActionProvider,
                 services.TriggerService,
-                services.CommandExecutor,
                 actionMenuPresenter);
 
             return services;

@@ -8,6 +8,6 @@ namespace KahaGameCore.GameFlowSystem
         /// <summary>重設到第一個階段（開新遊戲）。</summary>
         void ResetToFirstPhase();
         /// <summary>推進到下一個階段。</summary>
-        void AdvanceTime();
+        void AdvancePhase();
     }
 }
