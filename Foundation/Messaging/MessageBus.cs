@@ -6,64 +6,68 @@ namespace KahaGameCore.Foundation.Messaging
 {
     public static class MessageBus
     {
-        private static readonly Dictionary<Type, List<Action<MessageBase>>> handlers =
-            new Dictionary<Type, List<Action<MessageBase>>>();
-        private static readonly Dictionary<int, Action<MessageBase>> wrappersByHandlerHash =
-            new Dictionary<int, Action<MessageBase>>();
+        private static readonly Dictionary<Type, Dictionary<Delegate, Action<MessageBase>>> handlers =
+            new Dictionary<Type, Dictionary<Delegate, Action<MessageBase>>>();
 
         public static void ForceClearAll()
         {
             handlers.Clear();
-            wrappersByHandlerHash.Clear();
         }
 
         public static void Subscribe<T>(Action<T> handler) where T : MessageBase
         {
             Type messageType = typeof(T);
-            if (!handlers.ContainsKey(messageType))
+            if (!handlers.TryGetValue(
+                    messageType,
+                    out Dictionary<Delegate, Action<MessageBase>> subscribers))
             {
-                handlers[messageType] = new List<Action<MessageBase>>();
+                subscribers = new Dictionary<Delegate, Action<MessageBase>>();
+                handlers.Add(messageType, subscribers);
             }
 
-            int handlerHash = handler.GetHashCode();
-            if (wrappersByHandlerHash.ContainsKey(handlerHash))
+            if (subscribers.ContainsKey(handler))
             {
                 Debug.LogError("MessageBus: Handler already subscribed, ignoring duplicate subscription.");
                 return;
             }
 
             Action<MessageBase> wrapper = message => handler((T)message);
-            wrappersByHandlerHash.Add(handlerHash, wrapper);
-            handlers[messageType].Add(wrapper);
+            subscribers.Add(handler, wrapper);
         }
 
         public static void Unsubscribe<T>(Action<T> handler) where T : MessageBase
         {
             Type messageType = typeof(T);
-            if (!handlers.ContainsKey(messageType))
+            if (!handlers.TryGetValue(
+                    messageType,
+                    out Dictionary<Delegate, Action<MessageBase>> subscribers))
             {
                 return;
             }
 
-            int handlerHash = handler.GetHashCode();
-            if (!wrappersByHandlerHash.TryGetValue(handlerHash, out Action<MessageBase> wrapper))
+            if (!subscribers.Remove(handler))
             {
                 return;
             }
 
-            handlers[messageType].Remove(wrapper);
-            wrappersByHandlerHash.Remove(handlerHash);
+            if (subscribers.Count == 0)
+            {
+                handlers.Remove(messageType);
+            }
         }
 
         public static void Publish<T>(T message) where T : MessageBase
         {
             Type messageType = typeof(T);
-            if (!handlers.TryGetValue(messageType, out List<Action<MessageBase>> subscribers))
+            if (!handlers.TryGetValue(
+                    messageType,
+                    out Dictionary<Delegate, Action<MessageBase>> subscribers))
             {
                 return;
             }
 
-            List<Action<MessageBase>> snapshot = new List<Action<MessageBase>>(subscribers);
+            List<Action<MessageBase>> snapshot =
+                new List<Action<MessageBase>>(subscribers.Values);
             for (int index = 0; index < snapshot.Count; index++)
             {
                 snapshot[index](message);

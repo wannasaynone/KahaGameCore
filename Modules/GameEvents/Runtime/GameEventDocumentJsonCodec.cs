@@ -46,6 +46,7 @@ namespace KahaGameCore.GameEvents
             RequireField(fields, "SchemaVersion");
             RequireField(fields, "DocumentGuid");
             RequireField(fields, "DisplayName");
+            RequireField(fields, "TriggerTiming");
             RequireField(fields, "Condition");
             RequireField(fields, "Priority");
             RequireField(fields, "Commands");
@@ -67,6 +68,13 @@ namespace KahaGameCore.GameEvents
                 throw new GameEventException("MissingDisplayName", "DisplayName is required.");
             }
 
+            if (dto.TriggerTiming == null)
+            {
+                throw new GameEventException(
+                    "MissingTriggerTiming",
+                    "TriggerTiming is required; use an empty string for no trigger timing.");
+            }
+
             if (dto.Condition == null)
             {
                 throw new GameEventException("MissingCondition", "Condition is required; use an empty string for no condition.");
@@ -81,7 +89,7 @@ namespace KahaGameCore.GameEvents
                 dto.SchemaVersion,
                 documentGuid,
                 dto.DisplayName,
-                dto.TriggerTiming ?? string.Empty,
+                dto.TriggerTiming,
                 dto.Condition,
                 dto.Priority,
                 dto.Commands);
@@ -102,6 +110,13 @@ namespace KahaGameCore.GameEvents
         public string Write(GameEventDocument document)
         {
             if (document == null) throw new ArgumentNullException(nameof(document));
+            if (document.SchemaVersion != CurrentSchemaVersion)
+            {
+                throw new GameEventException(
+                    "UnsupportedSchemaVersion",
+                    $"Unsupported Game Event SchemaVersion {document.SchemaVersion}.");
+            }
+
             return JsonWriter.Serialize(new DocumentDto
             {
                 SchemaVersion = document.SchemaVersion,

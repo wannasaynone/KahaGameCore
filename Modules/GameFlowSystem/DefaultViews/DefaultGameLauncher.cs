@@ -143,9 +143,10 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             // 開新局：Parameters、Phase、Location 各由自己的 owner 重置。
             services.ResetForNewGame();
             hudPresenter.Refresh();
-            gameEventSampleRoot?.SetActive(true);
 
             flowCts = new CancellationTokenSource();
+            InitializeSceneGameEventTriggers(flowCts.Token);
+            gameEventSampleRoot?.SetActive(true);
             services.FlowController.RunNewGameAsync(flowCts.Token).Forget();
         }
 
@@ -177,23 +178,38 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                 services.EffectRuntime,
                 services.Parameters,
                 gameEventCodec);
-            EventContext eventContext = new EventContext(CancellationToken.None);
-            foreach (SceneGameEventTrigger trigger in sceneGameEventTriggers ?? Array.Empty<SceneGameEventTrigger>())
+            ParameterStateBinder[] binders = parameterStateBinders ?? Array.Empty<ParameterStateBinder>();
+            for (int index = 0; index < binders.Length; index++)
             {
-                if (trigger != null)
+                ParameterStateBinder binder = binders[index];
+                if (binder == null)
                 {
-                    trigger.Initialize(gameEventRunner, eventContext);
+                    throw new InvalidOperationException(
+                        $"[DefaultGameLauncher] parameterStateBinders[{index}] is missing.");
                 }
-            }
-            foreach (ParameterStateBinder binder in parameterStateBinders ?? Array.Empty<ParameterStateBinder>())
-            {
-                if (binder != null)
-                {
-                    binder.Initialize(services.Parameters);
-                }
+
+                binder.Initialize(services.Parameters);
             }
 
             RegisterPerformances();
+        }
+
+        private void InitializeSceneGameEventTriggers(CancellationToken cancellationToken)
+        {
+            EventContext eventContext = new EventContext(cancellationToken);
+            SceneGameEventTrigger[] triggers =
+                sceneGameEventTriggers ?? Array.Empty<SceneGameEventTrigger>();
+            for (int index = 0; index < triggers.Length; index++)
+            {
+                SceneGameEventTrigger trigger = triggers[index];
+                if (trigger == null)
+                {
+                    throw new InvalidOperationException(
+                        $"[DefaultGameLauncher] sceneGameEventTriggers[{index}] is missing.");
+                }
+
+                trigger.Initialize(gameEventRunner, eventContext);
+            }
         }
 
         /// <summary>

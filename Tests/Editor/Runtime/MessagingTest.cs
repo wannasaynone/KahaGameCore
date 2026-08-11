@@ -39,6 +39,33 @@ namespace KahaGameCore.Tests
         public int count = 0;
 
         [Test]
+        public void same_handler_can_subscribe_to_different_message_types()
+        {
+            MessageBus.ForceClearAll();
+            count = 0;
+
+            try
+            {
+                MessageBus.Subscribe<TestMessage2>(OnAnyMessageReceived);
+                MessageBus.Subscribe<TestMessage3>(OnAnyMessageReceived);
+
+                MessageBus.Publish(new TestMessage2());
+                MessageBus.Publish(new TestMessage3());
+
+                Assert.That(count, Is.EqualTo(2));
+            }
+            finally
+            {
+                MessageBus.ForceClearAll();
+            }
+        }
+
+        private void OnAnyMessageReceived(MessageBase message)
+        {
+            count++;
+        }
+
+        [Test]
         public void publish_multiple()
         {
             MessageBus.ForceClearAll();
