@@ -7,87 +7,178 @@ namespace KahaGameCore.Presentation.Tests
     public sealed class ParameterStateBinderTests
     {
         [Test]
-        public void InitializeAndChanges_ApplyZeroToAOneToBTwoToA()
+        public void InitializeAndChanges_EvaluateIndependentChildConditions()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Int("Stage", "Stage", 0, 0, 2),
+                ParameterDefinition.Int("Spirit", "Spirit", 10, 0, 100)
+            });
+            GameObject host = new GameObject("Binder Host");
+            GameObject stateA = CreateChild("A", host);
+            GameObject stateB = CreateChild("B", host);
+            GameObject warning = CreateChild("Warning", host);
+
+            try
+            {
+                ParameterStateBinder binder = host.AddComponent<ParameterStateBinder>();
+                binder.Configure(new[]
+                {
+                    new ParameterChildConditionBinding(
+                        stateA,
+                        "$Stage == 0 || $Stage == 2"),
+                    new ParameterChildConditionBinding(stateB, "$Stage == 1"),
+                    new ParameterChildConditionBinding(warning, "$Spirit < 20")
+                });
+                binder.Initialize(parameters);
+
+                AssertState(stateA, stateB, warning, true, false, true);
+
+                parameters.Set("Stage", 1);
+                AssertState(stateA, stateB, warning, false, true, true);
+
+                parameters.Set("Spirit", 20);
+                AssertState(stateA, stateB, warning, false, true, false);
+
+                parameters.Set("Stage", 2);
+                AssertState(stateA, stateB, warning, true, false, false);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void InitializeFailure_DoesNotSubscribeOrPartiallyApply()
         {
             ParameterStore parameters = new ParameterStore(new[]
             {
                 ParameterDefinition.Int("Stage", "Stage", 0, 0, 2)
             });
             GameObject host = new GameObject("Binder Host");
-            GameObject stateRoot = new GameObject("State Root");
-            GameObject stateA = new GameObject("A");
-            GameObject stateB = new GameObject("B");
-            stateRoot.transform.SetParent(host.transform);
-            stateA.transform.SetParent(stateRoot.transform);
-            stateB.transform.SetParent(stateRoot.transform);
+            GameObject stateA = CreateChild("A", host);
+            GameObject stateB = CreateChild("B", host);
+            stateA.SetActive(false);
+            stateB.SetActive(true);
 
             try
             {
                 ParameterStateBinder binder = host.AddComponent<ParameterStateBinder>();
-                binder.Configure(
-                    "Stage",
-                    stateRoot.transform,
-                    new[]
-                    {
-                        new ParameterChildStateMapping(0, 0),
-                        new ParameterChildStateMapping(1, 1),
-                        new ParameterChildStateMapping(2, 0)
-                    });
-                binder.Initialize(parameters);
+                binder.Configure(new[]
+                {
+                    new ParameterChildConditionBinding(stateA, "$Stage == 0"),
+                    new ParameterChildConditionBinding(stateB, "$Missing == 1")
+                });
 
-                AssertState(stateA, stateB, aIsActive: true);
-
-                parameters.Set("Stage", 1);
-                AssertState(stateA, stateB, aIsActive: false);
-
-                parameters.Set("Stage", 2);
-                AssertState(stateA, stateB, aIsActive: true);
+                Assert.Throws<System.InvalidOperationException>(
+                    () => binder.Initialize(parameters));
+                Assert.That(stateA.activeSelf, Is.False);
+                Assert.That(stateB.activeSelf, Is.True);
+                Assert.DoesNotThrow(() => parameters.Set("Stage", 1));
             }
             finally
             {
-                UnityEngine.Object.DestroyImmediate(host);
+                Object.DestroyImmediate(host);
             }
         }
 
         [Test]
-        public void InitializeFailure_DoesNotLeaveChangeSubscription()
+        public void Configure_DuplicateTargetFails()
         {
-            ParameterStore parameters = new ParameterStore(new[]
-            {
-                ParameterDefinition.Bool("Stage", "Stage", initialValue: false)
-            });
             GameObject host = new GameObject("Binder Host");
-            GameObject stateRoot = new GameObject("State Root");
-            GameObject stateA = new GameObject("A");
-            stateRoot.transform.SetParent(host.transform);
-            stateA.transform.SetParent(stateRoot.transform);
+            GameObject state = CreateChild("State", host);
 
             try
             {
                 ParameterStateBinder binder = host.AddComponent<ParameterStateBinder>();
-                binder.Configure(
-                    "Stage",
-                    stateRoot.transform,
-                    new[] { new ParameterChildStateMapping(0, 0) });
 
-                Assert.Throws<ParameterTypeMismatchException>(
-                    () => binder.Initialize(parameters));
-
-                Assert.DoesNotThrow(() => parameters.Set("Stage", true));
+                Assert.Throws<System.InvalidOperationException>(() => binder.Configure(new[]
+                {
+                    new ParameterChildConditionBinding(state, "$Stage == 0"),
+                    new ParameterChildConditionBinding(state, "$Stage == 1")
+                }));
             }
             finally
             {
-                UnityEngine.Object.DestroyImmediate(host);
+                Object.DestroyImmediate(host);
             }
+        }
+
+        [Test]
+        public void Configure_TargetOutsideBinderHierarchyFails()
+        {
+            GameObject host = new GameObject("Binder Host");
+            GameObject external = new GameObject("External");
+
+            try
+            {
+                ParameterStateBinder binder = host.AddComponent<ParameterStateBinder>();
+
+                Assert.Throws<System.InvalidOperationException>(() => binder.Configure(new[]
+                {
+                    new ParameterChildConditionBinding(external, "$Stage == 0")
+                }));
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+                Object.DestroyImmediate(external);
+            }
+        }
+
+        [Test]
+        public void Configure_AfterInitializeFailsAndKeepsExistingBinding()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Int("Stage", "Stage", 0, 0, 1)
+            });
+            GameObject host = new GameObject("Binder Host");
+            GameObject stateA = CreateChild("A", host);
+            GameObject stateB = CreateChild("B", host);
+
+            try
+            {
+                ParameterStateBinder binder = host.AddComponent<ParameterStateBinder>();
+                binder.Configure(new[]
+                {
+                    new ParameterChildConditionBinding(stateA, "$Stage == 0")
+                });
+                binder.Initialize(parameters);
+
+                Assert.Throws<System.InvalidOperationException>(() => binder.Configure(new[]
+                {
+                    new ParameterChildConditionBinding(stateB, "$Stage == 1")
+                }));
+
+                parameters.Set("Stage", 1);
+                Assert.That(stateA.activeSelf, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        private static GameObject CreateChild(string name, GameObject parent)
+        {
+            GameObject child = new GameObject(name);
+            child.transform.SetParent(parent.transform);
+            return child;
         }
 
         private static void AssertState(
             GameObject stateA,
             GameObject stateB,
-            bool aIsActive)
+            GameObject warning,
+            bool aIsActive,
+            bool bIsActive,
+            bool warningIsActive)
         {
             Assert.That(stateA.activeSelf, Is.EqualTo(aIsActive));
-            Assert.That(stateB.activeSelf, Is.EqualTo(!aIsActive));
+            Assert.That(stateB.activeSelf, Is.EqualTo(bIsActive));
+            Assert.That(warning.activeSelf, Is.EqualTo(warningIsActive));
         }
     }
 }

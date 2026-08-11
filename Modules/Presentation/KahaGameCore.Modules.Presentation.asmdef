@@ -2,6 +2,8 @@
     "name": "KahaGameCore.Modules.Presentation",
     "rootNamespace": "KahaGameCore.Presentation",
     "references": [
+        "KahaGameCore.Modules.Expressions",
+        "KahaGameCore.Modules.Expressions.Parameters",
         "KahaGameCore.Modules.Parameters"
     ],
     "includePlatforms": [],

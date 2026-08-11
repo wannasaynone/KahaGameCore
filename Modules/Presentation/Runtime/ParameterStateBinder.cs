@@ -1,135 +1,172 @@
 using System;
 using System.Collections.Generic;
+using KahaGameCore.Expressions;
 using KahaGameCore.Parameters;
 using UnityEngine;
+using ExpressionEngine = KahaGameCore.Expressions.Expressions;
 
 namespace KahaGameCore.Presentation
 {
     [Serializable]
-    public sealed class ParameterChildStateMapping
+    public sealed class ParameterChildConditionBinding
     {
         [SerializeField]
-        private int value;
+        private GameObject target;
 
         [SerializeField]
-        private int childIndex;
+        private string condition;
 
-        public ParameterChildStateMapping(int value, int childIndex)
+        public ParameterChildConditionBinding(GameObject target, string condition)
         {
-            this.value = value;
-            this.childIndex = childIndex;
+            this.target = target;
+            this.condition = condition;
         }
 
-        public int Value => value;
-        public int ChildIndex => childIndex;
+        public GameObject Target => target;
+        public string Condition => condition;
     }
 
     [DisallowMultipleComponent]
     public sealed class ParameterStateBinder : MonoBehaviour
     {
         [SerializeField]
-        private string parameterKey;
-
-        [SerializeField]
-        private Transform stateRoot;
-
-        [SerializeField]
-        private List<ParameterChildStateMapping> mappings =
-            new List<ParameterChildStateMapping>();
+        private List<ParameterChildConditionBinding> bindings =
+            new List<ParameterChildConditionBinding>();
 
         private ParameterStore parameters;
+        private ExpressionEngine expressionEngine;
+        private IExpressionContext expressionContext;
 
         public void Configure(
-            string key,
-            Transform root,
-            IEnumerable<ParameterChildStateMapping> stateMappings)
+            IEnumerable<ParameterChildConditionBinding> conditionBindings)
         {
-            if (string.IsNullOrWhiteSpace(key))
-                throw new ArgumentException("Parameter key is required.", nameof(key));
-            parameterKey = key;
-            stateRoot = root ?? throw new ArgumentNullException(nameof(root));
-            mappings = new List<ParameterChildStateMapping>(
-                stateMappings ?? throw new ArgumentNullException(nameof(stateMappings)));
-            ValidateMappings();
+            if (parameters != null)
+                throw new InvalidOperationException(
+                    "ParameterStateBinder cannot be configured after initialization.");
+
+            List<ParameterChildConditionBinding> configuredBindings =
+                new List<ParameterChildConditionBinding>(conditionBindings ??
+                    throw new ArgumentNullException(nameof(conditionBindings)));
+            ValidateBindings(configuredBindings);
+            bindings = configuredBindings;
         }
 
         public void Initialize(ParameterStore parameterStore)
         {
-            if (parameters != null)
-            {
-                parameters.Changed -= OnParameterChanged;
-            }
+            if (parameterStore == null)
+                throw new ArgumentNullException(nameof(parameterStore));
 
-            parameters = parameterStore ?? throw new ArgumentNullException(nameof(parameterStore));
-            ValidateConfiguration();
-            Refresh();
+            Unsubscribe();
+            parameters = null;
+            expressionEngine = null;
+            expressionContext = null;
+
+            ValidateBindings(bindings);
+            ExpressionEngine nextExpressionEngine = new ExpressionEngine();
+            IExpressionContext nextExpressionContext =
+                new ParameterExpressionContext(parameterStore);
+            bool[] activeStates = EvaluateBindings(
+                nextExpressionEngine,
+                nextExpressionContext);
+
+            Apply(activeStates);
+            parameters = parameterStore;
+            expressionEngine = nextExpressionEngine;
+            expressionContext = nextExpressionContext;
             parameters.Changed += OnParameterChanged;
         }
 
         public void Refresh()
         {
-            ValidateConfiguration();
-            int currentValue = parameters.GetInt(parameterKey);
-            int activeChildIndex = -1;
-            for (int index = 0; index < mappings.Count; index++)
-            {
-                if (mappings[index].Value == currentValue)
-                {
-                    activeChildIndex = mappings[index].ChildIndex;
-                    break;
-                }
-            }
+            if (parameters == null || expressionEngine == null || expressionContext == null)
+                throw new InvalidOperationException(
+                    "ParameterStateBinder is not initialized.");
 
-            for (int index = 0; index < stateRoot.childCount; index++)
-            {
-                stateRoot.GetChild(index).gameObject.SetActive(index == activeChildIndex);
-            }
+            ValidateBindings(bindings);
+            bool[] activeStates = EvaluateBindings(expressionEngine, expressionContext);
+            Apply(activeStates);
         }
 
         private void OnDestroy()
         {
-            if (parameters != null)
-            {
-                parameters.Changed -= OnParameterChanged;
-            }
+            Unsubscribe();
         }
 
         private void OnParameterChanged(ParameterChanged change)
         {
-            if (string.Equals(change.Key, parameterKey, StringComparison.Ordinal))
+            Refresh();
+        }
+
+        private bool[] EvaluateBindings(
+            ExpressionEngine evaluator,
+            IExpressionContext context)
+        {
+            bool[] activeStates = new bool[bindings.Count];
+            for (int index = 0; index < bindings.Count; index++)
             {
-                Refresh();
+                ParameterChildConditionBinding binding = bindings[index];
+                ExpressionResult<bool> result = evaluator.EvaluateCondition(
+                    binding.Condition,
+                    context);
+                if (!result.IsSuccess)
+                {
+                    throw new InvalidOperationException(
+                        $"ParameterStateBinder condition for '{binding.Target.name}' failed: " +
+                        result.Error);
+                }
+
+                activeStates[index] = result.Value;
+            }
+
+            return activeStates;
+        }
+
+        private void Apply(bool[] activeStates)
+        {
+            for (int index = 0; index < bindings.Count; index++)
+            {
+                bindings[index].Target.SetActive(activeStates[index]);
             }
         }
 
-        private void ValidateConfiguration()
+        private void ValidateBindings(
+            IReadOnlyList<ParameterChildConditionBinding> candidateBindings)
         {
-            if (parameters == null)
-                throw new InvalidOperationException("ParameterStateBinder is not initialized.");
-            if (string.IsNullOrWhiteSpace(parameterKey))
-                throw new InvalidOperationException("ParameterStateBinder requires a parameter key.");
-            if (stateRoot == null)
-                throw new InvalidOperationException("ParameterStateBinder requires a state root.");
-            ValidateMappings();
-        }
+            if (candidateBindings == null || candidateBindings.Count == 0)
+                throw new InvalidOperationException(
+                    "ParameterStateBinder requires at least one child binding.");
 
-        private void ValidateMappings()
-        {
-            HashSet<int> values = new HashSet<int>();
-            for (int index = 0; index < mappings.Count; index++)
+            HashSet<GameObject> targets = new HashSet<GameObject>();
+            for (int index = 0; index < candidateBindings.Count; index++)
             {
-                ParameterChildStateMapping mapping = mappings[index];
-                if (mapping == null)
-                    throw new InvalidOperationException("Parameter state mapping cannot be null.");
-                if (!values.Add(mapping.Value))
+                ParameterChildConditionBinding binding = candidateBindings[index];
+                if (binding == null)
                     throw new InvalidOperationException(
-                        $"Parameter state value '{mapping.Value}' is mapped more than once.");
-                if (stateRoot != null &&
-                    (mapping.ChildIndex < 0 || mapping.ChildIndex >= stateRoot.childCount))
+                        "Parameter child condition binding cannot be null.");
+                if (binding.Target == null)
+                    throw new InvalidOperationException(
+                        "Parameter child condition binding requires a target.");
+                if (binding.Target.transform == transform ||
+                    !binding.Target.transform.IsChildOf(transform))
                 {
                     throw new InvalidOperationException(
-                        $"Parameter state child index '{mapping.ChildIndex}' is out of range.");
+                        $"Parameter state target '{binding.Target.name}' must be a child of " +
+                        $"'{name}'.");
                 }
+                if (string.IsNullOrWhiteSpace(binding.Condition))
+                    throw new InvalidOperationException(
+                        $"Parameter state target '{binding.Target.name}' requires a condition.");
+                if (!targets.Add(binding.Target))
+                    throw new InvalidOperationException(
+                        $"Parameter state target '{binding.Target.name}' is bound more than once.");
+            }
+        }
+
+        private void Unsubscribe()
+        {
+            if (parameters != null)
+            {
+                parameters.Changed -= OnParameterChanged;
             }
         }
     }
