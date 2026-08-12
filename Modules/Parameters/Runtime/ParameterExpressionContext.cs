@@ -1,15 +1,14 @@
-using System;
-using KahaGameCore.Parameters;
+using KahaGameCore.Expressions;
 
-namespace KahaGameCore.Expressions
+namespace KahaGameCore.Parameters
 {
-    public sealed class ParameterExpressionContext : IExpressionContext
+    internal sealed class ParameterExpressionContext : IExpressionContext
     {
         private readonly ParameterStore parameters;
 
         public ParameterExpressionContext(ParameterStore parameters)
         {
-            this.parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
+            this.parameters = parameters;
         }
 
         public bool TryResolve(string symbol, out ExpressionValue value)

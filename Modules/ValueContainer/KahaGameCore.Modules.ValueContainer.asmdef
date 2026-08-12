@@ -1,7 +1,9 @@
 {
     "name": "KahaGameCore.Modules.ValueContainer",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "KahaGameCore.Modules.Expressions"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
@@ -10,5 +12,5 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "noEngineReferences": false
+    "noEngineReferences": true
 }

@@ -27,8 +27,7 @@ namespace KahaGameCore.GameEvents
 
         private readonly GameEventCatalog catalog;
         private readonly EffectRuntime effects;
-        private readonly ParameterExpressionContext expressionContext;
-        private readonly Expressions.Expressions expressions = new Expressions.Expressions();
+        private readonly ParameterStore parameters;
         private readonly GameEventDocumentJsonCodec codec;
         private readonly Queue<QueuedJob> queue = new Queue<QueuedJob>();
         private bool isProcessingQueue;
@@ -42,8 +41,7 @@ namespace KahaGameCore.GameEvents
         {
             this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             this.effects = effects ?? throw new ArgumentNullException(nameof(effects));
-            expressionContext = new ParameterExpressionContext(
-                parameters ?? throw new ArgumentNullException(nameof(parameters)));
+            this.parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
             this.codec = codec ?? new GameEventDocumentJsonCodec();
         }
 
@@ -175,9 +173,7 @@ namespace KahaGameCore.GameEvents
 
         private bool EvaluateCondition(GameEventDocument document)
         {
-            ExpressionResult<bool> condition = expressions.EvaluateCondition(
-                document.Condition,
-                expressionContext);
+            ExpressionResult<bool> condition = parameters.EvaluateCondition(document.Condition);
             if (!condition.IsSuccess)
             {
                 throw new GameEventException(

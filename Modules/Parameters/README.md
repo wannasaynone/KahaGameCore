@@ -14,11 +14,15 @@ ParameterStore parameters = new ParameterStore(definitions);
 int supplies = parameters.GetInt("Supplies");
 parameters.Add("Supplies", 10);
 parameters.Set("OutingUnlocked", true);
+
+ExpressionResult<float> cost = parameters.Calculate("$Supplies * 1.5");
+ExpressionResult<bool> canLeave = parameters.EvaluateCondition(
+    "$OutingUnlocked && $Supplies >= 10");
 ```
 
 支援 `Int`、`Float`、`Bool`、`String`。Int／Float 依 definition 的 min／max clamp；`Add` 只接受與 definition 相同的數值型別。Unknown key 與 type mismatch 會明確丟出 `ParameterException` 子型別，不會默認為 `0`。
 
-`TryGetValue` 與 `ParameterValue` 提供給 Expressions、Editor、Snapshot 等通用 adapter；一般 caller 不需要 switch `ParameterType`。
+`Calculate` 與 `EvaluateCondition` 直接以目前的 Parameter 值求值，caller 不需要組裝 Expression context。`TryGetValue` 與 `ParameterValue` 提供給 Editor、Snapshot 等 module 內部或工具用途；一般 caller 不需要 switch `ParameterType`。
 
 ## Parameter Table JSON
 
@@ -48,7 +52,7 @@ parameters.Set("OutingUnlocked", true);
 }
 ```
 
-`ParameterTableJsonCodec` 使用 invariant culture 讀寫 repo 既有的 JsonFx runtime。組裝端可載入多張表，將所有 `Parameters` 展平後建立同一個 `ParameterStore`。表內或跨表重複 `Key` 都會明確失敗，不會覆蓋。檔名與 DisplayName 都不是 Runtime identity。
+`ParameterTableJsonCodec` 使用 invariant culture 與 KahaGameCore 的 JsonFx runtime 讀寫。組裝端可載入多張表，將所有 `Parameters` 展平後建立同一個 `ParameterStore`。表內或跨表重複 `Key` 都會明確失敗，不會覆蓋。檔名與 DisplayName 都不是 Runtime identity。
 
 ## Parameter Table Editor
 

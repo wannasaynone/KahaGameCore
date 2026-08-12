@@ -1,12 +1,11 @@
 {
-    "name": "KahaGameCore.Modules.Expressions.Parameters.Tests",
-    "rootNamespace": "KahaGameCore.Expressions.Tests",
+    "name": "KahaGameCore.Modules.ValueContainer.Tests",
+    "rootNamespace": "KahaGameCore.ValueContainer.Tests",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "KahaGameCore.Modules.Expressions",
-        "KahaGameCore.Modules.Expressions.Parameters",
-        "KahaGameCore.Modules.Parameters"
+        "KahaGameCore.Modules.ValueContainer"
     ],
     "includePlatforms": [
         "Editor"

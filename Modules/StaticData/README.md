@@ -34,7 +34,6 @@ ItemData[] allItems = manager.GetAllGameData<ItemData>();
 ## 規則與限制
 
 - `IGameData.ID` 是同型別內的查詢 identity。
-- 重複載入預設只記錄 log；要取代既有陣列必須傳 `isForceUpdate: true`。
+- 重複載入預設只記錄 log；要覆寫已載入的陣列必須傳 `isForceUpdate: true`。
 - 找不到資料會回傳 `default`，不是 exception；caller 必須處理 null／default。
 - 本模組不驗證 ID 重複，也不保存 runtime 狀態。
-

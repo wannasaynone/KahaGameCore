@@ -7,14 +7,11 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
     public sealed class GameFlowExpressions : IConditionEvaluator
     {
-        private readonly Expressions.Expressions expressions;
-        private readonly IExpressionContext context;
+        private readonly ParameterStore parameters;
 
         public GameFlowExpressions(ParameterStore parameters)
         {
-            if (parameters == null) throw new ArgumentNullException(nameof(parameters));
-            expressions = new Expressions.Expressions();
-            context = new ParameterExpressionContext(parameters);
+            this.parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
         }
 
         public int CalculateInt(string formula)
@@ -24,14 +21,14 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
         internal float CalculateNumber(string formula)
         {
-            ExpressionResult<float> result = expressions.Calculate(formula, context);
+            ExpressionResult<float> result = parameters.Calculate(formula);
             if (!result.IsSuccess) throw new GameFlowExpressionException(formula, result.Error);
             return result.Value;
         }
 
         public bool Evaluate(string condition)
         {
-            ExpressionResult<bool> result = expressions.EvaluateCondition(condition, context);
+            ExpressionResult<bool> result = parameters.EvaluateCondition(condition);
             if (!result.IsSuccess) throw new GameFlowExpressionException(condition, result.Error);
             return result.Value;
         }

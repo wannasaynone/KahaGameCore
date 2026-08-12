@@ -40,9 +40,8 @@ await runner.TriggerAsync("Interact:Door", context);
 - 空 condition 代表 true。錯誤 condition 會丟 `GameEventException`，不會當成 false。
 - 相同 timing 可以有多份文件；priority 相同時按 catalog 輸入順序。
 - `RunAsync(file, context)` 直接執行指定文件，不檢查它的 timing，也不必把檔案放進 catalog。
-- 存檔前可用 `WaitUntilIdleAsync(token)` 等現有 queue 完成。
+- 存檔前可用 `WaitUntilIdleAsync(token)` 等待 queue 清空。
 
 ## Assembly
 
 引用 `KahaGameCore.Modules.GameEvents`，並同時引用實際使用的 Effects、Parameters 與 UniTask assemblies。
-

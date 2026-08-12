@@ -60,4 +60,4 @@ UnityThread.Do(() => statusText.text = "Done");
 - MessageBus 是 static process-wide state；subscriber 必須對稱退訂。
 - `TimerManager` 使用 `Time.deltaTime`，不是 realtime timer。
 - `UnityThread.Do` 只有在場景已初始化 `UnityThread` component 時才會被 Update 消耗。
-- Common 是既有 utilities 集合；新功能優先使用 Unity／UniTask 已有 API，不要為方便而繼續擴張全域 helper。
+- Common 只收納 Unity／UniTask 未提供、且由多個 module 共用的 utilities；不要為單一 caller 擴張全域 helper。

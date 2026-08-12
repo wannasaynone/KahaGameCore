@@ -6,7 +6,6 @@
         "KahaGameCore.Modules.StaticData",
         "KahaGameCore.Modules.Serialization",
         "KahaGameCore.Modules.Expressions",
-        "KahaGameCore.Modules.Expressions.Parameters",
         "KahaGameCore.Modules.Parameters",
         "KahaGameCore.Modules.Persistence",
         "KahaGameCore.Modules.ValueContainer",

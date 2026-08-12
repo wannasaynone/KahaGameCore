@@ -4,7 +4,7 @@
 
 表驅動對話系統：對話內容寫在 `DialogueData` 表（JSON 陣列），每行一個指令（Say、選項、立繪、CG、音效……），程式只負責播放。asmdef 為 `KahaGameCore.Modules.Dialogue`，C# namespace 為 `KahaGameCore.Dialogue`。
 
-> 此模組是 legacy runtime，尚未完成 cancellation、結構化錯誤與 Localization 重構。新專案可以使用現有功能，但不可假設所有舊 command 都已實作。
+> 此模組不提供 cancellation、結構化錯誤或 Localization。可用指令以本文「內建指令」清單與 composition root 額外註冊的 factory 為準。
 
 ## 快速開始
 
@@ -73,13 +73,13 @@ var dialogueManager = new DialogueManager(
 
 ## 已知陷阱
 
-- **`DialogueView.Update()` 使用舊版 `UnityEngine.Input`**——專案 Active Input Handling 需設為 Both（ProjectSettings `activeInputHandler: 2`），改完必須重啟編輯器才生效。
+- **`DialogueView.Update()` 使用 `UnityEngine.Input`**——專案 Active Input Handling 需設為 Both（ProjectSettings `activeInputHandler: 2`），改完必須重啟編輯器才生效。
 - **放進場景時錨點記得拉滿**——DialogueView 內部元件的錨點會自適應畫布大小，直接放在 Canvas 下、根節點錨點 0,0~1,1 鋪滿即可，不需要縮放包覆層。
 - **預設 CG / 音訊 Provider 走 Addressables**（`AddressablesCGProvider` / `AddressablesAudioProvider`）——專案未使用 Addressables 或資源不在其中時，需自行實作 `ICGProvider` / `IAudioProvider` 傳入建構子，否則 ShowCharacter / PlaySoundEffect 等指令會載不到資源。
 - **TMP 預設字型無 CJK**——中文顯示為方塊，需自建中文 TMP Font Asset 並替換 prefab 字型。
-- **未知 command 會記錄錯誤後跳過該行**，不會中止整段對話；command 內拋出的例外目前也沒有統一轉成結構化結果。
+- **未知 command 會記錄錯誤後跳過該行**，不會中止整段對話；command 內拋出的例外不會統一轉成結構化結果。
 
-未列在「內建指令」清單內的舊 command 檔案可能仍存在但丟出 `NotImplementedException`；不要只因類別存在就把它加入內容表。
+未列在「內建指令」清單內的 command 類別可能丟出 `NotImplementedException`；不要只因類別存在就把它加入內容表。
 
 ## 可選整合
 

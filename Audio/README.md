@@ -33,7 +33,6 @@ AudioManager.Instance.OnVolumeChanged += snapshot =>
 ## 注意事項
 
 - `AudioManager.Instance` 在 `Awake` 才建立；呼叫前必須先讓場景物件初始化。
-- BGM fade 使用 DOTween，assembly 必須能引用現有 DOTween runtime。
+- BGM fade 使用 DOTween，assembly 必須引用專案的 DOTween runtime。
 - `PlaySound` 會抑制同 clip 的高音量重疊；確定要重疊時用 `ForcePlaySound`。
 - Manager 不會自行 `DontDestroyOnLoad`，跨場景生命週期由專案 composition root 決定。
-

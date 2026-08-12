@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KahaGameCore.Expressions;
 
 namespace KahaGameCore.Parameters
 {
@@ -7,11 +8,14 @@ namespace KahaGameCore.Parameters
     {
         private readonly Dictionary<string, ParameterDefinition> definitions = new Dictionary<string, ParameterDefinition>();
         private readonly Dictionary<string, ParameterValue> values = new Dictionary<string, ParameterValue>();
+        private readonly Expressions.Expressions expressions = new Expressions.Expressions();
+        private readonly IExpressionContext expressionContext;
 
         public event Action<ParameterChanged> Changed;
 
         public ParameterStore(IEnumerable<ParameterDefinition> definitions)
         {
+            expressionContext = new ParameterExpressionContext(this);
             foreach (ParameterDefinition definition in definitions)
             {
                 if (this.definitions.ContainsKey(definition.Key))
@@ -47,6 +51,16 @@ namespace KahaGameCore.Parameters
         public bool TryGetValue(string key, out ParameterValue value)
         {
             return values.TryGetValue(key, out value);
+        }
+
+        public ExpressionResult<float> Calculate(string formula)
+        {
+            return expressions.Calculate(formula, expressionContext);
+        }
+
+        public ExpressionResult<bool> EvaluateCondition(string condition)
+        {
+            return expressions.EvaluateCondition(condition, expressionContext);
         }
 
         public void ResetToInitial()

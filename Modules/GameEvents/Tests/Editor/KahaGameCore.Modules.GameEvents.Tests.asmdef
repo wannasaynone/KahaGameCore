@@ -8,7 +8,6 @@
         "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Parameters",
         "KahaGameCore.Modules.Expressions",
-        "KahaGameCore.Modules.Expressions.Parameters",
         "KahaGameCore.Modules.ValueContainer",
         "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
         "UnityEngine.UI",

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using KahaGameCore.Expressions;
 using KahaGameCore.Parameters;
 using UnityEngine;
-using ExpressionEngine = KahaGameCore.Expressions.Expressions;
 
 namespace KahaGameCore.Presentation
 {
@@ -34,8 +33,6 @@ namespace KahaGameCore.Presentation
             new List<ParameterChildConditionBinding>();
 
         private ParameterStore parameters;
-        private ExpressionEngine expressionEngine;
-        private IExpressionContext expressionContext;
 
         public void Configure(
             IEnumerable<ParameterChildConditionBinding> conditionBindings)
@@ -58,32 +55,23 @@ namespace KahaGameCore.Presentation
 
             Unsubscribe();
             parameters = null;
-            expressionEngine = null;
-            expressionContext = null;
 
             ValidateBindings(bindings);
-            ExpressionEngine nextExpressionEngine = new ExpressionEngine();
-            IExpressionContext nextExpressionContext =
-                new ParameterExpressionContext(parameterStore);
-            bool[] activeStates = EvaluateBindings(
-                nextExpressionEngine,
-                nextExpressionContext);
+            bool[] activeStates = EvaluateBindings(parameterStore);
 
             Apply(activeStates);
             parameters = parameterStore;
-            expressionEngine = nextExpressionEngine;
-            expressionContext = nextExpressionContext;
             parameters.Changed += OnParameterChanged;
         }
 
         public void Refresh()
         {
-            if (parameters == null || expressionEngine == null || expressionContext == null)
+            if (parameters == null)
                 throw new InvalidOperationException(
                     "ParameterStateBinder is not initialized.");
 
             ValidateBindings(bindings);
-            bool[] activeStates = EvaluateBindings(expressionEngine, expressionContext);
+            bool[] activeStates = EvaluateBindings(parameters);
             Apply(activeStates);
         }
 
@@ -97,17 +85,14 @@ namespace KahaGameCore.Presentation
             Refresh();
         }
 
-        private bool[] EvaluateBindings(
-            ExpressionEngine evaluator,
-            IExpressionContext context)
+        private bool[] EvaluateBindings(ParameterStore parameterStore)
         {
             bool[] activeStates = new bool[bindings.Count];
             for (int index = 0; index < bindings.Count; index++)
             {
                 ParameterChildConditionBinding binding = bindings[index];
-                ExpressionResult<bool> result = evaluator.EvaluateCondition(
-                    binding.Condition,
-                    context);
+                ExpressionResult<bool> result =
+                    parameterStore.EvaluateCondition(binding.Condition);
                 if (!result.IsSuccess)
                 {
                     throw new InvalidOperationException(

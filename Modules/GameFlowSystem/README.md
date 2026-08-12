@@ -13,7 +13,7 @@
 
 > **對話橋接屬於範例／各專案的程式碼，不是 Module 的共用層。** 核心與 DefaultImplements 刻意與 Dialogue Module 無關（只認 `IDialoguePlayer`）。`DefaultViews` 內附一份範例橋接示範如何接上 Dialogue Module；**各專案請複製一份到自己的組件並依需求修改**。
 
-> **開新專案請直接看 [`新專案實作指南.md`](新專案實作指南.md)**——含一鍵生成路線、表格規格全文、手動實作 UI 的完整程式碼與 prefab 結構規格、疑難排解。
+> **完整組裝方式請直接看 [`專案實作指南.md`](專案實作指南.md)**——含一鍵生成路線、表格規格全文、手動實作 UI 的完整程式碼與 prefab 結構規格、疑難排解。
 
 ## 快速開始（使用預設實作）
 
@@ -126,11 +126,11 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 | `Editor/DefaultUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**：在專案內生成 `Assets/Resources/GameFlowUIViews/` 九個 prefab 與 `Assets/Scenes/GameFlowGame.unity`（全部接好、測試表已掛上、可直接 Play）。全程式化版面（TMP 預設字型＋內建 UISprite），零美術資產依賴，可重複執行覆寫 |
 | `SampleData/*.txt`、`SampleData/GameEvents/*.gameevent.json` + `SampleData/Parameters/*.parameters.json` | 五張測試表、Game Event documents 與 Parameter table；HUD key 由 composition root 明列。 |
 
-新專案最短路徑：複製 KahaGameCore 包 → 跑一次 builder 選單 → 開生成的場景直接 **Play**（測試內容可玩）→ 之後把欄位裡的 TextAsset 換成自己的表。要客製時把對應腳本複製到專案改名修改（別直接改包內版本），prefab 直接改（重跑 builder 會覆寫）。
+最短組裝路徑：確認專案包含 KahaGameCore → 跑一次 builder 選單 → 開生成的場景直接 **Play**（測試內容可玩）→ 將欄位裡的 TextAsset 換成專案資料表。客製腳本放在專案 assembly 並使用專案命名；prefab 可直接修改，但重跑 builder 會覆寫生成內容。
 
 注意：TMP 預設字型無 CJK，正式中文顯示需自建 TMP Font Asset 後替換 prefab 中的字型。
 
-**DialogueView**：類別本體在 Dialogue Module（`DialogueManager` 直接依賴它，不能搬出），「怎麼接上」由 builder 處理——直接放在 Canvas 下錨點拉滿即可，內部元件錨點會自適應畫布大小，不需要縮放包覆層。已知陷阱：其 `Update()` 用舊版 Input，Active Input Handling 需設 Both 並重啟編輯器。
+**DialogueView**：類別本體在 Dialogue Module（`DialogueManager` 直接依賴它，不能搬出），「怎麼接上」由 builder 處理——直接放在 Canvas 下錨點拉滿即可，內部元件錨點會自適應畫布大小，不需要縮放包覆層。其 `Update()` 使用 `UnityEngine.Input`，Active Input Handling 需設 Both 並重啟編輯器。
 
 ---
 
@@ -162,7 +162,7 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 
 ### 2. 實作 7 個介面
 
-每個 Interface 都刻意縮到最小，大多只有一兩個成員。建議讓專案既有的 Interface／資料類別直接繼承，不用另寫 Adapter。
+每個 Interface 都刻意縮到最小，大多只有一兩個成員。專案的 Interface／資料類別可直接繼承，不需要另寫 Adapter。
 
 | 介面 | 成員 | 職責 |
 |---|---|---|
@@ -176,7 +176,7 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 
 實作時的約定：
 
-- Phase 是否可行動不再有獨立旗標；目前地點若沒有任何 visible + enabled Action，Controller 自動 `AdvancePhase()`。
+- Phase 是否可行動沒有獨立旗標；目前地點若沒有任何 visible + enabled Action，Controller 自動 `AdvancePhase()`。
 - `IGameFlowTimeService.CurrentPhase` 的 `ID` 是流程偵測「事件是否切換了階段」的依據——事件指令（如 SetPhase）改變階段後，流程會放棄目前階段、直接進入新階段。
 - `RaiseTimingAsync` 收到取消的 token 後，不應再執行佇列中剩餘的事件（返回標題等中止情境）。
 
@@ -233,7 +233,7 @@ Game Event timing 是 ordinal exact match，沒有 `Any` 萬用字。Action 自�
 
 ## 測試
 
-`Tests/Editor/GameFlowControllerTest.cs` 是純 C#（無場景、無 MonoBehaviour）的時序測試，所有 Fake 同步完成、以「觸發 N 次後取消」收斂無限迴圈。新專案改動流程前先跑一次：Test Runner → EditMode → `KahaGameCore.Modules.GameFlowSystem.Tests`。
+`Tests/Editor/GameFlowControllerTest.cs` 是純 C#（無場景、無 MonoBehaviour）的時序測試，所有 Fake 同步完成、以「觸發 N 次後取消」收斂無限迴圈。修改流程前先執行：Test Runner → EditMode → `KahaGameCore.Modules.GameFlowSystem.Tests`。
 
 ## 參考實作
 

@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using KahaGameCore.ValueContainer;
+using KahaGameCore.Expressions;
 using NUnit.Framework;
 
-namespace KahaGameCore.Expressions.Tests
+namespace KahaGameCore.ValueContainer.Tests
 {
-    public class ValueContainerExpressionContextTests
+    public class ValueContainerExpressionsTests
     {
         private sealed class FakeValueContainer : IValueContainer
         {
@@ -42,30 +42,34 @@ namespace KahaGameCore.Expressions.Tests
         }
 
         [Test]
-        public void Calculate_ResolvesCasterAndTargetThroughValueContainers()
+        public void Calculate_ResolvesCasterAndTarget()
         {
-            IValueContainer caster = new FakeValueContainer(new Dictionary<string, int> { ["HP"] = 20 });
-            IValueContainer target = new FakeValueContainer(new Dictionary<string, int> { ["Defense"] = 7 });
-            ValueContainerExpressionContext context = new ValueContainerExpressionContext(caster, target);
+            IValueContainer caster = new FakeValueContainer(
+                new Dictionary<string, int> { ["HP"] = 20 });
+            IValueContainer target = new FakeValueContainer(
+                new Dictionary<string, int> { ["Defense"] = 7 });
+            ValueContainerExpressions expressions =
+                new ValueContainerExpressions(caster, target);
 
-            ExpressionResult<float> result = new Expressions().Calculate("Caster.HP - Target.Defense", context);
+            ExpressionResult<float> result =
+                expressions.Calculate("Caster.HP - Target.Defense");
 
             Assert.That(result.IsSuccess, Is.True, result.Error?.ToString());
             Assert.That(result.Value, Is.EqualTo(13f));
         }
 
         [Test]
-        public void Calculate_BaseOnlyContextReadsBaseValues()
+        public void Calculate_BaseOnlyReadsBaseValues()
         {
             FakeValueContainer caster = new FakeValueContainer(
                 new Dictionary<string, int> { ["Attack"] = 15 },
                 new Dictionary<string, int> { ["Attack"] = 10 });
-            ValueContainerExpressionContext context = new ValueContainerExpressionContext(
+            ValueContainerExpressions expressions = new ValueContainerExpressions(
                 caster,
                 target: null,
                 baseOnly: true);
 
-            ExpressionResult<float> result = new Expressions().Calculate("Caster.Attack", context);
+            ExpressionResult<float> result = expressions.Calculate("Caster.Attack");
 
             Assert.That(result.IsSuccess, Is.True, result.Error?.ToString());
             Assert.That(result.Value, Is.EqualTo(10f));

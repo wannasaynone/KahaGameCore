@@ -1,9 +1,9 @@
 using System;
-using KahaGameCore.ValueContainer;
+using KahaGameCore.Expressions;
 
-namespace KahaGameCore.Expressions
+namespace KahaGameCore.ValueContainer
 {
-    public sealed class ValueContainerExpressionContext : IExpressionContext
+    internal sealed class ValueContainerExpressionContext : IExpressionContext
     {
         private const string CasterPrefix = "Caster.";
         private const string TargetPrefix = "Target.";
@@ -15,7 +15,7 @@ namespace KahaGameCore.Expressions
         public ValueContainerExpressionContext(
             IValueContainer caster,
             IValueContainer target,
-            bool baseOnly = false)
+            bool baseOnly)
         {
             this.caster = caster;
             this.target = target;

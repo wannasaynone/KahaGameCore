@@ -2,7 +2,7 @@
 
 ## 目的
 
-Presentation 目前只提供 `ParameterStateBinder`：以 Expressions condition 監聽 `ParameterStore`，自動切換同一根物件之下的目標子物件。它適合門、機關、階段外觀等由語意狀態推導的顯示。
+Presentation 提供 `ParameterStateBinder`：以 Expressions condition 監聽 `ParameterStore`，自動切換同一根物件之下的目標子物件。它適合門、機關、階段外觀等由語意狀態推導的顯示。
 
 ## 快速開始
 
@@ -37,4 +37,3 @@ binder.Initialize(parameters);
 - 語法錯誤、unknown Parameter 或非 Bool 結果會明確失敗。
 - 不要把 target active flag 存檔；載入 Parameters 並初始化 binder 後重新推導。
 - 本模組沒有 SceneObjectRegistry、Timeline、Animator 或 Camera adapter。
-
