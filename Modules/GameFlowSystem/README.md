@@ -1,8 +1,22 @@
 # GameFlowSystem
 
-## 目的
+## 用途
 
 表驅動遊戲主流程包。提供固定的流程骨架，所有劇情、條件與數值變化都由各專案的表格定義，包內不含任何劇情內容。
+
+## 第一次使用：生成並執行 Sample
+
+1. 完成 [專案實作指南的前置設定](專案實作指南.md#0-前置包套件與專案設定)。
+2. 執行 `KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene`。
+3. 開啟 `Assets/Scenes/GameFlowGame.unity` 並進入 Play Mode。
+
+預期結果：從主標題開始後可操作行動與地點選單，HUD 會隨 Parameters、Phase 與 Location 更新。這條路徑會一次驗證資料載入、Game Events、Effects、Dialogue、Presentation 與 UI 組裝。
+
+確認 Sample 能執行後再選擇：
+
+- 沿用 DefaultImplements／DefaultViews：閱讀下方「在專案中組裝預設實作」。
+- 完全自有 UI 或 domain services：跳到「接入核心介面」。
+- 需要逐檔建立 View、Presenter、表格與 Scene：閱讀 [專案實作指南](專案實作指南.md)。
 
 包分四層：
 
@@ -15,7 +29,7 @@
 
 > **完整組裝方式請直接看 [`專案實作指南.md`](專案實作指南.md)**——含一鍵生成路線、表格規格全文、手動實作 UI 的完整程式碼與 prefab 結構規格、疑難排解。
 
-## 快速開始（使用預設實作）
+## 在專案中組裝預設實作
 
 ```csharp
 // 1. 載入表格——二擇一：
@@ -152,7 +166,7 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 
 不依賴 KahaGameCore 其他 Module——Effects、StaticData 等都只是「建議搭配」，由專案端自行組合。
 
-## 接入步驟
+## 接入核心介面
 
 ### 1. asmdef 加參照
 

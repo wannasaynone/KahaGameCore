@@ -1,64 +1,48 @@
 # Gradient Texture Component
 
-## 目的
+## 用途
 
-A Unity component that allows you to generate gradient sprites at runtime based on a gradient and two points, specifically designed for use with SpriteRenderer components.
+`GradientTextureComponent` 在 runtime 產生線性或放射狀漸層 Texture，建立 Sprite 並套用到同一個 GameObject 的 `SpriteRenderer`。產物只存在記憶體，不會寫成 asset。
 
-## Features
+## 第一次使用：產生漸層 Sprite
 
-- Create gradient textures and sprites at runtime
-- Preview the gradient texture in the editor
-- Control the gradient direction with draggable points
-- Customize texture size
-- Apply the generated sprite directly to the SpriteRenderer
-- Regenerate and apply sprite in editor mode with a single click
-- Optional preview in the game scene during Play mode
+1. 在 GameObject 加入 `GradientTextureComponent`；`SpriteRenderer` 會由 `RequireComponent` 一起加入。
+2. 在 Inspector 設定 `Gradient`、`Start Point`、`End Point`、`Texture Width` 與 `Texture Height`。
+3. `Render Mode` 選擇 `Linear` 或 `Radius`。
+4. 按下 Inspector 的 `Regenerate Preview` 確認結果。
+5. 進入 Play Mode。
 
-## 快速開始
+預期結果：Component 在 `Start` 產生 Texture 與 Sprite，並指定給同物件的 `SpriteRenderer`。
 
-1. Add the `GradientTextureComponent` script to any GameObject with a SpriteRenderer component
-2. Configure the gradient, start/end points, and texture size in the Inspector
-3. See a preview of the texture in both the Inspector and Scene view
-4. Click the "Regenerate Preview" button to update the preview and apply it to the SpriteRenderer
-5. Optionally enable "Show Preview In Game Scene" to see a preview during Play mode
-6. At runtime, the component will automatically generate a sprite and apply it to the SpriteRenderer
-
-## Inspector Properties
-
-- **Gradient**: The color gradient to use for generating the texture
-- **Start Point**: The starting point of the gradient (normalized 0-1 coordinates)
-- **End Point**: The ending point of the gradient (normalized 0-1 coordinates)
-- **Texture Size**: The size of the generated texture (in pixels)
-- **Show Preview In Game Scene**: Whether to show a preview in the game scene during Play mode
-- **Preview Size**: The size of the preview in the game scene (in pixels)
-
-## Example
+呼叫端程式若直接存取 component，asmdef 引用 `KahaGameCore.Modules.GradientTextureComponent`，namespace 為 `ProjectTentacle.Tools`。此模組的 asmdef 同時引用專案既有的 `SpriteBlendingMode` assembly：
 
 ```csharp
-// Get a reference to the component
-GradientTextureComponent gradientTexture = GetComponent<GradientTextureComponent>();
+using ProjectTentacle.Tools;
 
-// You can also generate and get the texture programmatically
-Texture2D generatedTexture = gradientTexture.GenerateTexture();
+GradientTextureComponent gradient =
+    GetComponent<GradientTextureComponent>();
 
-// Create a sprite from the texture
-Sprite sprite = Sprite.Create(
-    generatedTexture,
-    new Rect(0, 0, generatedTexture.width, generatedTexture.height),
-    new Vector2(0.5f, 0.5f), // Pivot at center
-    100f // Pixels per unit
-);
-
-// Apply the sprite to a SpriteRenderer
-SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
-spriteRenderer.sprite = sprite;
+gradient.SetRenderMode(GradientRenderMode.Linear);
+gradient.SetTextureWidth(512);
+gradient.SetTextureHeight(256);
+Texture2D texture = gradient.GenerateTexture();
 ```
 
-## Notes
+`GenerateTexture()` 只產生或更新 Texture；Component 自己在 `Start` 建立並套用 Sprite。
 
-- The component requires a SpriteRenderer component on the same GameObject
-- The texture and sprite are generated in memory and not saved to disk
-- The gradient direction is defined by the start and end points (normalized 0-1 coordinates)
-- The sprite is created with a centered pivot point and 100 pixels per unit
-- The editor and game scene previews show the basic texture without shader effects
-- The game scene preview is drawn using OnGUI and appears on top of the game view
+## Inspector 欄位
+
+| 欄位 | 功能 |
+|---|---|
+| `Gradient` | 顏色與 alpha keys。 |
+| `Start Point`／`End Point` | 0–1 normalized 座標，用來決定方向與距離。 |
+| `Texture Width`／`Texture Height` | 產生 Texture 的像素尺寸。 |
+| `Render Mode` | `Linear` 線性漸層或 `Radius` 放射狀漸層。 |
+| `Show Preview In Game Scene` | Play Mode 時用 `OnGUI` 顯示額外預覽。 |
+| `Preview Size` | `OnGUI` 預覽尺寸，不改變產生的 Texture。 |
+
+## 限制
+
+- Texture 與 Sprite 在記憶體建立，Component 銷毀時一併清理。
+- Game Scene preview 使用 `Camera.main` 與 `OnGUI`，只適合檢查，不是正式 UI。
+- 啟用 `USING_URP` define 時，`GradientTextureComponent` 會要求同物件具有 `SpriteBlendingMode` component。

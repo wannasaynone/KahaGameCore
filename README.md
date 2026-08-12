@@ -1,102 +1,158 @@
-# KahaGameCore 使用手冊
+# KahaGameCore
 
-## 目的
+KahaGameCore 是以 asmdef 分隔的 Unity 遊戲開發工具包，包含 Parameters、Expressions、Effects、Game Events、GameFlow、Dialogue、Persistence 與常用 UI／基礎工具。
 
-KahaGameCore 是放在 Unity `Assets/` 下、以 asmdef 分隔的遊戲功能模組集合。各模組可個別引用；不要讓專案程式直接依賴未使用的整包功能。
+本文件說明如何快速建立並執行預設的表驅動遊戲專案。各模組的 API 與獨立用法請查閱文末的模組文件。
 
-## 快速開始
+## 系統需求
 
-1. 確認 `Assets/KahaGameCore` 已存在於專案，等待 Unity 完成編譯。
-2. 在自己的 asmdef 加入要使用的 KahaGameCore assembly reference。
-3. 從下表進入對應模組 README，依該模組的「快速開始」組裝。
-4. Parameters、Effects、Game Events、Persistence 等純 runtime 物件由專案 composition root 建立並注入；不要用場景掃描或自行新增 static locator。
+此專案目前使用 Unity `6000.3.8f1`，並需要：
 
-最小的參數與條件式範例：
+- Input System
+- Addressables
+- TextMeshPro／UGUI
+- UniTask（已包含在 `Assets/KahaGameCore/Plugins/UniTask`）
 
-```csharp
-using KahaGameCore.Expressions;
-using KahaGameCore.Parameters;
+Dialogue 同時使用 Unity Input 與 Input System。請到：
 
-var parameters = new ParameterStore(new[]
-{
-    ParameterDefinition.Int("Supplies", "物資", 10, 0, 999),
-    ParameterDefinition.Bool("DoorOpen", "門已開啟", false)
-});
+`Edit → Project Settings → Player → Other Settings → Active Input Handling`
 
-parameters.Add("Supplies", 5);
+設為 `Both`，然後重啟 Unity。
 
-ExpressionResult<bool> result = parameters.EvaluateCondition(
-    "$Supplies >= 10 && !$DoorOpen");
-```
+## 安裝
 
-自己的 asmdef 至少需要：
+1. 將完整的 `KahaGameCore` 資料夾放到：
 
-```json
-{
-  "references": [
-    "KahaGameCore.Modules.Parameters",
-    "KahaGameCore.Modules.Expressions"
-  ]
-}
-```
+   `Assets/KahaGameCore/`
 
-## 模組索引
+2. 在 Package Manager 安裝 Input System、Addressables 與 UGUI。
+3. 等待 Unity 完成匯入與編譯。
+4. 確認 Console 沒有 compile error。
 
-| 模組 | 目的 | 範圍 |
-|---|---|---|
-| [Expressions](Modules/Expressions/README.md) | 計算式與條件式求值 | 純 runtime 求值引擎 |
-| [Parameters](Modules/Parameters/README.md) | 全域、typed、可保存的內容值 | Runtime store、Expressions 求值與表格 Editor |
-| [Effects](Modules/Effects/README.md) | 解析並依序執行文字效果指令 | Command codec、registry 與 runtime |
-| [Game Events](Modules/GameEvents/README.md) | 依 timing、condition、priority 排隊執行 Effects | Catalog、條件篩選與 FIFO queue |
-| [GameFlowSystem](Modules/GameFlowSystem/README.md) | 表驅動遊戲主循環與預設組裝 | Runtime contracts、default implementation 與 views |
-| [Persistence](Modules/Persistence/README.md) | Parameters 與明確註冊 participant 的存讀檔 | Save／Load core；Scene host 由專案組裝 |
-| [Presentation](Modules/Presentation/README.md) | 以 Parameter 條件控制子物件顯示 | `ParameterStateBinder` |
-| [Dialogue](Modules/Dialogue/README.md) | 表驅動對話播放器 | 對話 queue、內建指令與演出 providers |
-| [StaticData](Modules/StaticData/README.md) | 依資料型別保存與查詢靜態表格 | Runtime table store |
-| [Serialization](Modules/Serialization/README.md) | JsonFx 的薄型讀寫 adapter | `IJsonReader`／`IJsonWriter` implementations |
-| [UserInterfaceSystem](Modules/UserInterfaceSystem/README.md) | UGUI View stack 與淡入淡出 | View stack、附著 View 與轉場 |
-| [ValueContainer](Modules/ValueContainer/README.md) | 可疊加角色數值與字串 key/value 契約 | `IValueContainer` 與 Caster／Target 求值 |
-| [GradientTextureComponent](Modules/GradientTextureComponent/README.md) | 產生漸層 Sprite | Runtime component |
-| [Audio](Audio/README.md) | BGM、SFX、白噪音與音量控制 | `AudioManager` |
-| [Foundation](Foundation/README.md) | MessageBus 與共用 Unity utilities | Messaging 與 common utilities |
-| [UITool](UITool/README.md) | Canvas 尺寸與世界物件 UI 跟隨 | `MainCanvas` 與 UI helpers |
+## Quick Start：建立可執行專案
 
-`Plugins/` 是隨 KahaGameCore 放置的第三方程式，不是 KahaGameCore 自有 API；使用前仍應遵守各套件的授權與原始文件。
+### 1. 生成預設 UI 與 Scene
 
-## 建議的核心組裝順序
+執行 Unity 選單：
 
-```text
-Parameter definitions → ParameterStore（包含參數計算與條件求值）
-                              ↓
-EffectCommandRegistry → EffectRuntime
-                              ↓
-GameEventCatalog → GameEventRunner
-                              ↓
-GameFlow adapter / Scene trigger / Save coordinator
-```
+`KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene`
 
-- Parameters 保存權威語意狀態。
-- Expressions 只求值，不修改狀態。
-- Effects 執行已註冊 command，不擁有跨事件 queue。
-- Game Events 擁有 timing 過濾、condition snapshot、priority 與 FIFO queue。
-- GameFlow、場景物件與存讀檔只透過上述公開 seam 組裝。
+Builder 會生成：
 
-## Editor 工具
+| 路徑 | 內容 |
+|---|---|
+| `Assets/Scenes/GameFlowGame.unity` | 已完成組裝的可執行 Scene |
+| `Assets/Resources/GameFlowUIViews/` | 主標題、HUD、選單、提示與製作名單 prefabs |
 
-- `KahaGameCore/Parameters/Parameter Table Editor`：建立與驗證 `.parameters.json`。
-- `KahaGameCore/GameFlowSystem/Build Default UI Prefabs And Scene`：生成 GameFlow 範例 UI 與場景；重新執行會覆寫生成內容。
+生成的 Scene 已包含 Camera、EventSystem、Canvas、DialogueView、`UserInterfaceController` 與 `DefaultGameLauncher`。
 
-根層 `Editor/` 包含 Animator、UI template、資源搜尋與 Google Sheet JSON 工具。Google Sheet JSON converter 只處理其指定格式，不提供 Localization 或標準 CSV workflow。
+### 2. 執行
 
-## 能力邊界
+1. 開啟 `Assets/Scenes/GameFlowGame.unity`。
+2. 進入 Play Mode。
+3. 從主標題開始遊戲。
 
-KahaGameCore 的核心流程由 Expressions、Parameters、Effects、Game Events、GameFlow 與 Persistence 組成。以下能力不在公開介面內，或有明確限制：
+正常情況下可以操作行動選單、地點選單、提示與對話；HUD 會隨 Parameters 與時間階段更新。
 
-- Persistence 的 `GameLoadCoordinator`／`IGameLoadHost` 有自動測試；ProjectTentacle 的 production Scene host adapter 由專案端提供，手動流程位於 GameSaveTest sample。
-- Dialogue 以 `DialogueCommandFactoryContainer` 組裝指令；支援範圍以 Dialogue README 的內建指令清單為準，其他 command 類別可能丟出 `NotImplementedException`。
-- KahaGameCore 不定義 Localization、TextGuid 或 Master CSV workflow。
-- Presentation 的公開介面是 `ParameterStateBinder`，不包含 SceneObjectRegistry、Timeline、Animator 或 Camera adapter。
+### 3. 指定專案資料
+
+在 Scene 中選取 `DefaultGameLauncher`，設定下列欄位：
+
+| 欄位 | 內容 |
+|---|---|
+| `Game Data Tables` | `TimePhaseData.txt`、`PlayerActionData.txt`、`LocationData.txt`、`GameTextData.txt`、`DialogueData.txt` |
+| `Parameter Tables` | 一或多份 `.parameters.json` |
+| `Game Event Files` | `.gameevent.json` documents |
+| `Scene Game Event Triggers` | 場景內需要直接執行指定事件文件的 triggers |
+| `Parameter State Binders` | 依 Parameter condition 更新顯示的場景 binders |
+| `Game Title` | 主標題顯示名稱 |
+| `Credits Text Id` | `GameTextData.ID`，供製作名單演出使用 |
+
+內附 SampleData 位於：
+
+`Assets/KahaGameCore/Modules/GameFlowSystem/DefaultViews/SampleData/`
+
+可將 SampleData 複製到專案自己的資料夾後修改，再重新指定 Launcher 欄位。不要直接修改 KahaGameCore 內的 SampleData。
+
+### 4. 驗證資料接線
+
+資料之間使用下列 identity 互相引用：
+
+| 寫法 | 對應資料 |
+|---|---|
+| `$Spirit` | Parameter `Key` |
+| `AddParameter(Spirit,-10)` | 同一個 Parameter `Key` |
+| `Action:Work` | `PlayerActionData.TriggerTiming` 與 Game Event `TriggerTiming` |
+| `PhaseStart:Morning` | `TimePhaseData.Key` |
+| `EnterLocation:1` | `LocationData.ID` |
+| `ShowHint(901)` | `GameTextData.ID` |
+| `StartDialogue(1)` | `DialogueData.ID` |
+
+如果 Action 有顯示但沒有執行效果，先確認 `TriggerTiming` 完全相同，且對應的 Game Event 已加入 `Game Event Files`。
+
+## DefaultGameLauncher 建立的服務
+
+`DefaultGameLauncher` 是預設 composition root。它會：
+
+1. 載入五張 static data tables。
+2. 載入 Parameter tables 並建立共用的 `ParameterStore`。
+3. 建立 Effects command registry 與 runtime。
+4. 建立 `GameEventCatalog` 與 `GameEventRunner`。
+5. 透過 `GameFlowGameEventAdapter` 將 Game Events 接到 GameFlow。
+6. 建立 `GameFlowServices`、Dialogue bridge、Presenters 與 HUD。
+7. 初始化 Scene Game Event Triggers 與 Parameter State Binders。
+8. 在玩家開始遊戲時重置狀態並執行 `FlowController.RunNewGameAsync(...)`。
+
+需要替換服務、註冊自訂 Effects command、調整 HUD Parameter Keys 或修改組裝流程時，將 `DefaultGameLauncher.cs` 複製到專案 assembly，改名後修改，並替換 Scene 中的 component。不要直接修改 KahaGameCore 內的 Launcher。
+
+## 生成內容注意事項
+
+- 再次執行 Builder 會覆寫生成的 Scene 與 UI prefabs。
+- 開始修改 UI 後，不要再次執行 Builder；或先備份生成內容。
+- `DefaultGameLauncher` 的 Sample HUD 預設顯示 `Supplies`、`Satiety`、`Spirit`。改用其他 Keys 時需客製 Launcher 的 `HUD_PARAMETER_KEYS`。
+- 五張 static data tables 的檔名必須與資料型別名稱相同。
+- Parameter Keys 在所有載入的 Parameter tables 中必須唯一。
+- 每份 Game Event 的 `DocumentGuid` 必須唯一。
+
+## 加入存讀檔
+
+Persistence 不會由 Builder 自動加入遊戲 UI。需要存讀檔時：
+
+1. 使用 gameplay 已建立的同一份 `ParameterStore`。
+2. 將非 Parameter 狀態註冊到 `SaveParticipantRegistry`。
+3. 使用 `GameSaveSlotStore` 與 `GameSaveDocumentJsonCodec` 讀寫 slot。
+4. 使用 Game Events 時，在專案自己的 Launcher 中，以同一個 `GameEventRunner` 建立 `GameSaveCoordinator`。
+5. 跨 Scene Load 時實作 `IGameLoadHost`。
+
+完整步驟見 [Persistence](Modules/Persistence/README.md)。
+
+## 專案程式碼與 asmdef
+
+生成並執行預設 Scene 不需要先建立專案 scripts assembly。
+
+開始撰寫自訂 Launcher、Views、Presenters、Effects commands 或 services 時，請為專案程式建立自己的 asmdef，只加入實際使用的 KahaGameCore assembly references。完整的 GameFlow 專案 references 與組裝範例見 [GameFlowSystem 專案實作指南](Modules/GameFlowSystem/專案實作指南.md#1-遊戲程式碼-asmdef)。
+
+## 模組文件
+
+| 模組 | 文件 |
+|---|---|
+| GameFlow | [GameFlowSystem](Modules/GameFlowSystem/README.md)／[專案實作指南](Modules/GameFlowSystem/專案實作指南.md) |
+| Parameters | [Parameters](Modules/Parameters/README.md) |
+| Expressions | [Expressions](Modules/Expressions/README.md) |
+| Effects | [Effects](Modules/Effects/README.md) |
+| Game Events | [Game Events](Modules/GameEvents/README.md) |
+| Persistence | [Persistence](Modules/Persistence/README.md) |
+| Dialogue | [Dialogue](Modules/Dialogue/README.md) |
+| Presentation | [Presentation](Modules/Presentation/README.md) |
+| StaticData | [StaticData](Modules/StaticData/README.md) |
+| User Interface | [UserInterfaceSystem](Modules/UserInterfaceSystem/README.md) |
+| ValueContainer | [ValueContainer](Modules/ValueContainer/README.md) |
+| Serialization | [Serialization](Modules/Serialization/README.md) |
+| Audio | [Audio](Audio/README.md) |
+| Foundation | [Foundation](Foundation/README.md) |
+| UI utilities | [UITool](UITool/README.md) |
+| Gradient Sprite | [GradientTextureComponent](Modules/GradientTextureComponent/README.md) |
 
 ## 測試
 
-在 Unity Test Runner 執行 EditMode tests。各模組測試 assembly 位於自己的 `Tests/Editor`；Persistence 的手動流程另有 `Modules/Persistence/GameEventsIntegration/Samples/GameSaveTest` PlayMode sample。
+在 Unity Test Runner 執行 EditMode tests。各模組測試 assembly 位於自己的 `Tests/Editor`；Persistence 另提供 `Modules/Persistence/GameEventsIntegration/Samples/GameSaveTest` PlayMode sample。

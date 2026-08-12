@@ -1,29 +1,41 @@
 # Dialogue
 
-## 目的
+## 用途
 
 表驅動對話系統：對話內容寫在 `DialogueData` 表（JSON 陣列），每行一個指令（Say、選項、立繪、CG、音效……），程式只負責播放。asmdef 為 `KahaGameCore.Modules.Dialogue`，C# namespace 為 `KahaGameCore.Dialogue`。
 
 > 此模組不提供 cancellation、結構化錯誤或 Localization。可用指令以本文「內建指令」清單與 composition root 額外註冊的 factory 為準。
 
-## 快速開始
+## 第一次使用前準備
+
+呼叫端 asmdef 至少引用 `KahaGameCore.Modules.Dialogue` 與 `KahaGameCore.Modules.StaticData`。第一次播放需要三個專案物件：
+
+| 物件 | 來源 |
+|---|---|
+| `dialogueView` | 將 `Prefabs/DialogueView.prefab` 放進 Canvas，取得其 `DialogueView` component。 |
+| `staticDataManager` | 專案建立並共用的 `GameStaticDataManager`。 |
+| `jsonHandler` | 專案的 `IGameStaticDataHandler`，必須能載入 `DialogueData` JSON 陣列。GameFlow DefaultImplements 可使用 `TextAssetJsonStaticDataHandler`。 |
+
+Dialogue module 不決定檔案位置，因此不會自動建立 `jsonHandler`。
+
+## 第一次播放一段對話
 
 ```csharp
-// 1. 場景中放入 Prefabs/DialogueView.prefab，取得其 DialogueView 參考
-// 2. 載表
-var staticDataManager = new GameStaticDataManager();
-staticDataManager.Add<DialogueData>(jsonHandler);   // 任一 IGameStaticDataHandler
+GameStaticDataManager staticDataManager =
+    new GameStaticDataManager();
+staticDataManager.Add<DialogueData>(jsonHandler);
 
-// 3. 建立 Manager —— 不傳 commandFactoryContainer 時，18 個內建指令會自動註冊
-var dialogueManager = new DialogueManager(dialogueView, staticDataManager);
+DialogueManager dialogueManager =
+    new DialogueManager(dialogueView, staticDataManager);
 
-// 4. 播放；View 的顯示生命週期由呼叫端負責
 dialogueView.gameObject.SetActive(true);
 dialogueManager.StartDialogue(dialogueId, onDialogueComplete: () =>
 {
     dialogueView.gameObject.SetActive(false);
 });
 ```
+
+`dialogueId` 對應 `DialogueData.ID`。預期結果：Manager 從 `Line = 1` 開始依序播放該 ID 的資料，完成後關閉 View。未傳 command container 時會註冊本文列出的內建指令。
 
 連續呼叫 `StartDialogue` 會排入佇列依序播放。靜態事件 `DialogueManager.OnAnyDialogueReadyToStart / OnAnyDialogueEnded` 可監聽任意對話的起訖。
 

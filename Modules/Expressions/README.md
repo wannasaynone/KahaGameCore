@@ -1,56 +1,110 @@
 # Expressions
 
-## 目的
+## 用途
 
-通用計算式與條件式 Module。核心 assembly `KahaGameCore.Modules.Expressions` 不依賴 Unity、GameFlow、Effects 或 ValueContainer。
+Expressions 負責解析與計算數值公式、Bool 條件。核心 assembly `KahaGameCore.Modules.Expressions` 不認得 Parameters、Caster、Target 或 `IValueContainer`；公式中的符號由呼叫端提供的 context 解讀。
 
-## 快速開始
+## 第一次使用：先選入口
 
-```csharp
-ExpressionResult<float> number = expressions.Calculate(formula, context);
-ExpressionResult<bool> condition = expressions.EvaluateCondition(source, context);
-```
+| 公式中的資料 | 使用入口 | 引用 assembly |
+|---|---|---|
+| `$Supplies`、`$DoorOpen` 等全域 Parameter | `ParameterStore.Calculate`／`EvaluateCondition` | `KahaGameCore.Modules.Parameters`、`KahaGameCore.Modules.Expressions` |
+| `Caster.Attack`、`Target.Defense` 等角色數值 | `ValueContainerExpressions` | `KahaGameCore.Modules.ValueContainer`、`KahaGameCore.Modules.Expressions` |
+| 專案自訂符號 | `Expressions` 搭配自己的 `IExpressionContext` | `KahaGameCore.Modules.Expressions` |
 
-符號一律交給 `IExpressionContext` adapter 解讀。計算式允許 `Random(min,max)`；條件式支援比較、括號、`!`、`&&`、`||`，並禁止 `Random`。
+如果資料已在 `ParameterStore`，不需要自行建立 `Expressions` 或 expression context。
 
-## Caster／Target ValueContainer
+## 第一次計算 Parameter
 
-Caster／Target 計算式使用 ValueContainer module 提供的求值入口：
-
-- `KahaGameCore.Modules.Expressions`
-- `KahaGameCore.Modules.ValueContainer`
+Parameter name 在 Parameters module 中稱為 `Key`。以下 `Supplies` 與 `DoorOpen` 就是公式會查找的名稱：
 
 ```csharp
-var expressions = new ValueContainerExpressions(caster, target);
+using KahaGameCore.Expressions;
+using KahaGameCore.Parameters;
 
-ExpressionResult<float> result =
-    expressions.Calculate("Caster.HP - Target.Defense");
+ParameterStore parameters = new ParameterStore(new[]
+{
+    ParameterDefinition.Int(
+        key: "Supplies",
+        displayName: "物資",
+        initialValue: 10,
+        minValue: 0,
+        maxValue: 999),
+    ParameterDefinition.Bool(
+        key: "DoorOpen",
+        displayName: "門已開啟",
+        initialValue: false)
+});
+
+ExpressionResult<float> amount =
+    parameters.Calculate("$Supplies * 1.5");
+ExpressionResult<bool> canEnter =
+    parameters.EvaluateCondition("$Supplies >= 10 && !$DoorOpen");
+
+if (!amount.IsSuccess) UnityEngine.Debug.LogError(amount.Error.Message);
+if (!canEnter.IsSuccess) UnityEngine.Debug.LogError(canEnter.Error.Message);
 ```
 
-`Caster.X` 讀取 `caster.GetTotal("X", false)`；`Target.X` 同理。只讀 base value 時：
+預期結果：`amount.Value` 是 `15`，`canEnter.Value` 是 `true`。`$` 後面必須是 `ParameterDefinition.Key`，不是 `DisplayName`。
+
+Int、Float 會映射成 Number，Bool 會映射成 Boolean。String Parameter 與不存在的 Key 會得到 structured `UnknownSymbol` failure。
+
+## 第一次計算 Caster／Target
+
+開始前：專案必須已經有實作 `IValueContainer` 的角色數值物件。ValueContainer module 不提供 concrete stats container。
 
 ```csharp
-var expressions = new ValueContainerExpressions(caster, target, baseOnly: true);
+IValueContainer caster = characterStats;
+IValueContainer target = enemyStats;
+
+ValueContainerExpressions expressions =
+    new ValueContainerExpressions(caster, target);
+ExpressionResult<float> damage =
+    expressions.Calculate("Caster.Attack - Target.Defense");
 ```
 
-Expressions core 不認得 Caster／Target，也不依賴 `IValueContainer`；映射是 ValueContainer module 的內部 implementation。
+預期結果：`Caster.Attack` 呼叫 `caster.GetTotal("Attack", false)`，`Target.Defense` 呼叫 `target.GetTotal("Defense", false)`，相減結果位於 `damage.Value`。
 
-### 已知限制
-
-`IValueContainer` 未定義 `Contains`／`TryGet`，所以 container 已提供時，`Caster.UnknownTag` 會依 `GetTotal` 的語意得到 `0`。未知 prefix、缺少對應 container 或不完整的 `Caster.`／`Target.` 則回傳 structured unknown-symbol failure。
-
-## Parameters
-
-`ParameterStore` 直接提供參數計算與條件求值：
-
-- `KahaGameCore.Modules.Expressions`
-- `KahaGameCore.Modules.Parameters`
+只讀 base value 時傳入 `baseOnly: true`：
 
 ```csharp
-ExpressionResult<float> result =
-    parameters.Calculate("$Day + $Supplies * 2");
+var expressions = new ValueContainerExpressions(
+    caster,
+    target,
+    baseOnly: true);
 ```
 
-`Int`、`Float` 會映射成 Expressions 的 Number，`Bool` 會映射成 Boolean。Expressions 不支援 String 值型別，因此 String Parameter 與不存在的 key 都會回傳 structured `UnknownSymbol` failure。
+`IValueContainer` 沒有 `Contains`／`TryGet`。因此 unknown tag 的結果取決於 container 自己的 `GetTotal`；unknown prefix、缺少 Caster／Target 或不完整符號則回傳 structured unknown-symbol failure。
 
-Expressions core 不依賴 Parameters；Parameters module 內部使用 Expressions implementation。
+## 自訂符號來源
+
+只有不屬於 Parameters 或 ValueContainer 的符號才直接實作 `IExpressionContext`：
+
+```csharp
+public sealed class WeatherExpressionContext : IExpressionContext
+{
+    public bool TryResolve(string symbol, out ExpressionValue value)
+    {
+        if (symbol == "Temperature")
+        {
+            value = ExpressionValue.FromNumber(28f);
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+}
+
+var expressions = new Expressions();
+ExpressionResult<bool> isHot = expressions.EvaluateCondition(
+    "Temperature >= 25",
+    new WeatherExpressionContext());
+```
+
+## 語法與失敗處理
+
+- 計算式支援一般數值運算與 `Random(min,max)`。
+- 條件式支援比較、括號、`!`、`&&`、`||`，並禁止 `Random`。
+- 所有入口都回傳 `ExpressionResult<T>`。先檢查 `IsSuccess`，失敗細節位於 `Error`。
+- 空條件視為 `true`；空計算式是 failure。

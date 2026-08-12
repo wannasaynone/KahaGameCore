@@ -1,13 +1,22 @@
 # Serialization
 
-## 目的
+## 用途
 
 Serialization 是 JsonFx runtime 的最薄 adapter。`GameStaticDataSerializer` 實作 `IJsonWriter`，`GameStaticDataDeserializer` 實作 `IJsonReader`，讓 caller 不必直接引用 JsonFx namespace。
 
-## 快速開始
+## 第一次使用：物件轉成 JSON 再讀回
+
+呼叫端 asmdef 引用 `KahaGameCore.Modules.Serialization`。`data` 是專案自己的可序列化資料物件：
 
 ```csharp
 using KahaGameCore.Serialization;
+
+public sealed class MyData
+{
+    public int Score { get; set; }
+}
+
+MyData data = new MyData { Score = 100 };
 
 IJsonWriter writer = new GameStaticDataSerializer();
 string json = writer.Write(data);
@@ -16,7 +25,7 @@ IJsonReader reader = new GameStaticDataDeserializer();
 MyData restored = reader.Read<MyData>(json);
 ```
 
-引用 assembly：`KahaGameCore.Modules.Serialization`。
+預期結果：`json` 是 JsonFx 產生的字串，`restored.Score` 是 `100`。這個 adapter 不會替資料驗證 schema。
 
 ## 限制
 

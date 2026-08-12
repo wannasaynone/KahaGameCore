@@ -1,22 +1,57 @@
 # Effects
 
-## 目的
+## 用途
 
 `KahaGameCore.Effects` 是文字效果指令的單一執行核心。它負責解析、序列化、指令定義驗證、依序等待執行，以及把解析錯誤、指令錯誤與取消回報成結構化結果。
 
-## 快速開始
+## 第一次使用：註冊並執行 DebugLog
 
-建立 `EffectCommandRegistry`、註冊至少一個 `EffectCommandDefinition`，再用同一 registry 建立 `EffectRuntime`。完整 command 實作見下方「建立與註冊指令」；執行入口為：
+呼叫端 asmdef 引用 `KahaGameCore.Modules.Effects` 與 `UniTask`。先建立 command handler：
 
 ```csharp
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
+
+public sealed class DebugLogCommand : IEffectCommand
+{
+    public UniTask ExecuteAsync(
+        EffectExecutionContext context,
+        IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        UnityEngine.Debug.Log(arguments[0]);
+        return UniTask.CompletedTask;
+    }
+}
+```
+
+再註冊 definition，並用同一個 registry 建立 runtime：
+
+```csharp
+EffectCommandRegistry registry = new EffectCommandRegistry();
+registry.Register(new EffectCommandDefinition(
+    name: "DebugLog",
+    displayName: "Debug Log",
+    category: "Debug",
+    parameters: new[]
+    {
+        new EffectCommandParameterDefinition(
+            "message",
+            EffectCommandParameterKind.Literal)
+    },
+    command: new DebugLogCommand()));
+
 EffectRuntime runtime = new EffectRuntime(registry);
 EffectExecutionResult result = await runtime.ExecuteAsync(
     "DebugLog(ready);",
     new EffectExecutionContext(),
-    cancellationToken);
+    CancellationToken.None);
 ```
 
-caller 必須檢查 `result.IsSuccess`；失敗與取消不是成功的空操作。
+預期結果：Console 輸出 `ready`，`result.IsSuccess` 是 `true`。Caller 必須檢查結果；失敗與取消不是成功的空操作。
 
 ## 核心型別
 
@@ -45,44 +80,11 @@ Before{Record(start);}After{Record(done);}
 
 參數可加雙引號；逗號、分號、括號、大括號與跳脫字元會由 codec 保留。`Parse` 後再 `Serialize` 必須能 round-trip。
 
-## 建立與註冊指令
-
-```csharp
-using System.Collections.Generic;
-using System.Threading;
-using Cysharp.Threading.Tasks;
-using KahaGameCore.Effects;
-
-public sealed class DebugLogCommand : IEffectCommand
-{
-    public UniTask ExecuteAsync(
-        EffectExecutionContext context,
-        IReadOnlyList<string> arguments,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        UnityEngine.Debug.Log(arguments[0]);
-        return UniTask.CompletedTask;
-    }
-}
-
-EffectCommandRegistry registry = new EffectCommandRegistry();
-registry.Register(new EffectCommandDefinition(
-    name: "DebugLog",
-    displayName: "Debug Log",
-    category: "Debug",
-    parameters: new[]
-    {
-        new EffectCommandParameterDefinition(
-            "message",
-            EffectCommandParameterKind.Literal)
-    },
-    command: new DebugLogCommand()));
-```
+## Command definition 規則
 
 Runtime 只以參數 metadata 的數量執行 arity validation，不解讀 `Kind`。參數名稱與 `Kind` 提供後續 Editor／authoring tooling 使用；具體 expression、parameter、text 或 asset 語意由對應整合模組負責。當前 metadata kind 包含 `Literal`、`NumberExpression`、`ConditionExpression`、`ParameterKey`、`TextKey`、`AssetKey`。
 
-## 執行與錯誤處理
+## 失敗與取消處理
 
 ```csharp
 EffectRuntime runtime = new EffectRuntime(registry);

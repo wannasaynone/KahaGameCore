@@ -1,10 +1,12 @@
 # Presentation
 
-## 目的
+## 用途
 
 Presentation 提供 `ParameterStateBinder`：以 Expressions condition 監聽 `ParameterStore`，自動切換同一根物件之下的目標子物件。它適合門、機關、階段外觀等由語意狀態推導的顯示。
 
-## 快速開始
+## 第一次使用：依 MachineStage 切換外觀
+
+呼叫端 asmdef 引用 `KahaGameCore.Modules.Presentation`、`KahaGameCore.Modules.Parameters` 與 `KahaGameCore.Modules.Expressions`。開始前，`ParameterStore` 必須包含 Key 為 `MachineStage` 的 Int definition。
 
 1. 在共同父物件加入 `ParameterStateBinder`。
 2. 在 Inspector 的 bindings 為每個子物件指定 condition，例如 `$MachineStage == 0`、`$MachineStage >= 1`。
@@ -29,6 +31,8 @@ binder.Initialize(parameters);
 ```
 
 初始化會立即評估；之後任何 Parameter change 都會重新評估所有 bindings。每個 condition 獨立，所以可以同時啟用多個目標。
+
+預期結果：初始化時立即依目前的 `MachineStage` 切換物件；之後呼叫 `parameters.Set("MachineStage", value)` 會再次求值。Binder 使用的是 Parameter Key，不是 DisplayName。
 
 ## 限制
 
