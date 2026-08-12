@@ -1,8 +1,10 @@
 # Expressions
 
+## 目的
+
 通用計算式與條件式 Module。核心 assembly `KahaGameCore.Modules.Expressions` 不依賴 Unity、GameFlow、Effects 或 ValueContainer。
 
-## 公開 Interface
+## 快速開始
 
 ```csharp
 ExpressionResult<float> number = expressions.Calculate(formula, context);

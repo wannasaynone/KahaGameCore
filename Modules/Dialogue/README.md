@@ -1,8 +1,12 @@
 # Dialogue
 
+## 目的
+
 表驅動對話系統：對話內容寫在 `DialogueData` 表（JSON 陣列），每行一個指令（Say、選項、立繪、CG、音效……），程式只負責播放。asmdef 為 `KahaGameCore.Modules.Dialogue`，C# namespace 為 `KahaGameCore.Dialogue`。
 
-## 最短啟動流程
+> 此模組是 legacy runtime，未完成原訂的 Effects command／cancellation／Localization 重構。新專案可以使用現有功能，但不可假設所有舊 command 都已實作。
+
+## 快速開始
 
 ### A. 搭配 GameFlowSystem（最短，推薦）
 
@@ -54,4 +58,6 @@ dialogueManager.StartDialogue(dialogueId, onDialogueComplete: () => { /* 結束 
 
 ## 與 GameFlowSystem 的整合細節
 
-`DialoguePlayer`（在 GameFlowSystem 的 DefaultImplements）除了補齊內建指令外，額外註冊了 `GameEffect` 橋接指令——對話行裡可以直接執行 EffectProcessor 效果指令串（例如選項選完改數值、移動地點），這是表驅動流程「對話 ↔ 遊戲狀態」互通的關鍵。
+`DialoguePlayer`（在 GameFlowSystem 的 DefaultViews 範例）除了補齊內建指令外，額外註冊了 `GameEffect` 橋接指令——對話行裡可以把 Effects command 字串交給 GameFlow 共用的 `EffectRuntime`（例如選項選完改數值、移動地點），這是表驅動流程「對話 ↔ 遊戲狀態」互通的關鍵。
+
+未列在「內建指令」清單內的舊 command 檔案可能仍存在但丟出 `NotImplementedException`；不要只因類別存在就把它加入內容表。

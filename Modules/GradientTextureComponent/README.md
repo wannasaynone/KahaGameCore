@@ -1,5 +1,7 @@
 # Gradient Texture Component
 
+## 目的
+
 A Unity component that allows you to generate gradient sprites at runtime based on a gradient and two points, specifically designed for use with SpriteRenderer components.
 
 ## Features
@@ -12,7 +14,7 @@ A Unity component that allows you to generate gradient sprites at runtime based 
 - Regenerate and apply sprite in editor mode with a single click
 - Optional preview in the game scene during Play mode
 
-## Usage
+## 快速開始
 
 1. Add the `GradientTextureComponent` script to any GameObject with a SpriteRenderer component
 2. Configure the gradient, start/end points, and texture size in the Inspector

@@ -1,8 +1,10 @@
 # Parameters
 
+## 目的
+
 Parameters 是全域、可保存的內容值。它不負責角色 Stats、GameFlow phase／location、Expression parsing、Command execution 或存檔檔案位置。
 
-## Runtime API
+## 快速開始
 
 一般 gameplay caller 使用 typed methods，不需要依 `ParameterType` 選擇模式：
 

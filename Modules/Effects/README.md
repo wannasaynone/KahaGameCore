@@ -1,6 +1,22 @@
 # Effects
 
+## 目的
+
 `KahaGameCore.Effects` 是文字效果指令的單一執行核心。它負責解析、序列化、指令定義驗證、依序等待執行，以及把解析錯誤、指令錯誤與取消回報成結構化結果。
+
+## 快速開始
+
+建立 `EffectCommandRegistry`、註冊至少一個 `EffectCommandDefinition`，再用同一 registry 建立 `EffectRuntime`。完整 command 實作見下方「建立與註冊指令」；執行入口為：
+
+```csharp
+EffectRuntime runtime = new EffectRuntime(registry);
+EffectExecutionResult result = await runtime.ExecuteAsync(
+    "DebugLog(ready);",
+    new EffectExecutionContext(),
+    cancellationToken);
+```
+
+caller 必須檢查 `result.IsSuccess`；失敗與取消不是成功的空操作。
 
 ## 核心型別
 
