@@ -96,8 +96,21 @@ var services = new GameFlowSystemBuilder(staticDataManager, parameters)
 
 | 內容 | 說明 |
 |---|---|
-| `DialoguePlayer` | 包裝 Dialogue Module 的 `DialogueManager`/`DialogueView`，補上 UniTask 等待介面、註冊 Say/BlackIn/… 對話指令與 GameEffect 橋接。建構子 `(DialogueView, GameStaticDataManager, ICommandExecutor)`，實作 `IDialoguePlayer` |
-| `GameEffectDialogueCommand` | 對話表指令 `GameEffect`：在對話分支執行效果指令串（如 `AddParameter(Spirit,10)`），讓對話直接改 Parameter |
+| `DialoguePlayer` | 包裝 Dialogue Module 的 `DialogueManager`/`DialogueView`，使用 Dialogue 提供的預設 command container，補上 UniTask 等待介面並註冊 GameEffect adapter。建構子 `(DialogueView, GameStaticDataManager, ICommandExecutor)`，實作 `IDialoguePlayer` |
+| `GameEffectDialogueCommand` | GameFlow 擁有的 Dialogue command adapter；把 `Arg1` 的 Effects command 字串交給共用 `ICommandExecutor`，完成後才讓 DialogueManager 推進下一行 |
+
+`GameEffect` 不是 Dialogue 內建指令，也不是 `IEffectCommand`。它只在 `DialoguePlayer` 組裝時追加到 Dialogue command container：
+
+```text
+DialogueData（Command=GameEffect，Arg1=AddParameter(Spirit,10)）
+→ DialogueManager
+→ GameEffectDialogueCommand
+→ ICommandExecutor
+→ EffectRuntime
+→ AddParameter
+```
+
+不使用這個 adapter 時，Dialogue module 可以獨立運作；換掉 Dialogue 系統時，GameFlow core 與 DefaultImplements 也不受影響。
 
 > 換對話系統或客製對話演出，只需改各專案自己的這份橋接（或不用 Dialogue Module 時自行實作 `IDialoguePlayer`）。核心 `Scripts/` 與 `DefaultImplements/` 完全不受影響。
 

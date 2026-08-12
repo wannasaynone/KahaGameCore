@@ -4,20 +4,9 @@
 
 表驅動對話系統：對話內容寫在 `DialogueData` 表（JSON 陣列），每行一個指令（Say、選項、立繪、CG、音效……），程式只負責播放。asmdef 為 `KahaGameCore.Modules.Dialogue`，C# namespace 為 `KahaGameCore.Dialogue`。
 
-> 此模組是 legacy runtime，未完成原訂的 Effects command／cancellation／Localization 重構。新專案可以使用現有功能，但不可假設所有舊 command 都已實作。
+> 此模組是 legacy runtime，尚未完成 cancellation、結構化錯誤與 Localization 重構。新專案可以使用現有功能，但不可假設所有舊 command 都已實作。
 
 ## 快速開始
-
-### A. 搭配 GameFlowSystem（最短，推薦）
-
-GameFlowSystem 的 `DefaultViews/DialoguePlayer` 已把本系統包好（UniTask 等待 + GameEffect 橋接指令）：
-
-1. 執行選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**——生成的場景已含 DialogueView，並接好 DefaultGameLauncher（其載表流程已包含 DialogueData）。
-2. 在事件表/行動表用 `StartDialogue(對話ID)` 指令即可播放，對話結束自動接回流程。
-
-詳見 `GameFlowSystem/新專案實作指南.md`。
-
-### B. 單獨使用
 
 ```csharp
 // 1. 場景中放入 Prefabs/DialogueView.prefab，取得其 DialogueView 參考
@@ -28,12 +17,28 @@ staticDataManager.Add<DialogueData>(jsonHandler);   // 任一 IGameStaticDataHan
 // 3. 建立 Manager —— 不傳 commandFactoryContainer 時，18 個內建指令會自動註冊
 var dialogueManager = new DialogueManager(dialogueView, staticDataManager);
 
-// 4. 播放（開始前要自己開啟 view；全部對話播完 Manager 會自動 SetActive(false)）
+// 4. 播放；View 的顯示生命週期由呼叫端負責
 dialogueView.gameObject.SetActive(true);
-dialogueManager.StartDialogue(dialogueId, onDialogueComplete: () => { /* 結束 */ });
+dialogueManager.StartDialogue(dialogueId, onDialogueComplete: () =>
+{
+    dialogueView.gameObject.SetActive(false);
+});
 ```
 
 連續呼叫 `StartDialogue` 會排入佇列依序播放。靜態事件 `DialogueManager.OnAnyDialogueReadyToStart / OnAnyDialogueEnded` 可監聽任意對話的起訖。
+
+## 執行模型
+
+Dialogue 自己擁有獨立的 command pipeline，不依賴 GameFlowSystem 或 Effects：
+
+```text
+DialogueData
+→ DialogueManager
+→ DialogueCommandFactoryContainer
+→ DialogueCommandBase.Process(args, context)
+```
+
+`DialogueManager` 負責對話佇列、行序、建立 `DialogueContext` 與推進下一行；具體指令只處理自己的演出或跳轉行為。
 
 ## DialogueData 表格式
 
@@ -48,16 +53,34 @@ dialogueManager.StartDialogue(dialogueId, onDialogueComplete: () => { /* 結束 
 內建指令（由 `DialogueCommandFactoryContainer.CreateDefault()` 建立，`DialogueManager` 未傳容器時也會使用）：
 `Say`、`AddOption`、`ShowOptions`、`GoToLine`、`BlackIn`、`BlackOut`、`ShowFullScreenImage`、`HideFullScreenImage`、`HideDialogueBox`、`PlaySoundEffect`、`PlayBackgroundMusic`、`ShowCharacter`、`HideCharacter`、`ChangeCharacter`、`MoveCharacterX`、`MoveCharacterY`、`CharacterJump`、`ScaleCharacter`
 
+## 自訂指令
+
+要保留內建指令並追加專案指令，從預設容器開始組裝：
+
+```csharp
+DialogueCommandFactoryContainer commands =
+    DialogueCommandFactoryContainer.CreateDefault();
+
+commands.RegisterFactory("MyCommand", new MyCommandFactory());
+
+var dialogueManager = new DialogueManager(
+    dialogueView,
+    staticDataManager,
+    commands);
+```
+
+直接 `new DialogueCommandFactoryContainer()` 會得到空容器，適合完全取代內建指令的情境。自訂 command 實作 `DialogueCommandBase.Process()`，factory 實作 `DialogueCommandFactoryBase.Create()`。
+
 ## 已知陷阱
 
-- **加入自訂指令並保留內建指令**——先呼叫 `DialogueCommandFactoryContainer.CreateDefault()`，再以 `RegisterFactory()` 追加自訂 factory，最後把容器傳給 `DialogueManager`。
 - **`DialogueView.Update()` 使用舊版 `UnityEngine.Input`**——專案 Active Input Handling 需設為 Both（ProjectSettings `activeInputHandler: 2`），改完必須重啟編輯器才生效。
-- **放進場景時錨點記得拉滿**——DialogueView 內部元件的錨點會自適應畫布大小，直接放在 Canvas 下、根節點錨點 0,0~1,1 鋪滿即可，不需要縮放包覆層（GameFlowSystem 的 `DefaultUiBuilder.InstantiateDialogueView()` 已示範）。
+- **放進場景時錨點記得拉滿**——DialogueView 內部元件的錨點會自適應畫布大小，直接放在 Canvas 下、根節點錨點 0,0~1,1 鋪滿即可，不需要縮放包覆層。
 - **預設 CG / 音訊 Provider 走 Addressables**（`AddressablesCGProvider` / `AddressablesAudioProvider`）——專案未使用 Addressables 或資源不在其中時，需自行實作 `ICGProvider` / `IAudioProvider` 傳入建構子，否則 ShowCharacter / PlaySoundEffect 等指令會載不到資源。
 - **TMP 預設字型無 CJK**——中文顯示為方塊，需自建中文 TMP Font Asset 並替換 prefab 字型。
-
-## 與 GameFlowSystem 的整合細節
-
-`DialoguePlayer`（在 GameFlowSystem 的 DefaultViews 範例）使用 Dialogue 提供的預設容器，再額外註冊 `GameEffect` 橋接指令——對話行裡可以把 Effects command 字串交給 GameFlow 共用的 `EffectRuntime`（例如選項選完改數值、移動地點），這是表驅動流程「對話 ↔ 遊戲狀態」互通的關鍵。
+- **未知 command 會記錄錯誤後跳過該行**，不會中止整段對話；command 內拋出的例外目前也沒有統一轉成結構化結果。
 
 未列在「內建指令」清單內的舊 command 檔案可能仍存在但丟出 `NotImplementedException`；不要只因類別存在就把它加入內容表。
+
+## 可選整合
+
+Dialogue module 不認識 GameFlowSystem 或 Effects。需要接入 GameFlow 時，由外部 adapter 組裝；參見 [`GameFlowSystem/README.md`](../GameFlowSystem/README.md#對話橋接範例各專案自備)。
