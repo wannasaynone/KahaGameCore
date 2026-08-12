@@ -55,34 +55,9 @@ namespace KahaGameCore.Dialogue
         {
             this.dialogueView = dialogueView ?? throw new ArgumentNullException(nameof(dialogueView), "[DialogueManager] DialogueView reference is required.");
             this.staticDataManager = staticDataManager ?? throw new ArgumentNullException(nameof(staticDataManager), "[DialogueManager] GameStaticDataManager reference is required.");
-            this.commandFactoryContainer = commandFactoryContainer;
+            this.commandFactoryContainer = commandFactoryContainer ?? DialogueCommandFactoryContainer.CreateDefault();
             this.cgProvider = cgProvider;
             this.audioProvider = audioProvider;
-
-            if (commandFactoryContainer == null)
-            {
-                commandFactoryContainer = new DialogueCommandFactoryContainer();
-                commandFactoryContainer.RegisterFactory("Say", new DefaultImplements.Command.SayFactory());
-                commandFactoryContainer.RegisterFactory("BlackIn", new DefaultImplements.Command.BlackInFactory());
-                commandFactoryContainer.RegisterFactory("BlackOut", new DefaultImplements.Command.BlackOutFactory());
-                commandFactoryContainer.RegisterFactory("AddOption", new DefaultImplements.Command.AddOptionFactory());
-                commandFactoryContainer.RegisterFactory("ShowOptions", new DefaultImplements.Command.ShowOptionsFactory());
-                commandFactoryContainer.RegisterFactory("GoToLine", new DefaultImplements.Command.GoToLineFactory());
-                commandFactoryContainer.RegisterFactory("ShowFullScreenImage", new DefaultImplements.Command.ShowFullScreenImageFactory());
-                commandFactoryContainer.RegisterFactory("HideFullScreenImage", new DefaultImplements.Command.HideFullScreenImageFactory());
-                commandFactoryContainer.RegisterFactory("HideDialogueBox", new DefaultImplements.Command.HideDialogueBoxFactory());
-                commandFactoryContainer.RegisterFactory("PlaySoundEffect", new DefaultImplements.Command.PlaySoundEffectFactory());
-                commandFactoryContainer.RegisterFactory("PlayBackgroundMusic", new DefaultImplements.Command.PlayBackgroundMusicFactory());
-                commandFactoryContainer.RegisterFactory("ShowCharacter", new DefaultImplements.Command.ShowCharacterFactory());
-                commandFactoryContainer.RegisterFactory("HideCharacter", new DefaultImplements.Command.HideCharacterFactory());
-                commandFactoryContainer.RegisterFactory("ChangeCharacter", new DefaultImplements.Command.ChangeCharacterFactory());
-                commandFactoryContainer.RegisterFactory("MoveCharacterX", new DefaultImplements.Command.MoveCharacterXFactory());
-                commandFactoryContainer.RegisterFactory("MoveCharacterY", new DefaultImplements.Command.MoveCharacterYFactory());
-                commandFactoryContainer.RegisterFactory("CharacterJump", new DefaultImplements.Command.CharacterJumpFactory());
-                commandFactoryContainer.RegisterFactory("ScaleCharacter", new DefaultImplements.Command.ScaleCharacterFactory());
-                this.commandFactoryContainer = commandFactoryContainer;
-                UnityEngine.Debug.Log("[DialogueManager] DialogueCommandFactoryContainer is not set. Using a default one with built-in commands registered.");
-            }
 
             if (audioProvider == null)
             {

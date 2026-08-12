@@ -3,7 +3,6 @@ using Cysharp.Threading.Tasks;
 using KahaGameCore.StaticData;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.Dialogue;
-using KahaGameCore.Dialogue.DefaultImplements.Command;
 using KahaGameCore.Dialogue.View;
 
 namespace KahaGameCore.GameFlowSystem.DefaultViews
@@ -25,7 +24,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         {
             this.dialogueView = dialogueView ? dialogueView : throw new ArgumentNullException(nameof(dialogueView));
 
-            DialogueCommandFactoryContainer factoryContainer = CreateFactoryContainerWithDefaults();
+            DialogueCommandFactoryContainer factoryContainer = DialogueCommandFactoryContainer.CreateDefault();
             factoryContainer.RegisterFactory(GameEffectDialogueCommand.COMMAND_NAME, new GameEffectDialogueCommandFactory(commandExecutor));
 
             dialogueManager = new DialogueManager(dialogueView, staticDataManager, factoryContainer);
@@ -42,33 +41,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                 completionSource.TrySetResult();
             });
             return completionSource.Task;
-        }
-
-        /// <summary>
-        /// DialogueManager 在外部提供容器時不會註冊內建指令，因此這裡照原始清單補齊。
-        /// </summary>
-        private static DialogueCommandFactoryContainer CreateFactoryContainerWithDefaults()
-        {
-            DialogueCommandFactoryContainer container = new DialogueCommandFactoryContainer();
-            container.RegisterFactory("Say", new SayFactory());
-            container.RegisterFactory("BlackIn", new BlackInFactory());
-            container.RegisterFactory("BlackOut", new BlackOutFactory());
-            container.RegisterFactory("AddOption", new AddOptionFactory());
-            container.RegisterFactory("ShowOptions", new ShowOptionsFactory());
-            container.RegisterFactory("GoToLine", new GoToLineFactory());
-            container.RegisterFactory("ShowFullScreenImage", new ShowFullScreenImageFactory());
-            container.RegisterFactory("HideFullScreenImage", new HideFullScreenImageFactory());
-            container.RegisterFactory("HideDialogueBox", new HideDialogueBoxFactory());
-            container.RegisterFactory("PlaySoundEffect", new PlaySoundEffectFactory());
-            container.RegisterFactory("PlayBackgroundMusic", new PlayBackgroundMusicFactory());
-            container.RegisterFactory("ShowCharacter", new ShowCharacterFactory());
-            container.RegisterFactory("HideCharacter", new HideCharacterFactory());
-            container.RegisterFactory("ChangeCharacter", new ChangeCharacterFactory());
-            container.RegisterFactory("MoveCharacterX", new MoveCharacterXFactory());
-            container.RegisterFactory("MoveCharacterY", new MoveCharacterYFactory());
-            container.RegisterFactory("CharacterJump", new CharacterJumpFactory());
-            container.RegisterFactory("ScaleCharacter", new ScaleCharacterFactory());
-            return container;
         }
     }
 }
