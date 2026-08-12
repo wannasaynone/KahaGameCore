@@ -34,16 +34,33 @@ namespace KahaGameCore.Persistence
             SaveParticipantDocument[] documents,
             SaveParticipantRegistry registry)
         {
+            return Decode(documents, registry, rejectUnknownKeys: true);
+        }
+
+        internal SaveParticipantSnapshotSet DecodeRegistered(
+            SaveParticipantDocument[] documents,
+            SaveParticipantRegistry registry)
+        {
+            return Decode(documents, registry, rejectUnknownKeys: false);
+        }
+
+        private static SaveParticipantSnapshotSet Decode(
+            SaveParticipantDocument[] documents,
+            SaveParticipantRegistry registry,
+            bool rejectUnknownKeys)
+        {
             if (documents == null) throw new ArgumentNullException(nameof(documents));
             if (registry == null) throw new ArgumentNullException(nameof(registry));
 
             Dictionary<string, SaveParticipantSnapshotSet.Entry> entries =
                 new Dictionary<string, SaveParticipantSnapshotSet.Entry>(
                     StringComparer.Ordinal);
+            HashSet<string> documentKeys =
+                new HashSet<string>(StringComparer.Ordinal);
             foreach (SaveParticipantDocument document in documents)
             {
                 Validate(document);
-                if (entries.ContainsKey(document.SaveKey))
+                if (!documentKeys.Add(document.SaveKey))
                 {
                     throw new InvalidOperationException(
                         $"Save participant document contains duplicate key " +
@@ -54,9 +71,14 @@ namespace KahaGameCore.Persistence
                         document.SaveKey,
                         out Type snapshotType))
                 {
-                    throw new InvalidOperationException(
-                        $"Save participant document contains unknown key " +
-                        $"'{document.SaveKey}'.");
+                    if (rejectUnknownKeys)
+                    {
+                        throw new InvalidOperationException(
+                            $"Save participant document contains unknown key " +
+                            $"'{document.SaveKey}'.");
+                    }
+
+                    continue;
                 }
 
                 string snapshotJson = JsonWriter.Serialize(document.Snapshot);

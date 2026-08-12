@@ -10,7 +10,8 @@
         "KahaGameCore.Modules.Persistence",
         "KahaGameCore.Modules.Parameters",
         "KahaGameCore.Foundation.Messaging",
-        "KahaGameCore.Modules.Effects"
+        "KahaGameCore.Modules.Effects",
+        "UniTask"
     ],
     "includePlatforms": [
         "Editor"
