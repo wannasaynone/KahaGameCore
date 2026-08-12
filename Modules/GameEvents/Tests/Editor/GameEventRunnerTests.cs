@@ -253,6 +253,86 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
+        public async Task WaitUntilIdleAsync_CompletesAfterSharedQueueDrains()
+        {
+            ParameterStore parameters =
+                new ParameterStore(Array.Empty<ParameterDefinition>());
+            List<string> records = new List<string>();
+            BlockingCommand blocker = new BlockingCommand(records);
+            EffectCommandRegistry registry = new EffectCommandRegistry();
+            registry.Register(new EffectCommandDefinition(
+                "Block",
+                "Block",
+                "Tests",
+                new[]
+                {
+                    new EffectCommandParameterDefinition(
+                        "value",
+                        EffectCommandParameterKind.Literal)
+                },
+                blocker));
+            registry.Register(new EffectCommandDefinition(
+                "Record",
+                "Record",
+                "Tests",
+                new[]
+                {
+                    new EffectCommandParameterDefinition(
+                        "value",
+                        EffectCommandParameterKind.Literal)
+                },
+                new RecordingCommand(records)));
+            TextAsset direct = CreateEvent(
+                "20000000-0000-0000-0000-000000000007",
+                "Direct",
+                "",
+                "",
+                0,
+                "Block(first);");
+            TextAsset queued = CreateEvent(
+                "20000000-0000-0000-0000-000000000008",
+                "Queued",
+                "second",
+                "",
+                0,
+                "Record(second);");
+            GameEventDocumentJsonCodec codec =
+                new GameEventDocumentJsonCodec();
+            GameEventRunner runner = new GameEventRunner(
+                new GameEventCatalog(new[] { queued }, codec),
+                new EffectRuntime(registry),
+                parameters,
+                codec);
+            EventContext context =
+                new EventContext(CancellationToken.None);
+            UniTask first = runner.RunAsync(direct, context);
+            UniTask second = runner.TriggerAsync("second", context);
+
+            try
+            {
+                UniTask idle = runner.WaitUntilIdleAsync(
+                    CancellationToken.None);
+
+                Assert.That(idle.Status, Is.EqualTo(UniTaskStatus.Pending));
+
+                blocker.Release();
+                await first;
+                await second;
+                await idle;
+            }
+            finally
+            {
+                blocker.Release();
+                UnityEngine.Object.DestroyImmediate(direct);
+                UnityEngine.Object.DestroyImmediate(queued);
+            }
+
+            CollectionAssert.AreEqual(
+                new[] { "first-start", "first-end", "second" },
+                records);
+        }
+
+        [Test]
         public async Task RunAsync_InvalidDirectFileWaitsForEarlierQueuedJob()
         {
             ParameterStore parameters = new ParameterStore(Array.Empty<ParameterDefinition>());

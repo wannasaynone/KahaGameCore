@@ -32,6 +32,7 @@ namespace KahaGameCore.GameEvents
         private readonly GameEventDocumentJsonCodec codec;
         private readonly Queue<QueuedJob> queue = new Queue<QueuedJob>();
         private bool isProcessingQueue;
+        private UniTaskCompletionSource idleCompletion;
 
         public GameEventRunner(
             GameEventCatalog catalog,
@@ -64,6 +65,21 @@ namespace KahaGameCore.GameEvents
             return Enqueue(
                 () => TriggerCoreAsync(triggerTiming, context),
                 context.CancellationToken);
+        }
+
+        public UniTask WaitUntilIdleAsync(
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!isProcessingQueue)
+            {
+                return UniTask.CompletedTask;
+            }
+
+            UniTask idle = idleCompletion.Task;
+            return cancellationToken.CanBeCanceled
+                ? idle.AttachExternalCancellation(cancellationToken)
+                : idle;
         }
 
         private async UniTask TriggerCoreAsync(string triggerTiming, EventContext context)
@@ -113,6 +129,7 @@ namespace KahaGameCore.GameEvents
             if (!isProcessingQueue)
             {
                 isProcessingQueue = true;
+                idleCompletion = new UniTaskCompletionSource();
                 ProcessQueueAsync().Forget();
             }
 
@@ -141,6 +158,9 @@ namespace KahaGameCore.GameEvents
             }
 
             isProcessingQueue = false;
+            UniTaskCompletionSource completion = idleCompletion;
+            idleCompletion = null;
+            completion.TrySetResult();
         }
 
         private async UniTask RunDocumentAsync(GameEventDocument document, EventContext context)

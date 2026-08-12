@@ -1,0 +1,19 @@
+{
+    "name": "KahaGameCore.Modules.Persistence.GameEventsIntegration",
+    "rootNamespace": "KahaGameCore.Persistence.GameEventsIntegration",
+    "references": [
+        "KahaGameCore.Modules.Persistence",
+        "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.Parameters",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
