@@ -8,6 +8,7 @@
         "KahaGameCore.Modules.Expressions",
         "KahaGameCore.Modules.Expressions.Parameters",
         "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Persistence",
         "KahaGameCore.Modules.ValueContainer",
         "KahaGameCore.Foundation.Messaging",
         "KahaGameCore.Modules.Effects",
