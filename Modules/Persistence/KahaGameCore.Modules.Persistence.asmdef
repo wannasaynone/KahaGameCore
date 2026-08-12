@@ -3,6 +3,7 @@
     "rootNamespace": "KahaGameCore.Persistence",
     "references": [
         "KahaGameCore.Modules.Serialization",
+        "KahaGameCore.Modules.Parameters",
         "GUID:3d6d896ea5fe86e44ba0a944120e8174"
     ],
     "includePlatforms": [],

@@ -8,6 +8,7 @@
         "KahaGameCore.Modules.StaticData",
         "KahaGameCore.Modules.Serialization",
         "KahaGameCore.Modules.Persistence",
+        "KahaGameCore.Modules.Parameters",
         "KahaGameCore.Foundation.Messaging",
         "KahaGameCore.Modules.Effects"
     ],
