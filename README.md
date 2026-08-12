@@ -90,16 +90,40 @@ Builder 會生成：
 
 如果 Action 有顯示但沒有執行效果，先確認 `TriggerTiming` 完全相同，且對應的 Game Event 已加入 `Game Event Files`。
 
-## DefaultGameLauncher 建立的服務
+## DefaultGameLauncher 如何完成組裝
 
-`DefaultGameLauncher` 是預設 composition root。它會：
+`DefaultGameLauncher` 是預設組裝入口，但不是所有服務都由 Launcher 直接 `new`。Launcher 先準備資料、UI 與 Game Event catalog，再呼叫 `GameFlowSystemBuilder.Build()`；Builder 建立 GameFlow 預設服務、Effects registry 與 runtime，最後回傳 `GameFlowServices`。
+
+實際呼叫鏈：
+
+```text
+DefaultGameLauncher.EnsureServicesBuilt()
+→ new GameFlowSystemBuilder(staticDataManager, parameters)
+→ 設定 Dialogue、Presenters、EventTriggerFactory
+→ GameFlowSystemBuilder.Build()
+   → new EffectCommandRegistry()
+   → new EffectRuntime(commandRegistry)
+   → 註冊 GameFlow 內建 Effects commands
+   → 呼叫 EventTriggerFactory(effectRuntime)
+      → DefaultGameLauncher 建立 GameEventRunner
+      → 回傳 GameFlowGameEventAdapter
+   → 建立 GameFlowController
+→ 回傳 GameFlowServices
+```
+
+對應程式碼：
+
+- [`DefaultGameLauncher.cs`](Modules/GameFlowSystem/DefaultViews/DefaultGameLauncher.cs) 的 `EnsureServicesBuilt()`：建立 Builder、設定 `WithEventTriggerFactory(...)`，最後呼叫 `.Build()`。
+- [`GameFlowSystemBuilder.cs`](Modules/GameFlowSystem/DefaultImplements/GameFlowSystemBuilder.cs) 的 `Build()`：建立 `EffectCommandRegistry` 與 `EffectRuntime`，註冊內建 commands，再建立其他 services。
+
+因此，以下是 Launcher 啟動整體組裝後完成的工作：
 
 1. 載入五張 static data tables。
 2. 載入 Parameter tables 並建立共用的 `ParameterStore`。
-3. 建立 Effects command registry 與 runtime。
-4. 建立 `GameEventCatalog` 與 `GameEventRunner`。
-5. 透過 `GameFlowGameEventAdapter` 將 Game Events 接到 GameFlow。
-6. 建立 `GameFlowServices`、Dialogue bridge、Presenters 與 HUD。
+3. Launcher 呼叫 `GameFlowSystemBuilder.Build()`，由 Builder 建立 Effects command registry、runtime 與 GameFlow 預設服務。
+4. Launcher 建立 `GameEventCatalog`；Builder 執行 event trigger factory 時，Launcher 使用 Builder 提供的同一個 `EffectRuntime` 建立 `GameEventRunner`。
+5. Launcher 回傳 `GameFlowGameEventAdapter`，讓 Builder 將 Game Events 接到 `GameFlowController`。
+6. Builder 回傳 `GameFlowServices`；Launcher另外建立 Dialogue bridge、Presenters 與 HUD。
 7. 初始化 Scene Game Event Triggers 與 Parameter State Binders。
 8. 在玩家開始遊戲時重置狀態並執行 `FlowController.RunNewGameAsync(...)`。
 
