@@ -83,9 +83,9 @@ namespace KahaGameCore.GameFlowSystem.Tests
             GameFlowExpressions expressions = new GameFlowExpressions(parameters);
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "SetParameter",
-                "Set Parameter",
-                "Parameters",
+                name: "SetParameter",
+                displayName: "Set Parameter",
+                category: "Parameters",
                 new[]
                 {
                     new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
@@ -106,9 +106,9 @@ namespace KahaGameCore.GameFlowSystem.Tests
             TokenCapturingCommand command = new TokenCapturingCommand();
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "CaptureToken",
-                "Capture Token",
-                "Tests",
+                name: "CaptureToken",
+                displayName: "Capture Token",
+                category: "Tests",
                 Array.Empty<EffectCommandParameterDefinition>(),
                 command));
             ICommandExecutor executor = new EffectCommandExecutor(new EffectRuntime(registry));
@@ -125,9 +125,9 @@ namespace KahaGameCore.GameFlowSystem.Tests
             TokenCapturingCommand command = new TokenCapturingCommand();
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "CaptureToken",
-                "Capture Token",
-                "Tests",
+                name: "CaptureToken",
+                displayName: "Capture Token",
+                category: "Tests",
                 Array.Empty<EffectCommandParameterDefinition>(),
                 command));
             ICommandExecutor executor = new EffectCommandExecutor(new EffectRuntime(registry));

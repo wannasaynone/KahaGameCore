@@ -80,11 +80,11 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             params EffectCommandParameterDefinition[] parameters)
         {
             return new EffectCommandDefinition(
-                name,
-                name,
-                category,
-                parameters ?? Array.Empty<EffectCommandParameterDefinition>(),
-                command);
+                name: name,
+                displayName: name,
+                category: category,
+                parameters: parameters ?? Array.Empty<EffectCommandParameterDefinition>(),
+                command: command);
         }
 
         private static EffectCommandParameterDefinition Parameter(

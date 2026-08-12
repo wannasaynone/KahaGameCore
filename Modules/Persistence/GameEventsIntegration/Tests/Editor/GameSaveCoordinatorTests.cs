@@ -72,9 +72,9 @@ namespace KahaGameCore.Persistence.GameEventsIntegration.Tests
                 new BlockingSetCommand(parameters);
             EffectCommandRegistry commands = new EffectCommandRegistry();
             commands.Register(new EffectCommandDefinition(
-                "BlockingSet",
-                "Blocking Set",
-                "Tests",
+                name: "BlockingSet",
+                displayName: "Blocking Set",
+                category: "Tests",
                 Array.Empty<EffectCommandParameterDefinition>(),
                 command));
             GameEventDocumentJsonCodec eventCodec =

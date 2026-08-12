@@ -62,9 +62,9 @@ namespace KahaGameCore.Effects.Tests
             List<string> records = new List<string>();
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "Record",
-                "Record",
-                "Tests",
+                name: "Record",
+                displayName: "Record",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
@@ -87,9 +87,9 @@ namespace KahaGameCore.Effects.Tests
             List<string> records = new List<string>();
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "Record",
-                "Record",
-                "Tests",
+                name: "Record",
+                displayName: "Record",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
@@ -218,9 +218,9 @@ namespace KahaGameCore.Effects.Tests
         private static EffectCommandDefinition Define(string name, IEffectCommand command)
         {
             return new EffectCommandDefinition(
-                name,
-                name,
-                "Tests",
+                name: name,
+                displayName: name,
+                category: "Tests",
                 Array.Empty<EffectCommandParameterDefinition>(),
                 command);
         }

@@ -88,9 +88,9 @@ namespace KahaGameCore.GameFlowSystem.Tests
 
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "AdvancePhase",
-                "AdvancePhase",
-                "Game Flow",
+                name: "AdvancePhase",
+                displayName: "AdvancePhase",
+                category: "Game Flow",
                 Array.Empty<EffectCommandParameterDefinition>(),
                 new AdvancePhaseCommand(timeService)));
             EffectRuntime runtime = new EffectRuntime(registry);

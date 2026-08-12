@@ -21,9 +21,9 @@ namespace KahaGameCore.GameEvents.Tests
             GameFlowExpressions expressions = new GameFlowExpressions(parameters);
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "SetParameter",
-                "Set Parameter",
-                "Parameters",
+                name: "SetParameter",
+                displayName: "Set Parameter",
+                category: "Parameters",
                 new[]
                 {
                     new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),

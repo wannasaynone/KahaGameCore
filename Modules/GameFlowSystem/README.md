@@ -69,9 +69,11 @@ var services = new GameFlowSystemBuilder(staticDataManager, parameters)
     .OverrideConditionEvaluator(new MyLuaEvaluator())    // 例：改用 Lua 條件式
     .AddCommandRegistration(registry => registry.Register( // 例：追加專案自訂效果指令
         new EffectCommandDefinition(
-            "MyCommand", "My Command", "Project",
-            System.Array.Empty<EffectCommandParameterDefinition>(),
-            new MyCommand())))
+            name: "MyCommand",
+            displayName: "My Command",
+            category: "Project",
+            parameters: System.Array.Empty<EffectCommandParameterDefinition>(),
+            command: new MyCommand())))
     .Build();
 ```
 

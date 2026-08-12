@@ -68,16 +68,16 @@ public sealed class DebugLogCommand : IEffectCommand
 
 EffectCommandRegistry registry = new EffectCommandRegistry();
 registry.Register(new EffectCommandDefinition(
-    "DebugLog",
-    "Debug Log",
-    "Debug",
-    new[]
+    name: "DebugLog",
+    displayName: "Debug Log",
+    category: "Debug",
+    parameters: new[]
     {
         new EffectCommandParameterDefinition(
             "message",
             EffectCommandParameterKind.Literal)
     },
-    new DebugLogCommand()));
+    command: new DebugLogCommand()));
 ```
 
 Runtime 只以參數 metadata 的數量執行 arity validation，不解讀 `Kind`。參數名稱與 `Kind` 提供後續 Editor／authoring tooling 使用；具體 expression、parameter、text 或 asset 語意由對應整合模組負責。當前 metadata kind 包含 `Literal`、`NumberExpression`、`ConditionExpression`、`ParameterKey`、`TextKey`、`AssetKey`。
@@ -111,16 +111,16 @@ Runtime 嚴格依 source order 等待每個 handler。未知 command、參數數
 ```csharp
 builder.AddCommandRegistration(registry =>
     registry.Register(new EffectCommandDefinition(
-        "DebugLog",
-        "Debug Log",
-        "Debug",
-        new[]
+        name: "DebugLog",
+        displayName: "Debug Log",
+        category: "Debug",
+        parameters: new[]
         {
             new EffectCommandParameterDefinition(
                 "message",
                 EffectCommandParameterKind.Literal)
         },
-        new DebugLogCommand())));
+        command: new DebugLogCommand())));
 ```
 
 不要另建第二套 parser、factory 或 callback processor；擴充點就是 `EffectCommandDefinition` 與 `IEffectCommand`。

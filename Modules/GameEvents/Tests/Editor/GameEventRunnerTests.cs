@@ -70,9 +70,9 @@ namespace KahaGameCore.GameEvents.Tests
             GameFlowExpressions expressions = new GameFlowExpressions(parameters);
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "SetParameter",
-                "Set Parameter",
-                "Parameters",
+                name: "SetParameter",
+                displayName: "Set Parameter",
+                category: "Parameters",
                 new[]
                 {
                     new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
@@ -119,9 +119,9 @@ namespace KahaGameCore.GameEvents.Tests
             EffectCommandRegistry registry = new EffectCommandRegistry();
             RegisterSetParameter(registry, parameters, expressions);
             registry.Register(new EffectCommandDefinition(
-                "Record",
-                "Record",
-                "Tests",
+                name: "Record",
+                displayName: "Record",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
@@ -192,18 +192,18 @@ namespace KahaGameCore.GameEvents.Tests
             BlockingCommand blocker = new BlockingCommand(records);
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "Block",
-                "Block",
-                "Tests",
+                name: "Block",
+                displayName: "Block",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
                 },
                 blocker));
             registry.Register(new EffectCommandDefinition(
-                "Record",
-                "Record",
-                "Tests",
+                name: "Record",
+                displayName: "Record",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
@@ -261,9 +261,9 @@ namespace KahaGameCore.GameEvents.Tests
             BlockingCommand blocker = new BlockingCommand(records);
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "Block",
-                "Block",
-                "Tests",
+                name: "Block",
+                displayName: "Block",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition(
@@ -272,9 +272,9 @@ namespace KahaGameCore.GameEvents.Tests
                 },
                 blocker));
             registry.Register(new EffectCommandDefinition(
-                "Record",
-                "Record",
-                "Tests",
+                name: "Record",
+                displayName: "Record",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition(
@@ -340,9 +340,9 @@ namespace KahaGameCore.GameEvents.Tests
             BlockingCommand blocker = new BlockingCommand(records);
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "Block",
-                "Block",
-                "Tests",
+                name: "Block",
+                displayName: "Block",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
@@ -501,9 +501,9 @@ namespace KahaGameCore.GameEvents.Tests
             BlockingCommand blocker = new BlockingCommand(records);
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "Block",
-                "Block",
-                "Tests",
+                name: "Block",
+                displayName: "Block",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
@@ -575,9 +575,9 @@ namespace KahaGameCore.GameEvents.Tests
         {
             EffectCommandRegistry registry = new EffectCommandRegistry();
             registry.Register(new EffectCommandDefinition(
-                "Record",
-                "Record",
-                "Tests",
+                name: "Record",
+                displayName: "Record",
+                category: "Tests",
                 new[]
                 {
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
@@ -604,9 +604,9 @@ namespace KahaGameCore.GameEvents.Tests
             GameFlowExpressions expressions)
         {
             registry.Register(new EffectCommandDefinition(
-                "SetParameter",
-                "Set Parameter",
-                "Parameters",
+                name: "SetParameter",
+                displayName: "Set Parameter",
+                category: "Parameters",
                 new[]
                 {
                     new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
