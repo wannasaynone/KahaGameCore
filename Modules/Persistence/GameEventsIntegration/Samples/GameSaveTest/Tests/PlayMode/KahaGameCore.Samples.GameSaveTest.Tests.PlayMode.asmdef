@@ -1,0 +1,20 @@
+{
+    "name": "KahaGameCore.Samples.GameSaveTest.Tests.PlayMode",
+    "rootNamespace": "KahaGameCore.Samples.GameSaveTest.Tests",
+    "references": [
+        "KahaGameCore.Samples.GameSaveTest",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

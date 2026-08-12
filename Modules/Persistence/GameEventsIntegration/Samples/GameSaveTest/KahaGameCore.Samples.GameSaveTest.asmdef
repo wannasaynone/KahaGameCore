@@ -1,0 +1,25 @@
+{
+    "name": "KahaGameCore.Samples.GameSaveTest",
+    "rootNamespace": "KahaGameCore.Samples.GameSaveTest",
+    "references": [
+        "KahaGameCore.Modules.Persistence.GameEventsIntegration",
+        "KahaGameCore.Modules.Persistence",
+        "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.Effects",
+        "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Presentation",
+        "KahaGameCore.Modules.GameFlowSystem",
+        "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
+        "KahaGameCore.Modules.StaticData",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
