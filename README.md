@@ -60,9 +60,7 @@ Builder 會生成：
 
 | 欄位 | 內容 |
 |---|---|
-| `Game Data Tables` | `TimePhaseData.txt`、`PlayerActionData.txt`、`LocationData.txt`、`GameTextData.txt`、`DialogueData.txt` |
-| `Parameter Tables` | 一或多份 `.parameters.json` |
-| `Game Event Files` | `.gameevent.json` documents |
+| `Data Catalog` | `GameFlowSystem.Composition` 的 `GameFlowDataCatalogAsset`；資產內指定五張 GameFlow TextAssets、一或多份 `.parameters.json`，以及保存 `.gameevent.json` 順序的 `GameEventCatalogAsset` |
 | `Scene Game Event Triggers` | 場景內需要直接執行指定事件文件的 triggers |
 | `Parameter State Binders` | 依 Parameter condition 更新顯示的場景 binders |
 | `Game Title` | 主標題顯示名稱 |

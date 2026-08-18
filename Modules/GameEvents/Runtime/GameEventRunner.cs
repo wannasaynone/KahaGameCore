@@ -51,6 +51,7 @@ namespace KahaGameCore.GameEvents
             if (context == null) throw new ArgumentNullException(nameof(context));
 
             string json = gameEventFile.text;
+            Debug.Log("Run " + json);
             return Enqueue(
                 () => RunDirectAsync(json, context),
                 context.CancellationToken);

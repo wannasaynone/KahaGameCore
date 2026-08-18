@@ -53,6 +53,24 @@ namespace KahaGameCore.Parameters
             return values.TryGetValue(key, out value);
         }
 
+        public IReadOnlyList<ParameterRuntimeValue> CaptureCurrentValues()
+        {
+            List<ParameterRuntimeValue> currentValues =
+                new List<ParameterRuntimeValue>(definitions.Count);
+            foreach (KeyValuePair<string, ParameterDefinition> pair in definitions)
+            {
+                currentValues.Add(new ParameterRuntimeValue(
+                    pair.Value,
+                    values[pair.Key]));
+            }
+
+            currentValues.Sort((left, right) => string.Compare(
+                left.Definition.Key,
+                right.Definition.Key,
+                StringComparison.Ordinal));
+            return currentValues.AsReadOnly();
+        }
+
         public ExpressionResult<float> Calculate(string formula)
         {
             return expressions.Calculate(formula, expressionContext);

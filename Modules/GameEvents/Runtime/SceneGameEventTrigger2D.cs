@@ -17,6 +17,8 @@ namespace KahaGameCore.GameEvents
         private GameEventRunner runner;
         private EventContext context;
 
+        public TextAsset GameEventFile => gameEventFile;
+
         public void Configure(TextAsset file)
         {
             gameEventFile = file;
@@ -58,6 +60,7 @@ namespace KahaGameCore.GameEvents
 
         private void OnTriggerEnter2D(Collider2D other)
         {
+            Debug.Log("OnTriggerEnter2D");
             if (runner == null || other == null || !IncludesLayer(other.gameObject.layer))
             {
                 return;

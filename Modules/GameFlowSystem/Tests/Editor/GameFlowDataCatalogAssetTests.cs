@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using KahaGameCore.GameEvents;
-using KahaGameCore.GameFlowSystem.DefaultViews;
+using KahaGameCore.GameFlowSystem.Composition;
 using NUnit.Framework;
 using UnityEngine;
 

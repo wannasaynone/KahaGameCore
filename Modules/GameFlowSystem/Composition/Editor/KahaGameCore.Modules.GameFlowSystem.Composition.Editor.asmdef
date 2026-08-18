@@ -1,20 +1,14 @@
 {
-    "name": "KahaGameCore.Modules.GameFlowSystem.DefaultViews.Editor",
+    "name": "KahaGameCore.Modules.GameFlowSystem.Composition.Editor",
     "rootNamespace": "",
     "references": [
-        "KahaGameCore.Modules.GameFlowSystem.DefaultViews",
         "KahaGameCore.Modules.GameFlowSystem.Composition",
         "KahaGameCore.Modules.GameFlowSystem",
         "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
         "KahaGameCore.Modules.StaticData",
         "KahaGameCore.Modules.GameEvents",
-        "KahaGameCore.Modules.Presentation",
-        "KahaGameCore.Modules.UserInterfaceSystem",
-        "KahaGameCore.Modules.Dialogue",
-        "KahaGameCore.Modules.Parameters.Unity",
-        "Unity.TextMeshPro",
-        "UnityEngine.UI",
-        "Unity.InputSystem"
+        "KahaGameCore.Modules.GameEvents.Editor",
+        "KahaGameCore.Modules.Effects"
     ],
     "includePlatforms": [
         "Editor"

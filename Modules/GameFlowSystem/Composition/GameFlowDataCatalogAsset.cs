@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using KahaGameCore.GameEvents;
 using UnityEngine;
 
-namespace KahaGameCore.GameFlowSystem.DefaultViews
+namespace KahaGameCore.GameFlowSystem.Composition
 {
     /// <summary>
-    /// GameFlow 的單一資料入口。保存來源資產引用與允許使用的 Command 名稱，
-    /// 不複製或快取表格內容。
+    /// 預設 GameFlow 組裝與 Game Event authoring 共用的專案資料入口。
+    /// 只保存來源資產引用與允許使用的 Command 名稱，不複製或快取表格內容。
+    /// 不使用預設 GameFlow／Game Event Editor 的專案不需要此資產。
     /// </summary>
     [CreateAssetMenu(
         fileName = "GameFlowDataCatalog",

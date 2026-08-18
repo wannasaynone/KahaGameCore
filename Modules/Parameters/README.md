@@ -6,7 +6,7 @@ Parameters 是全域、可保存的內容值。它不負責角色 Stats、GameFl
 
 ## 第一次使用：建立兩個 Parameters
 
-呼叫端 asmdef 引用 `KahaGameCore.Modules.Parameters`。若程式碼直接宣告 `ExpressionResult<T>`，也引用 `KahaGameCore.Modules.Expressions`。
+純資料與 gameplay 邏輯的 asmdef 引用 `KahaGameCore.Modules.Parameters`。場景中的 composition root 若繼承 `ParameterRuntimeSource`，還要引用 `KahaGameCore.Modules.Parameters.Unity`；若程式碼直接宣告 `ExpressionResult<T>`，也引用 `KahaGameCore.Modules.Expressions`。
 
 Parameter name 在此模組稱為 `Key`。先定義 Key、型別、初始值與範圍，再以 definitions 建立唯一的 gameplay `ParameterStore`：
 
@@ -47,6 +47,47 @@ ExpressionResult<bool> canLeave = parameters.EvaluateCondition(
 支援 `Int`、`Float`、`Bool`、`String`。Int／Float 依 definition 的 min／max clamp；`Add` 只接受與 definition 相同的數值型別。Unknown key 與 type mismatch 會明確丟出 `ParameterException` 子型別，不會默認為 `0`。
 
 `Calculate` 與 `EvaluateCondition` 直接以目前的 Parameter 值求值，caller 不需要組裝 Expression context。一般 gameplay caller 使用 typed methods，不需要依 `ParameterType` switch；`TryGetValue` 與 `ParameterValue` 主要供 Editor、Snapshot 與工具使用。
+
+若 Parameter 是由 Parameter Table Editor 建立的 `.parameters.json` 文字資產，不要在程式中重複宣告 definitions。場景的 composition root 應負責把 `TextAsset` 解析成唯一的 live `ParameterStore`，並初始化成 Editor 工具可辨識的 runtime source：
+
+```csharp
+using KahaGameCore.Parameters;
+using UnityEngine;
+
+public sealed class GameManager : ParameterRuntimeSource
+{
+    [SerializeField] private TextAsset paramTable;
+
+    private void Awake()
+    {
+        ParameterTableJsonCodec parameterTableJson = new ParameterTableJsonCodec();
+        ParameterTable table = parameterTableJson.Read(paramTable.text);
+        ParameterStore parameterStore = new ParameterStore(table.Definitions);
+        Initialize(parameterStore);
+    }
+}
+```
+
+把 `GameManager` 掛到場景中的 GameObject，並在 Inspector 將 `.parameters.json` 指定給 `Param Table`。進入 Play Mode 後，這個 component 本身就是可供 Runtime Parameter Monitor 讀取的 `ParameterRuntimeSource`。若專案載入多張表，composition root 應先展平所有 table 的 `Definitions`，再建立同一份 `ParameterStore`，不要為每張表建立各自的 Store。
+
+## 查看 Runtime Parameter
+
+Play Mode 時可開啟 `KahaGameCore/Parameters/Runtime Parameter Monitor`。視窗會尋找已載入場景中的 `ParameterRuntimeSource` 衍生元件，以唯讀表格持續顯示每個 Parameter 的 Key、Display Name、Type 與目前值，並可搜尋；它不依賴特定 Launcher，也不提供修改功能。
+
+程式工具可呼叫 `ParameterStore.CaptureCurrentValues()` 取得同一份 `ParameterRuntimeValue` 唯讀快照。若現有 composition root 無法直接繼承 `ParameterRuntimeSource`，才建立可掛載的空白 adapter，並在建立唯一的 live Store 後初始化：
+
+```csharp
+public sealed class MyParameterRuntimeSource : ParameterRuntimeSource
+{
+}
+
+// composition root 建立 ParameterStore 後：
+runtimeSource.Initialize(parameters);
+```
+
+把 `MyParameterRuntimeSource` 掛到已載入場景中的 GameObject，並讓 composition root 持有它的 serialized reference。`IsInitialized` 代表是否已收到 Store；`CaptureCurrentValues()` 在尚未初始化時回傳空集合。`DefaultGameLauncher` 只是這個 abstract source 的一個現成 adapter，不是 Editor 的必要依賴。
+
+宣告或引用 `ParameterRuntimeSource` 的 asmdef 必須加入 `KahaGameCore.Modules.Parameters.Unity`；純資料與 gameplay 邏輯仍只引用 `KahaGameCore.Modules.Parameters`，因此核心 module 保持零 UnityEngine 依賴。
 
 ## 使用 Parameter Table JSON
 

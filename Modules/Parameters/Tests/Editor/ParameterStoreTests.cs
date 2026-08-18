@@ -62,6 +62,34 @@ namespace KahaGameCore.Parameters.Tests
         }
 
         [Test]
+        public void CaptureCurrentValues_ReturnsDefinitionsAndCurrentValues()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Int(
+                    "Supplies",
+                    "物資",
+                    initialValue: 60,
+                    minValue: 0,
+                    maxValue: 9999),
+                ParameterDefinition.Bool("OutingUnlocked", "外出解鎖", initialValue: false)
+            });
+            parameters.Set("Supplies", 25);
+            parameters.Set("OutingUnlocked", true);
+
+            IReadOnlyList<ParameterRuntimeValue> values =
+                parameters.CaptureCurrentValues();
+
+            Assert.That(
+                values[0].Definition.Key,
+                Is.EqualTo("OutingUnlocked"));
+            Assert.That(values[0].Value.AsBool(), Is.True);
+            Assert.That(values[1].Definition.Key, Is.EqualTo("Supplies"));
+            Assert.That(values[1].Definition.DisplayName, Is.EqualTo("物資"));
+            Assert.That(values[1].Value.AsInt(), Is.EqualTo(25));
+        }
+
+        [Test]
         public void Get_UnknownKeyThrowsExplicitError()
         {
             ParameterStore parameters = new ParameterStore(new[]

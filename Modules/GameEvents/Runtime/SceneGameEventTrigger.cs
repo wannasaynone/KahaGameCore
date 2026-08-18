@@ -17,6 +17,8 @@ namespace KahaGameCore.GameEvents
         private GameEventRunner runner;
         private EventContext context;
 
+        public TextAsset GameEventFile => gameEventFile;
+
         public void Configure(TextAsset file)
         {
             gameEventFile = file;

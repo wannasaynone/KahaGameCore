@@ -2,7 +2,8 @@
     "name": "KahaGameCore.Modules.Parameters.Editor",
     "rootNamespace": "KahaGameCore.Parameters.Editor",
     "references": [
-        "KahaGameCore.Modules.Parameters"
+        "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Parameters.Unity"
     ],
     "includePlatforms": [
         "Editor"

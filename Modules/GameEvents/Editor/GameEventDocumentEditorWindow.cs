@@ -8,6 +8,7 @@ using KahaGameCore.Parameters;
 using KahaGameCore.Parameters.Editor;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace KahaGameCore.GameEvents.Editor
 {
@@ -95,6 +96,8 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void OnEnable()
         {
+            EditorApplication.hierarchyChanged -= Repaint;
+            EditorApplication.hierarchyChanged += Repaint;
             titleContent = new GUIContent("Game Event");
             minSize = new Vector2(920f, 620f);
             saveChangesMessage =
@@ -109,6 +112,11 @@ namespace KahaGameCore.GameEvents.Editor
             RefreshConditionDrafts();
             RefreshCommandDrafts();
             SyncUnsavedState();
+        }
+
+        private void OnDisable()
+        {
+            EditorApplication.hierarchyChanged -= Repaint;
         }
 
         private void OnFocus()
@@ -306,7 +314,8 @@ namespace KahaGameCore.GameEvents.Editor
         private void DrawDocumentFields()
         {
             EditorGUILayout.LabelField("Game Event Document", EditorStyles.boldLabel);
-            DrawDocumentAssetHeader();
+            TextAsset documentAsset = DrawDocumentAssetHeader();
+            DrawSceneTriggerReferences(documentAsset);
 
             using (new EditorGUI.DisabledScope(true))
             {
@@ -349,7 +358,7 @@ namespace KahaGameCore.GameEvents.Editor
             }
         }
 
-        private void DrawDocumentAssetHeader()
+        private TextAsset DrawDocumentAssetHeader()
         {
             TextAsset documentAsset =
                 AssetDatabase.LoadAssetAtPath<TextAsset>(session.AssetPath);
@@ -374,6 +383,106 @@ namespace KahaGameCore.GameEvents.Editor
                     }
                 }
             }
+
+            return documentAsset;
+        }
+
+        private static void DrawSceneTriggerReferences(TextAsset documentAsset)
+        {
+            Scene activeScene = SceneManager.GetActiveScene();
+            IReadOnlyList<Component> references =
+                FindSceneTriggersReferencing(documentAsset, activeScene);
+
+            EditorGUILayout.Space(2f);
+            EditorGUILayout.LabelField(
+                $"Scene Trigger References ({references.Count})",
+                EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(
+                activeScene.IsValid()
+                    ? $"Active Scene: {activeScene.name}"
+                    : "No active scene.",
+                EditorStyles.miniLabel);
+
+            if (references.Count == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "No Scene Trigger in the active scene references this Game Event.",
+                    MessageType.Info);
+                return;
+            }
+
+            foreach (Component trigger in references)
+            {
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    GUILayout.Label(GetSceneObjectPath(trigger), EditorStyles.boldLabel);
+                    GUILayout.FlexibleSpace();
+                    GUILayout.Label(
+                        trigger is SceneGameEventTrigger2D ? "2D" : "3D",
+                        EditorStyles.miniLabel,
+                        GUILayout.Width(24f));
+                    if (GUILayout.Button("Ping", GUILayout.Width(48f)))
+                    {
+                        EditorGUIUtility.PingObject(trigger.gameObject);
+                    }
+                }
+            }
+        }
+
+        internal static IReadOnlyList<Component> FindSceneTriggersReferencing(
+            TextAsset documentAsset,
+            Scene scene)
+        {
+            if (documentAsset == null || !scene.IsValid() || !scene.isLoaded)
+            {
+                return Array.Empty<Component>();
+            }
+
+            List<Component> references = new List<Component>();
+            SceneGameEventTrigger[] triggers3D =
+                UnityEngine.Object.FindObjectsByType<SceneGameEventTrigger>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None);
+            foreach (SceneGameEventTrigger trigger in triggers3D)
+            {
+                if (trigger.gameObject.scene == scene &&
+                    trigger.GameEventFile == documentAsset)
+                {
+                    references.Add(trigger);
+                }
+            }
+
+            SceneGameEventTrigger2D[] triggers2D =
+                UnityEngine.Object.FindObjectsByType<SceneGameEventTrigger2D>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None);
+            foreach (SceneGameEventTrigger2D trigger in triggers2D)
+            {
+                if (trigger.gameObject.scene == scene &&
+                    trigger.GameEventFile == documentAsset)
+                {
+                    references.Add(trigger);
+                }
+            }
+
+            references.Sort((left, right) => string.Compare(
+                GetSceneObjectPath(left),
+                GetSceneObjectPath(right),
+                StringComparison.Ordinal));
+            return references;
+        }
+
+        private static string GetSceneObjectPath(Component component)
+        {
+            string path = component.gameObject.name;
+            Transform parent = component.transform.parent;
+            while (parent != null)
+            {
+                path = parent.name + "/" + path;
+                parent = parent.parent;
+            }
+
+            return path;
         }
 
         private void DrawEventCatalogSettings()

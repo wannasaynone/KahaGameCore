@@ -14,6 +14,7 @@ using KahaGameCore.Dialogue;
 using KahaGameCore.Dialogue.View;
 using KahaGameCore.Parameters;
 using KahaGameCore.GameEvents;
+using KahaGameCore.GameFlowSystem.Composition;
 using KahaGameCore.GameFlowSystem.GameEventsIntegration;
 using KahaGameCore.Presentation;
 using UnityEngine;
@@ -26,7 +27,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
     /// 要客製組裝邏輯（Override 服務、註冊演出與自訂指令）時，建議把本檔複製到專案改名後修改，
     /// 不要直接改包內版本。
     /// </summary>
-    public class DefaultGameLauncher : MonoBehaviour
+    public class DefaultGameLauncher : ParameterRuntimeSource
     {
         private const string MAIN_MENU_VIEW_PATH = "GameFlowUIViews/MainMenuView";
         private const string GAMEPLAY_HUD_VIEW_PATH = "GameFlowUIViews/GameplayHudView";
@@ -103,6 +104,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                 .SelectMany(table => table.Definitions)
                 .ToList();
             parameters = new ParameterStore(parameterDefinitions);
+            Initialize(parameters);
         }
 
         private async UniTaskVoid ShowMainMenuAsync()

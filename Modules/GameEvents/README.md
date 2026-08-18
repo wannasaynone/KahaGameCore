@@ -4,7 +4,7 @@
 
 Game Events 把 JSON 事件文件連到 Effects runtime。它依 `TriggerTiming` 過濾事件、先拍下符合 condition 的候選集合，再依 `GameEventCatalogAsset` 中的順序執行。所有 direct trigger 與 timing trigger 共用同一條 FIFO queue。
 
-## 第一次使用：先準備事件文件
+## 第一次使用：文字文件 → 可用 runtime
 
 呼叫端 asmdef 引用 `KahaGameCore.Modules.GameEvents`、`KahaGameCore.Modules.Effects`、`KahaGameCore.Modules.Parameters` 與 `UniTask`。完整可掛載範例位於下一節；這裡先看事件文件如何對應 runtime 物件。
 
@@ -21,9 +21,29 @@ Game Events 把 JSON 事件文件連到 Effects runtime。它依 `TriggerTiming`
 }
 ```
 
+Condition 用到的 Parameter 由 `.parameters.json` 宣告；不要在 composition root 再手寫一份 definition：
+
+```json
+{
+  "SchemaVersion": 1,
+  "TableGuid": "2779156e-4d04-4bb6-9f11-a7efc121faf1",
+  "DisplayName": "Door Parameters",
+  "Parameters": [
+    {
+      "Key": "DoorOpen",
+      "DisplayName": "門已開啟",
+      "Type": "Bool",
+      "InitialValue": "false"
+    }
+  ]
+}
+```
+
+建立 `Kaha Game Core/Game Events/Catalog`，把 `.gameevent.json` 放入 catalog。Runtime 的必要中介只有這個 `GameEventCatalogAsset`，因為它保存事件集合與權威執行順序；`GameFlowDataCatalogAsset` 不是 Game Events runtime 的依賴。後者位於 `GameFlowSystem.Composition`，只在「預設 GameFlow 組裝 + Game Event Editor」需要共用 Parameters、Events 與 Timing choices 時使用。
+
 不需要手寫 JSON 時，可開啟 Unity 選單 `KahaGameCore/Game Events/Game Event Editor`。視窗分成 `Game Event`、`Event Catalog`、`Parameter Tables` 與 `Commands` 四個 TAB。視窗上方只選一次 `GameFlowDataCatalogAsset`；Event Catalog、Parameter Tables、允許使用的 Commands，以及由 `TimePhaseData`／`LocationData` 產生的 Timing choices 都從這個 Catalog 取得。`Commands` TAB 只列出程式已註冊的 descriptors，勾選結果直接寫回 Data Catalog；Game Event 的 Command 選單只顯示該 Catalog 勾選的項目。`Event Catalog` 按 `TriggerTiming` 分組顯示事件；同組列可拖曳排序，這個順序就是 runtime 順序。第一次使用 Parameter Table 時，可在 `Parameter Tables` TAB 點 `Create New Table`；已有表則用 `Add Existing Table`，操作結果會直接寫回 Data Catalog。Editor 不會掃描專案中的其他 TextAsset，因此 Sample Data 不會污染正式選項。ProjectSettings 只保存目前 Data Catalog 的 asset GUID，不保存另一份表格內容。Condition 由可巢狀的 Group 組成；每個 Group 選擇 `Match All (AND)` 或 `Match Any (OR)`，並可加入 Parameter／Comparison／Value 或子 Group。子 Group 對應 expression 括號，任何選項變更都會直接更新事件，不顯示或手動拼接 condition 字串；空的 Root Group 代表 Always。Command 名稱和 ParameterKey 用選單選擇；其他 command 參數會先列出 Catalog 內既有值，只有新數值、公式或字串才使用 `Custom value`。
 
-`GameFlowSystem.DefaultViews.Editor` 會註冊 `GameFlowDataCatalogAsset` adapter、`EffectCommandRegistrar.Descriptors` 與 Timing 建構方式。Descriptors 定義可執行 Command 的名稱與參數規格；Data Catalog 的 Command 名稱清單決定這個遊戲允許哪些已註冊項目出現在編輯器。Phase／Location 選項會直接反序列化所選 Catalog 的 `TimePhaseData`／`LocationData`；表格更新後按 `Refresh Choices` 即可，不保存第二份選項。若專案不使用 Default GameFlow，自己的 Editor assembly 必須在 domain reload 時呼叫 `GameEventEditorCommandCatalog.Register(...)` 提供 descriptors 與自己的 Data Source adapter。
+`GameFlowSystem.Composition.Editor` 會註冊 `GameFlowDataCatalogAsset` adapter、`EffectCommandRegistrar.Descriptors` 與 Timing 建構方式。Descriptors 定義可執行 Command 的名稱與參數規格；Data Catalog 的 Command 名稱清單決定這個遊戲允許哪些已註冊項目出現在編輯器。Phase／Location 選項會直接反序列化所選 Catalog 的 `TimePhaseData`／`LocationData`；表格更新後按 `Refresh Choices` 即可，不保存第二份選項。若專案不使用 Default GameFlow，自己的 Editor assembly 必須在 domain reload 時呼叫 `GameEventEditorCommandCatalog.Register(...)` 提供 descriptors 與自己的 Data Source adapter。
 
 事件文件不會自行執行。專案啟動／場景組裝程式建立以下四個物件後才能觸發：
 
@@ -71,7 +91,7 @@ Parameter name 在 Parameters module 中稱為 `Key`。這個示範將它集中�
 
 | 使用位置 | 寫法 | 意義 |
 |---|---|---|
-| `ParameterDefinition` | `key: DoorParameterNames.DoorOpen` | 向 `ParameterStore` 宣告 Parameter identity |
+| Parameter Table | `"Key": "DoorOpen"` | 向 `ParameterStore` 宣告 Parameter identity |
 | Game Event condition | `$DoorOpen == false` | `$` 後的名稱會查找同一個 `Key` |
 | Command／gameplay code | `Set(DoorParameterNames.DoorOpen, ...)` | 讀寫同一個 Parameter |
 | `displayName` | `"門已開啟"` | 只供作者與 UI 顯示，不參與查找 |
@@ -114,6 +134,9 @@ public sealed class OpenDoorCommand : IEffectCommand
 public sealed class DoorGameEventExample : MonoBehaviour
 {
     [SerializeField]
+    private TextAsset parameterTableFile;
+
+    [SerializeField]
     private GameEventCatalogAsset gameEventCatalogAsset;
 
     private CancellationTokenSource lifetime;
@@ -124,13 +147,9 @@ public sealed class DoorGameEventExample : MonoBehaviour
     {
         lifetime = new CancellationTokenSource();
 
-        parameters = new ParameterStore(new[]
-        {
-            ParameterDefinition.Bool(
-                key: DoorParameterNames.DoorOpen,
-                displayName: "門已開啟",
-                initialValue: false)
-        });
+        ParameterTable parameterTable =
+            new ParameterTableJsonCodec().Read(parameterTableFile.text);
+        parameters = new ParameterStore(parameterTable.Definitions);
 
         EffectCommandRegistry registry = new EffectCommandRegistry();
         registry.Register(new EffectCommandDefinition(
@@ -172,11 +191,11 @@ public sealed class DoorGameEventExample : MonoBehaviour
 
 使用步驟：
 
-1. 將前面的 JSON 儲存為 `.gameevent.json`，讓 Unity 以 `TextAsset` 匯入。
-2. 在場景物件加入 `DoorGameEventExample`。
-3. 把事件檔拖進 `Game Event Files`。
+1. 將兩段 JSON 分別儲存為 `.gameevent.json` 與 `.parameters.json`，讓 Unity 以 `TextAsset` 匯入。
+2. 建立 `GameEventCatalogAsset`，把事件文件加入 `Files`；列表順序就是同 timing 的執行順序。
+3. 在場景物件加入 `DoorGameEventExample`，指定 Parameter Table File 與 Game Event Catalog Asset。
 4. 將 Button 或互動元件的 UnityEvent 綁到 `InteractWithDoor()`。
-5. 互動時 condition 先讀取 `$DoorOpen`；第一次為 `false`，所以執行 `OpenDoor()` 並把 Parameter 設為 `true`。再次互動時 condition 不成立，不會重複執行 command。
+5. `Awake` 會完成 `TextAsset → ParameterTable → ParameterStore`、command 註冊、`GameEventCatalogAsset → GameEventCatalog → GameEventRunner`。互動時 condition 先讀取 `$DoorOpen`；第一次為 `false`，所以執行 `OpenDoor()` 並把 Parameter 設為 `true`。再次互動時 condition 不成立，不會重複執行 command。
 
 這個示範中的 `OpenDoorCommand` 是專案 command。Game Events 不內建遊戲行為；所有 `Commands` 中使用的名稱都必須先以 `EffectCommandDefinition` 註冊進同一個 `EffectCommandRegistry`。
 

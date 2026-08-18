@@ -18,11 +18,12 @@
 - 完全自有 UI 或 domain services：跳到「接入核心介面」。
 - 需要逐檔建立 View、Presenter、表格與 Scene：閱讀 [專案實作指南](專案實作指南.md)。
 
-包分四層：
+包分五層：
 
 - **`Scripts/`（核心）**：`GameFlowController` 與 7 個最小介面，只依賴 UniTask。
 - **`DefaultImplements/`（預設實作）**：Parameters adapter、TimeService、LocationService、效果指令、條件式與表格定義，加上 `GameFlowSystemBuilder`。不依賴 GameEvents 或 Dialogue。
 - **`GameEventsIntegration/`（可選整合）**：`GameFlowGameEventAdapter`；這是 GameFlow core 與 GameEvents 唯一互相認識的位置。
+- **`Composition/`（預設組裝資料）**：`GameFlowDataCatalogAsset` 與其 Game Event Editor adapter。它彙整預設 GameFlow 所需的 TextAssets、Parameter tables、Game Event catalog 與允許的 commands，不屬於 UI；只用 Parameters + Game Events 的專案不需要引用它。
 - **`DefaultViews/`（預設 UI＋範例橋接）**：整套 UGUI View / Presenter / `DefaultGameLauncher`（組裝根）腳本＋`DefaultUiBuilder`（Editor 選單一鍵生成全部 prefab 與可運行場景），**並含範例對話橋接 `DialoguePlayer` + `GameEffectDialogueCommand`**（連接具體 Dialogue Module）。純腳本、零美術資產——prefab 在各專案內按需生成。
 
 > **對話橋接屬於範例／各專案的程式碼，不是 Module 的共用層。** 核心與 DefaultImplements 刻意與 Dialogue Module 無關（只認 `IDialoguePlayer`）。`DefaultViews` 內附一份範例橋接示範如何接上 Dialogue Module；**各專案請複製一份到自己的組件並依需求修改**。
@@ -32,7 +33,8 @@
 ## 在專案中組裝預設實作
 
 ```csharp
-// 1. Data Catalog 是 Runtime 與 Game Event Editor 共用的唯一資料入口。
+// 1. 採用預設 GameFlow 組裝時，Composition Data Catalog 是 Runtime 與
+//    Game Event Editor 共用的單一專案資料入口。
 dataCatalog.ValidateRequiredReferences();
 var staticDataManager = new GameStaticDataManager();
 var handler = new TextAssetJsonStaticDataHandler(dataCatalog.GetGameDataTables());
@@ -135,7 +137,7 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 |---|---|
 | `Views/`（9 個腳本） | 主選單、HUD（含 StatValueItem）、行動/移動選單（含按鈕 item）、提示視窗、製作名單。皆繼承 UserInterfaceSystem 的 `AView` |
 | `Presenters/`（5 個腳本） | `IActionMenuPresenter` / `IHintPresenter` / `ILocationMenuPresenter` 的轉接實作＋HUD Presenter＋`IStagePerformance` 範例（CreditsPerformance） |
-| `DefaultGameLauncher.cs` | 預設組裝根：從 `GameFlowDataCatalogAsset` 載入表格、Parameters 與 Event Catalog → Builder 組裝 → 主標題/流程切換、返回標題處理 |
+| `DefaultGameLauncher.cs` | 預設組裝根：從 Composition assembly 的 `GameFlowDataCatalogAsset` 載入表格、Parameters 與 Event Catalog → Builder 組裝 → 主標題/流程切換、返回標題處理 |
 | `Editor/DefaultUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**：在專案內生成 `Assets/Resources/GameFlowUIViews/` 九個 prefab 與 `Assets/Scenes/GameFlowGame.unity`（全部接好、測試表已掛上、可直接 Play）。全程式化版面（TMP 預設字型＋內建 UISprite），零美術資產依賴，可重複執行覆寫 |
 | `SampleData/GameFlowDataCatalog.asset` | Sample Scene 的單一資料入口，引用五張測試表、Parameter table 與 Game Event Catalog。 |
 

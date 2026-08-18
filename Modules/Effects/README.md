@@ -4,7 +4,7 @@
 
 `KahaGameCore.Effects` 是文字效果指令的單一執行核心。它負責解析、序列化、指令定義驗證、依序等待執行，以及把解析錯誤、指令錯誤與取消回報成結構化結果。
 
-## 第一次使用：註冊並執行 DebugLog
+## 第一次使用：文字文件 → 可用 runtime
 
 呼叫端 asmdef 引用 `KahaGameCore.Modules.Effects` 與 `UniTask`。先建立 command handler：
 
@@ -28,30 +28,83 @@ public sealed class DebugLogCommand : IEffectCommand
 }
 ```
 
-再註冊 definition，並用同一個 registry 建立 runtime：
+將命令文字存成 `FirstRun.effects.txt`（副檔名只供作者辨識，Unity 會匯入為 `TextAsset`）：
 
-```csharp
-EffectCommandRegistry registry = new EffectCommandRegistry();
-registry.Register(new EffectCommandDefinition(
-    name: "DebugLog",
-    displayName: "Debug Log",
-    category: "Debug",
-    parameters: new[]
-    {
-        new EffectCommandParameterDefinition(
-            "message",
-            EffectCommandParameterKind.Literal)
-    },
-    command: new DebugLogCommand()));
-
-EffectRuntime runtime = new EffectRuntime(registry);
-EffectExecutionResult result = await runtime.ExecuteAsync(
-    "DebugLog(ready);",
-    new EffectExecutionContext(),
-    CancellationToken.None);
+```text
+DebugLog(ready);
 ```
 
-預期結果：Console 輸出 `ready`，`result.IsSuccess` 是 `true`。Caller 必須檢查結果；失敗與取消不是成功的空操作。
+再由場景 composition root 註冊 definition、建立 runtime，並把文字資產內容交給它：
+
+```csharp
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
+using UnityEngine;
+
+public sealed class EffectTextFileExample : MonoBehaviour
+{
+    [SerializeField] private TextAsset effectFile;
+
+    private CancellationTokenSource lifetime;
+    private EffectRuntime runtime;
+
+    private void Awake()
+    {
+        if (effectFile == null)
+        {
+            throw new InvalidOperationException("Effect File is required.");
+        }
+
+        lifetime = new CancellationTokenSource();
+        EffectCommandRegistry registry = new EffectCommandRegistry();
+        registry.Register(new EffectCommandDefinition(
+            name: "DebugLog",
+            displayName: "Debug Log",
+            category: "Debug",
+            parameters: new[]
+            {
+                new EffectCommandParameterDefinition(
+                    "message",
+                    EffectCommandParameterKind.Literal)
+            },
+            command: new DebugLogCommand()));
+        runtime = new EffectRuntime(registry);
+    }
+
+    public void Run()
+    {
+        RunAsync().Forget();
+    }
+
+    private async UniTaskVoid RunAsync()
+    {
+        EffectExecutionResult result = await runtime.ExecuteAsync(
+            effectFile.text,
+            new EffectExecutionContext(),
+            lifetime.Token);
+
+        if (result.Status == EffectExecutionStatus.Cancelled)
+        {
+            return;
+        }
+
+        if (!result.IsSuccess)
+        {
+            Debug.LogError(result.FormatDiagnostic());
+        }
+    }
+
+    private void OnDestroy()
+    {
+        lifetime?.Cancel();
+        lifetime?.Dispose();
+    }
+}
+```
+
+把 `FirstRun.effects.txt` 指定給 Inspector 的 Effect File，呼叫 `Run()` 後 Console 會輸出 `ready`。Effects runtime 不擁有檔案位置、catalog 或 Unity asset loading；它的輸入就是 command source 字串，因此 `TextAsset.text`、網路回應或其他文字來源都走同一個入口。Caller 必須檢查結果；失敗與取消不是成功的空操作。
 
 ## 核心型別
 

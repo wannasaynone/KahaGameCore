@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using KahaGameCore.GameEvents.Editor;
 using KahaGameCore.GameFlowSystem;
+using KahaGameCore.GameFlowSystem.Composition;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.GameFlowSystem.DefaultImplements.DataAccess;
 using UnityEditor;
 using UnityEngine;
 
-namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
+namespace KahaGameCore.GameFlowSystem.Composition.Editor
 {
     [InitializeOnLoad]
     internal static class DefaultGameEventEditorCatalogRegistration
