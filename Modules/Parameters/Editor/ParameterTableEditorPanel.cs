@@ -1,0 +1,518 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using UnityEditor;
+using UnityEngine;
+
+namespace KahaGameCore.Parameters.Editor
+{
+    [Serializable]
+    public sealed class ParameterTableEditorPanel
+    {
+        [Serializable]
+        private sealed class ParameterRowDraft
+        {
+            public string Key;
+            public string DisplayName;
+            public ParameterType Type;
+            public int IntInitial;
+            public int IntMin;
+            public int IntMax = 100;
+            public float FloatInitial;
+            public float FloatMin;
+            public float FloatMax = 100f;
+            public bool BoolInitial;
+            public string StringInitial = string.Empty;
+
+            public ParameterDefinition ToDefinition()
+            {
+                switch (Type)
+                {
+                    case ParameterType.Int:
+                        return ParameterDefinition.Int(Key, DisplayName, IntInitial, IntMin, IntMax);
+                    case ParameterType.Float:
+                        return ParameterDefinition.Float(Key, DisplayName, FloatInitial, FloatMin, FloatMax);
+                    case ParameterType.Bool:
+                        return ParameterDefinition.Bool(Key, DisplayName, BoolInitial);
+                    case ParameterType.String:
+                        return ParameterDefinition.String(Key, DisplayName, StringInitial ?? string.Empty);
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            public static ParameterRowDraft FromDefinition(ParameterDefinition definition)
+            {
+                ParameterRowDraft row = new ParameterRowDraft
+                {
+                    Key = definition.Key,
+                    DisplayName = definition.DisplayName,
+                    Type = definition.Type
+                };
+
+                switch (definition.Type)
+                {
+                    case ParameterType.Int:
+                        row.IntInitial = definition.InitialValue.AsInt();
+                        row.IntMin = definition.MinValue.Value.AsInt();
+                        row.IntMax = definition.MaxValue.Value.AsInt();
+                        break;
+                    case ParameterType.Float:
+                        row.FloatInitial = definition.InitialValue.AsFloat();
+                        row.FloatMin = definition.MinValue.Value.AsFloat();
+                        row.FloatMax = definition.MaxValue.Value.AsFloat();
+                        break;
+                    case ParameterType.Bool:
+                        row.BoolInitial = definition.InitialValue.AsBool();
+                        break;
+                    case ParameterType.String:
+                        row.StringInitial = definition.InitialValue.AsString();
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+
+                return row;
+            }
+        }
+
+        private const float INDEX_WIDTH = 28f;
+        private const float KEY_WIDTH = 160f;
+        private const float DISPLAY_NAME_WIDTH = 160f;
+        private const float TYPE_WIDTH = 80f;
+        private const float VALUE_WIDTH = 120f;
+        private const float DELETE_WIDTH = 28f;
+
+        [SerializeField] private string tableGuid;
+        [SerializeField] private string tableDisplayName;
+        [SerializeField] private List<ParameterRowDraft> rows = new List<ParameterRowDraft>();
+        [SerializeField] private string assetPath;
+        [SerializeField] private bool isDirty;
+        [SerializeField] private string statusMessage;
+        [SerializeField] private MessageType statusType = MessageType.Info;
+
+        [NonSerialized] private ParameterTableJsonCodec codec;
+
+        public string TableGuid => tableGuid;
+        public string TableDisplayName => tableDisplayName;
+        public string AssetPath => assetPath;
+        public int ParameterCount => Rows.Count;
+        public bool IsDirty => isDirty;
+        public bool HasTable => !string.IsNullOrEmpty(tableGuid);
+
+        private List<ParameterRowDraft> Rows
+        {
+            get
+            {
+                if (rows == null)
+                {
+                    rows = new List<ParameterRowDraft>();
+                }
+
+                return rows;
+            }
+        }
+
+        private ParameterTableJsonCodec Codec
+        {
+            get
+            {
+                if (codec == null)
+                {
+                    codec = new ParameterTableJsonCodec();
+                }
+
+                return codec;
+            }
+        }
+
+        public void InitializeIfNeeded()
+        {
+            if (!HasTable)
+            {
+                NewTable();
+            }
+        }
+
+        public void Draw()
+        {
+            InitializeIfNeeded();
+            EditorGUI.BeginChangeCheck();
+
+            DrawTableIdentity();
+            EditorGUILayout.Space();
+            DrawParameterGrid();
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button("+ Add Parameter", GUILayout.Width(140f)))
+            {
+                AddInt(CreateUniqueKey(), string.Empty, 0, 0, 100);
+            }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                MarkDirty("Table changed; validation required.");
+            }
+
+            EditorGUILayout.Space();
+            if (!string.IsNullOrEmpty(statusMessage))
+            {
+                EditorGUILayout.HelpBox(statusMessage, statusType);
+            }
+        }
+
+        public void NewTable()
+        {
+            tableGuid = Guid.NewGuid().ToString();
+            tableDisplayName = "New Parameter Table";
+            Rows.Clear();
+            assetPath = null;
+            isDirty = false;
+            ClearStatus();
+        }
+
+        public void Clear()
+        {
+            tableGuid = null;
+            tableDisplayName = null;
+            Rows.Clear();
+            assetPath = null;
+            isDirty = false;
+            ClearStatus();
+        }
+
+        public void MarkClean()
+        {
+            isDirty = false;
+        }
+
+        public void SetTableDisplayName(string displayName)
+        {
+            if (tableDisplayName == displayName)
+            {
+                return;
+            }
+
+            tableDisplayName = displayName;
+            MarkDirty("Table changed; validation required.");
+        }
+
+        public void AddInt(
+            string key,
+            string displayName,
+            int initialValue,
+            int minValue,
+            int maxValue)
+        {
+            Rows.Add(new ParameterRowDraft
+            {
+                Key = key,
+                DisplayName = displayName,
+                Type = ParameterType.Int,
+                IntInitial = initialValue,
+                IntMin = minValue,
+                IntMax = maxValue
+            });
+            MarkDirty("Parameter added; validation required.");
+        }
+
+        public void AddFloat(
+            string key,
+            string displayName,
+            float initialValue,
+            float minValue,
+            float maxValue)
+        {
+            Rows.Add(new ParameterRowDraft
+            {
+                Key = key,
+                DisplayName = displayName,
+                Type = ParameterType.Float,
+                FloatInitial = initialValue,
+                FloatMin = minValue,
+                FloatMax = maxValue
+            });
+            MarkDirty("Parameter added; validation required.");
+        }
+
+        public void AddBool(string key, string displayName, bool initialValue)
+        {
+            Rows.Add(new ParameterRowDraft
+            {
+                Key = key,
+                DisplayName = displayName,
+                Type = ParameterType.Bool,
+                BoolInitial = initialValue
+            });
+            MarkDirty("Parameter added; validation required.");
+        }
+
+        public void AddString(string key, string displayName, string initialValue)
+        {
+            Rows.Add(new ParameterRowDraft
+            {
+                Key = key,
+                DisplayName = displayName,
+                Type = ParameterType.String,
+                StringInitial = initialValue
+            });
+            MarkDirty("Parameter added; validation required.");
+        }
+
+        public void RemoveParameterAt(int index)
+        {
+            Rows.RemoveAt(index);
+            MarkDirty("Parameter removed; validation required.");
+        }
+
+        public ParameterTable ValidateTable()
+        {
+            ParameterDefinition[] definitions = Rows
+                .Select(row => row.ToDefinition())
+                .ToArray();
+            return new ParameterTable(tableGuid, tableDisplayName, definitions);
+        }
+
+        public void LoadTable(string tableAssetPath)
+        {
+            string normalizedPath = NormalizeAssetPath(tableAssetPath);
+            ParameterTable table = Codec.Read(File.ReadAllText(ToFullPath(normalizedPath)));
+
+            tableGuid = table.TableGuid;
+            tableDisplayName = table.DisplayName;
+            rows = table.Definitions.Select(ParameterRowDraft.FromDefinition).ToList();
+            assetPath = normalizedPath;
+            isDirty = false;
+            SetStatus(
+                $"Loaded: {table.DisplayName} ({table.Definitions.Count} parameters).",
+                MessageType.Info);
+        }
+
+        public void Reload()
+        {
+            if (string.IsNullOrEmpty(assetPath))
+            {
+                throw new InvalidOperationException("The Parameter Table has not been saved yet.");
+            }
+
+            LoadTable(assetPath);
+        }
+
+        public void SaveTable(string tableAssetPath)
+        {
+            string normalizedPath = NormalizeAssetPath(tableAssetPath);
+            ParameterTable table = ValidateTable();
+            string canonicalJson = Codec.Write(table);
+
+            File.WriteAllText(ToFullPath(normalizedPath), canonicalJson, new UTF8Encoding(false));
+            AssetDatabase.ImportAsset(normalizedPath, ImportAssetOptions.ForceSynchronousImport);
+            assetPath = normalizedPath;
+            isDirty = false;
+            SetStatus(
+                $"Saved: {table.DisplayName} ({table.Definitions.Count} parameters).",
+                MessageType.Info);
+        }
+
+        public string GetDefaultFileName()
+        {
+            string fileName = string.IsNullOrWhiteSpace(tableDisplayName)
+                ? "NewParameterTable"
+                : tableDisplayName;
+            foreach (char invalidCharacter in Path.GetInvalidFileNameChars())
+            {
+                fileName = fileName.Replace(invalidCharacter, '_');
+            }
+
+            return fileName + ".parameters";
+        }
+
+        public void SetStatus(string message, MessageType messageType)
+        {
+            statusMessage = message;
+            statusType = messageType;
+        }
+
+        private void DrawTableIdentity()
+        {
+            EditorGUILayout.LabelField("Parameter Table", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Asset", AssetPath ?? "Unsaved");
+            using (new EditorGUI.DisabledScope(true))
+            {
+                EditorGUILayout.TextField("Table GUID", tableGuid ?? string.Empty);
+            }
+
+            tableDisplayName = EditorGUILayout.TextField(
+                "Display Name",
+                tableDisplayName ?? string.Empty);
+        }
+
+        private void DrawParameterGrid()
+        {
+            DrawGridHeader();
+
+            int deleteIndex = -1;
+            for (int index = 0; index < Rows.Count; index++)
+            {
+                ParameterRowDraft row = Rows[index];
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    EditorGUILayout.LabelField((index + 1).ToString(), GUILayout.Width(INDEX_WIDTH));
+                    row.Key = EditorGUILayout.TextField(row.Key ?? string.Empty, GUILayout.Width(KEY_WIDTH));
+                    row.DisplayName = EditorGUILayout.TextField(
+                        row.DisplayName ?? string.Empty,
+                        GUILayout.Width(DISPLAY_NAME_WIDTH));
+                    row.Type = (ParameterType)EditorGUILayout.EnumPopup(row.Type, GUILayout.Width(TYPE_WIDTH));
+                    DrawInitialValue(row);
+                    DrawMinimumValue(row);
+                    DrawMaximumValue(row);
+
+                    if (GUILayout.Button("×", GUILayout.Width(DELETE_WIDTH)))
+                    {
+                        deleteIndex = index;
+                    }
+                }
+            }
+
+            if (deleteIndex >= 0)
+            {
+                RemoveParameterAt(deleteIndex);
+            }
+        }
+
+        private static void DrawGridHeader()
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField("#", EditorStyles.boldLabel, GUILayout.Width(INDEX_WIDTH));
+                EditorGUILayout.LabelField("Key", EditorStyles.boldLabel, GUILayout.Width(KEY_WIDTH));
+                EditorGUILayout.LabelField("Display Name", EditorStyles.boldLabel, GUILayout.Width(DISPLAY_NAME_WIDTH));
+                EditorGUILayout.LabelField("Type", EditorStyles.boldLabel, GUILayout.Width(TYPE_WIDTH));
+                EditorGUILayout.LabelField("Initial", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
+                EditorGUILayout.LabelField("Minimum", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
+                EditorGUILayout.LabelField("Maximum", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
+                EditorGUILayout.LabelField(string.Empty, GUILayout.Width(DELETE_WIDTH));
+            }
+        }
+
+        private static void DrawInitialValue(ParameterRowDraft row)
+        {
+            switch (row.Type)
+            {
+                case ParameterType.Int:
+                    row.IntInitial = EditorGUILayout.IntField(row.IntInitial, GUILayout.Width(VALUE_WIDTH));
+                    break;
+                case ParameterType.Float:
+                    row.FloatInitial = EditorGUILayout.FloatField(row.FloatInitial, GUILayout.Width(VALUE_WIDTH));
+                    break;
+                case ParameterType.Bool:
+                    row.BoolInitial = EditorGUILayout.Toggle(row.BoolInitial, GUILayout.Width(VALUE_WIDTH));
+                    break;
+                case ParameterType.String:
+                    row.StringInitial = EditorGUILayout.TextField(
+                        row.StringInitial ?? string.Empty,
+                        GUILayout.Width(VALUE_WIDTH));
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private static void DrawMinimumValue(ParameterRowDraft row)
+        {
+            switch (row.Type)
+            {
+                case ParameterType.Int:
+                    row.IntMin = EditorGUILayout.IntField(row.IntMin, GUILayout.Width(VALUE_WIDTH));
+                    break;
+                case ParameterType.Float:
+                    row.FloatMin = EditorGUILayout.FloatField(row.FloatMin, GUILayout.Width(VALUE_WIDTH));
+                    break;
+                default:
+                    EditorGUILayout.LabelField("—", GUILayout.Width(VALUE_WIDTH));
+                    break;
+            }
+        }
+
+        private static void DrawMaximumValue(ParameterRowDraft row)
+        {
+            switch (row.Type)
+            {
+                case ParameterType.Int:
+                    row.IntMax = EditorGUILayout.IntField(row.IntMax, GUILayout.Width(VALUE_WIDTH));
+                    break;
+                case ParameterType.Float:
+                    row.FloatMax = EditorGUILayout.FloatField(row.FloatMax, GUILayout.Width(VALUE_WIDTH));
+                    break;
+                default:
+                    EditorGUILayout.LabelField("—", GUILayout.Width(VALUE_WIDTH));
+                    break;
+            }
+        }
+
+        private string CreateUniqueKey()
+        {
+            int suffix = Rows.Count + 1;
+            string candidate;
+            do
+            {
+                candidate = $"NewParameter{suffix}";
+                suffix++;
+            }
+            while (Rows.Any(row => row.Key == candidate));
+
+            return candidate;
+        }
+
+        private void MarkDirty(string message)
+        {
+            isDirty = true;
+            SetStatus(message, MessageType.Info);
+        }
+
+        private void ClearStatus()
+        {
+            statusMessage = null;
+            statusType = MessageType.Info;
+        }
+
+        private static string NormalizeAssetPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                throw new ArgumentException("Parameter Table asset path is required.", nameof(path));
+            }
+
+            string fullPath = Path.IsPathRooted(path)
+                ? Path.GetFullPath(path)
+                : Path.GetFullPath(Path.Combine(Application.dataPath, "..", path));
+            string assetsRoot = Path.GetFullPath(Application.dataPath)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+                Path.DirectorySeparatorChar;
+
+            if (!fullPath.StartsWith(assetsRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "Parameter Table must be a .parameters.json file under Assets/.",
+                    nameof(path));
+            }
+
+            string normalizedPath = "Assets/" +
+                fullPath.Substring(assetsRoot.Length).Replace('\\', '/');
+            if (!normalizedPath.EndsWith(".parameters.json", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "Parameter Table must be a .parameters.json file under Assets/.",
+                    nameof(path));
+            }
+
+            return normalizedPath;
+        }
+
+        private static string ToFullPath(string tableAssetPath)
+        {
+            return Path.GetFullPath(Path.Combine(Application.dataPath, "..", tableAssetPath));
+        }
+    }
+}

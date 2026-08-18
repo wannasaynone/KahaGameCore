@@ -1,9 +1,8 @@
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "DocumentGuid": "33333333-3333-4333-8333-333333333011",
   "DisplayName": "解鎖公園",
   "TriggerTiming": "EnterLocation:2",
   "Condition": "!$LocationUnlocked_3",
-  "Priority": 100,
   "Commands": "StartDialogue(3);SetParameter(LocationUnlocked_3,true);"
 }

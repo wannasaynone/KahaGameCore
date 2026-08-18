@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using KahaGameCore.GameEvents;
 using KahaGameCore.UserInterfaceSystem;
 using TMPro;
 using UnityEditor;
@@ -14,7 +15,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
     /// 一鍵建置工具：產生 DefaultViews 全部 View prefabs（Assets/Resources/GameFlowUIViews）
     /// 與可直接運行的遊戲場景（Assets/Scenes/GameFlowGame.unity，含 Camera、EventSystem、
     /// 4K Canvas、DialogueView 縮放包覆、DefaultGameLauncher，全部接好）。
-    /// 跑完只需準備表格（Inspector 指定 TextAsset 或 Resources/GameData/）即可按 Play。
+    /// 跑完只需把自己的 TextAsset 指定到 GameFlowDataCatalogAsset 即可按 Play。
     /// 可重複執行（會覆寫既有產物）。美術調整建議直接改 prefab；重跑本工具會還原為基礎版面。
     /// </summary>
     public static class DefaultUiBuilder
@@ -22,6 +23,10 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
         private const string PREFAB_FOLDER = "Assets/Resources/GameFlowUIViews";
         private const string SCENE_PATH = "Assets/Scenes/GameFlowGame.unity";
         private const string SAMPLE_DATA_FOLDER = "Assets/KahaGameCore/Modules/GameFlowSystem/DefaultViews/SampleData";
+        private const string SAMPLE_EVENT_CATALOG_PATH =
+            SAMPLE_DATA_FOLDER + "/GameEvents/GameEventCatalog.asset";
+        private const string SAMPLE_DATA_CATALOG_PATH =
+            SAMPLE_DATA_FOLDER + "/GameFlowDataCatalog.asset";
         private const string DIALOGUE_VIEW_PREFAB_PATH = "Assets/KahaGameCore/Modules/Dialogue/Prefabs/DialogueView.prefab";
 
         /// <summary>設計解析度（CanvasScaler 參考值）。</summary>
@@ -352,11 +357,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
             {
                 SetReference(launcher, "dialogueView", dialogueViewInstance.GetComponent<KahaGameCore.Dialogue.View.DialogueView>());
             }
-            // 預設掛上包內 SampleData 測試表，按 Play 即可遊玩；換成自己的表時直接替換此欄位。
-            SetReferenceArray(launcher, "gameDataTables", LoadSampleDataTables());
-            SetReferenceArray(launcher, "parameterTables", LoadSampleParameterTables());
-            Object[] gameEventFiles = LoadSampleGameEventFiles();
-            SetReferenceArray(launcher, "gameEventFiles", gameEventFiles);
+            // Sample Scene 只引用一個 Catalog；Runtime 與 Editor 都從同一資產取資料來源。
+            SetReference(launcher, "dataCatalog", LoadOrCreateSampleDataCatalog());
 
             EditorSceneManager.SaveScene(scene, SCENE_PATH);
         }
@@ -501,52 +503,43 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        private static void SetReferenceArray(Component target, string fieldName, Object[] values)
+        private static GameFlowDataCatalogAsset LoadOrCreateSampleDataCatalog()
         {
-            SerializedObject serializedObject = new SerializedObject(target);
-            SerializedProperty property = serializedObject.FindProperty(fieldName);
-            if (property == null)
+            GameFlowDataCatalogAsset catalog =
+                AssetDatabase.LoadAssetAtPath<GameFlowDataCatalogAsset>(
+                    SAMPLE_DATA_CATALOG_PATH);
+            if (catalog == null)
             {
-                Debug.LogError($"[DefaultUiBuilder] {target.GetType().Name} 找不到欄位 {fieldName}");
-                return;
+                catalog = ScriptableObject.CreateInstance<GameFlowDataCatalogAsset>();
+                AssetDatabase.CreateAsset(catalog, SAMPLE_DATA_CATALOG_PATH);
             }
-            property.arraySize = values.Length;
-            for (int i = 0; i < values.Length; i++)
-            {
-                property.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
-            }
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+
+            catalog.SetGameDataTables(
+                LoadSampleTextAsset("TimePhaseData.txt"),
+                LoadSampleTextAsset("PlayerActionData.txt"),
+                LoadSampleTextAsset("LocationData.txt"),
+                LoadSampleTextAsset("GameTextData.txt"),
+                LoadSampleTextAsset("DialogueData.txt"));
+            catalog.SetParameterTables(
+                FindSampleTextAssets(".parameters.json").Cast<TextAsset>());
+            catalog.SetGameEventCatalog(
+                AssetDatabase.LoadAssetAtPath<GameEventCatalogAsset>(
+                    SAMPLE_EVENT_CATALOG_PATH));
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssetIfDirty(catalog);
+            return catalog;
         }
 
-        /// <summary>載入包內 SampleData 的五張測試表（含 DialogueData）。</summary>
-        private static Object[] LoadSampleDataTables()
+        private static TextAsset LoadSampleTextAsset(string fileName)
         {
-            List<Object> tables = FindSampleTextAssets(".txt");
-            if (tables.Count == 0)
+            TextAsset asset = AssetDatabase.LoadAssetAtPath<TextAsset>(
+                SAMPLE_DATA_FOLDER + "/" + fileName);
+            if (asset == null)
             {
-                Debug.LogWarning($"[DefaultUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有表格 TextAsset，gameDataTables 會是空的（將 fallback 到 Resources/GameData）。");
+                Debug.LogError(
+                    $"[DefaultUiBuilder] 找不到 Sample Data：{fileName}");
             }
-            return tables.ToArray();
-        }
-
-        private static Object[] LoadSampleParameterTables()
-        {
-            List<Object> tables = FindSampleTextAssets(".parameters.json");
-            if (tables.Count == 0)
-            {
-                Debug.LogWarning($"[DefaultUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有 .parameters.json，parameterTables 會是空的。");
-            }
-            return tables.ToArray();
-        }
-
-        private static Object[] LoadSampleGameEventFiles()
-        {
-            List<Object> files = FindSampleTextAssets(".gameevent.json");
-            if (files.Count == 0)
-            {
-                Debug.LogWarning($"[DefaultUiBuilder] {SAMPLE_DATA_FOLDER} 內沒有 .gameevent.json，Game Event sample 不會建立。");
-            }
-            return files.ToArray();
+            return asset;
         }
 
         private static List<Object> FindSampleTextAssets(string extension)

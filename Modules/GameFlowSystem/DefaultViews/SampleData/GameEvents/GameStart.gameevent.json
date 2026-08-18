@@ -1,9 +1,8 @@
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "DocumentGuid": "22222222-2222-4222-8222-222222222001",
   "DisplayName": "開場",
   "TriggerTiming": "GameStart",
   "Condition": "",
-  "Priority": 100,
   "Commands": "PlayPerformance(Opening);StartDialogue(1);"
 }

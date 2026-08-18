@@ -2,7 +2,7 @@
 
 ## 用途
 
-Game Events 把 JSON 事件文件連到 Effects runtime。它依 `TriggerTiming` 過濾事件、先拍下符合 condition 的候選集合，再按 priority 由高至低與 catalog 輸入順序執行。所有 direct trigger 與 timing trigger 共用同一條 FIFO queue。
+Game Events 把 JSON 事件文件連到 Effects runtime。它依 `TriggerTiming` 過濾事件、先拍下符合 condition 的候選集合，再依 `GameEventCatalogAsset` 中的順序執行。所有 direct trigger 與 timing trigger 共用同一條 FIFO queue。
 
 ## 第一次使用：先準備事件文件
 
@@ -12,43 +12,47 @@ Game Events 把 JSON 事件文件連到 Effects runtime。它依 `TriggerTiming`
 
 ```json
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "DocumentGuid": "b21ecb37-f6a7-413f-86b7-532d04c31f51",
   "DisplayName": "開門",
   "TriggerTiming": "Interact:Door",
   "Condition": "$DoorOpen == false",
-  "Priority": 100,
   "Commands": "OpenDoor();"
 }
 ```
+
+不需要手寫 JSON 時，可開啟 Unity 選單 `KahaGameCore/Game Events/Game Event Editor`。視窗分成 `Game Event`、`Event Catalog`、`Parameter Tables` 與 `Commands` 四個 TAB。視窗上方只選一次 `GameFlowDataCatalogAsset`；Event Catalog、Parameter Tables、允許使用的 Commands，以及由 `TimePhaseData`／`LocationData` 產生的 Timing choices 都從這個 Catalog 取得。`Commands` TAB 只列出程式已註冊的 descriptors，勾選結果直接寫回 Data Catalog；Game Event 的 Command 選單只顯示該 Catalog 勾選的項目。`Event Catalog` 按 `TriggerTiming` 分組顯示事件；同組列可拖曳排序，這個順序就是 runtime 順序。第一次使用 Parameter Table 時，可在 `Parameter Tables` TAB 點 `Create New Table`；已有表則用 `Add Existing Table`，操作結果會直接寫回 Data Catalog。Editor 不會掃描專案中的其他 TextAsset，因此 Sample Data 不會污染正式選項。ProjectSettings 只保存目前 Data Catalog 的 asset GUID，不保存另一份表格內容。Condition 由可巢狀的 Group 組成；每個 Group 選擇 `Match All (AND)` 或 `Match Any (OR)`，並可加入 Parameter／Comparison／Value 或子 Group。子 Group 對應 expression 括號，任何選項變更都會直接更新事件，不顯示或手動拼接 condition 字串；空的 Root Group 代表 Always。Command 名稱和 ParameterKey 用選單選擇；其他 command 參數會先列出 Catalog 內既有值，只有新數值、公式或字串才使用 `Custom value`。
+
+`GameFlowSystem.DefaultViews.Editor` 會註冊 `GameFlowDataCatalogAsset` adapter、`EffectCommandRegistrar.Descriptors` 與 Timing 建構方式。Descriptors 定義可執行 Command 的名稱與參數規格；Data Catalog 的 Command 名稱清單決定這個遊戲允許哪些已註冊項目出現在編輯器。Phase／Location 選項會直接反序列化所選 Catalog 的 `TimePhaseData`／`LocationData`；表格更新後按 `Refresh Choices` 即可，不保存第二份選項。若專案不使用 Default GameFlow，自己的 Editor assembly 必須在 domain reload 時呼叫 `GameEventEditorCommandCatalog.Register(...)` 提供 descriptors 與自己的 Data Source adapter。
 
 事件文件不會自行執行。專案啟動／場景組裝程式建立以下四個物件後才能觸發：
 
 ```csharp
 var codec = new GameEventDocumentJsonCodec();
-var catalog = new GameEventCatalog(gameEventFiles, codec);
+var catalog = new GameEventCatalog(gameEventCatalogAsset, codec);
 var runner = new GameEventRunner(catalog, effectRuntime, parameters, codec);
 var context = new EventContext(cancellationToken);
 
 await runner.TriggerAsync("Interact:Door", context);
 ```
 
-上面四行是依賴關係摘要；其中 `gameEventFiles`、`effectRuntime`、`parameters` 與 `cancellationToken` 的完整建立方式，請直接照下一節的 `DoorGameEventExample`，不要把未定義的變數原樣複製。
+上面四行是依賴關係摘要；其中 `gameEventCatalogAsset`、`effectRuntime`、`parameters` 與 `cancellationToken` 的完整建立方式，請直接照下一節的 `DoorGameEventExample`，不要把未定義的變數原樣複製。
 
 相關物件的職責：
 
 | 物件 | 功能 | 直接依賴 |
 |---|---|---|
 | `GameEventDocumentJsonCodec` | 把 Game Event JSON 解析成 `GameEventDocument`，並驗證必要欄位、schema version 與 `DocumentGuid`；也能把 document 寫回 JSON。 | JsonFx |
-| `GameEventCatalog` | 啟動時讀取 `gameEventFiles`，建立可依 `TriggerTiming` 篩選的事件清單，保留輸入順序，並拒絕重複的 `DocumentGuid`。 | `gameEventFiles`、建立時使用 `codec` |
+| `GameEventCatalogAsset` | 保存 runtime 會載入的事件檔與權威執行順序。 | `.gameevent.json` TextAssets |
+| `GameEventCatalog` | 啟動時解析 Catalog Asset，建立可依 `TriggerTiming` 篩選的事件清單，保留資產順序，並拒絕重複的 `DocumentGuid`。 | `GameEventCatalogAsset`、建立時使用 `codec` |
 | `ParameterStore` | 保存由 `ParameterDefinition` 宣告的 Parameter 與目前值。Runner 以 definition 的 `Key` 查找 condition 中的 `$ParameterKey`。 | `ParameterDefinition` 集合；每個 definition 必須有唯一 `Key` |
-| `GameEventRunner` | 接收觸發要求、依 timing 與 Parameter condition 選出事件、按 priority 和輸入順序排序，再透過 `EffectRuntime` 依序執行 commands；所有要求共用同一條 FIFO queue。 | `catalog`、`effectRuntime`、`parameters`；直接執行單一檔案時使用 `codec` |
+| `GameEventRunner` | 接收觸發要求、依 timing 與 Parameter condition 選出事件，再依 Catalog 順序透過 `EffectRuntime` 執行 commands；所有要求共用同一條 FIFO queue。 | `catalog`、`effectRuntime`、`parameters`；直接執行單一檔案時使用 `codec` |
 | `EventContext` | 保存這一次執行的取消權杖，以及傳給 Effects commands 的 `EffectExecutionContext`（例如 Caster／Targets）。它不保存事件清單或 Parameter 狀態。 | `cancellationToken`；可選的 `EffectExecutionContext` |
 
 建立與執行的依賴方向：
 
 ```text
-gameEventFiles ──→ GameEventCatalog ──┐
+GameEventCatalogAsset ─→ GameEventCatalog ──┐
         codec ──↗                     │
                                       ├─→ GameEventRunner
 effectRuntime ────────────────────────┤       │
@@ -110,7 +114,7 @@ public sealed class OpenDoorCommand : IEffectCommand
 public sealed class DoorGameEventExample : MonoBehaviour
 {
     [SerializeField]
-    private TextAsset[] gameEventFiles;
+    private GameEventCatalogAsset gameEventCatalogAsset;
 
     private CancellationTokenSource lifetime;
     private ParameterStore parameters;
@@ -138,7 +142,7 @@ public sealed class DoorGameEventExample : MonoBehaviour
 
         EffectRuntime effectRuntime = new EffectRuntime(registry);
         GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
-        GameEventCatalog catalog = new GameEventCatalog(gameEventFiles, codec);
+        GameEventCatalog catalog = new GameEventCatalog(gameEventCatalogAsset, codec);
         runner = new GameEventRunner(catalog, effectRuntime, parameters, codec);
     }
 
@@ -192,12 +196,11 @@ sceneGameEventTrigger.Initialize(
 
 ```json
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "DocumentGuid": "b21ecb37-f6a7-413f-86b7-532d04c31f51",
   "DisplayName": "首次進入倉庫",
   "TriggerTiming": "",
   "Condition": "$WarehouseEntered == false",
-  "Priority": 0,
   "Commands": "StartDialogue(12);SetParameter(WarehouseEntered,true);"
 }
 ```
@@ -211,6 +214,6 @@ sceneGameEventTrigger.Initialize(
 - `DocumentGuid` 是事件 identity；檔名與 `DisplayName` 只用於作者辨識與診斷。
 - Timing 使用 ordinal exact match，沒有萬用字元。
 - 空 condition 代表 true。錯誤 condition 會丟 `GameEventException`，不會當成 false。
-- 相同 timing 可以有多份文件；priority 相同時按 catalog 輸入順序。
+- 相同 timing 可以有多份文件；符合 condition 的候選一律按 Catalog Asset 順序執行。
 - `RunAsync(file, context)` 直接執行指定文件，不檢查它的 timing，也不必把檔案放進 catalog。
 - 存檔前可用 `WaitUntilIdleAsync(token)` 等待 queue 清空。

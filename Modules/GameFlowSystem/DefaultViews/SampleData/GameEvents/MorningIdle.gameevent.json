@@ -1,9 +1,8 @@
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "DocumentGuid": "33333333-3333-4333-8333-333333333031",
   "DisplayName": "早晨自言自語",
   "TriggerTiming": "PhaseStart:Morning",
   "Condition": "",
-  "Priority": 10,
   "Commands": "Monologue(MorningIdle);"
 }

@@ -30,14 +30,13 @@ namespace KahaGameCore.Effects
         public EffectCommandParameterKind Kind { get; }
     }
 
-    public sealed class EffectCommandDefinition
+    public sealed class EffectCommandDescriptor
     {
-        public EffectCommandDefinition(
+        public EffectCommandDescriptor(
             string name,
             string displayName,
             string category,
-            IEnumerable<EffectCommandParameterDefinition> parameters,
-            IEffectCommand command)
+            IEnumerable<EffectCommandParameterDefinition> parameters)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -49,13 +48,41 @@ namespace KahaGameCore.Effects
             Category = category ?? string.Empty;
             Parameters = new List<EffectCommandParameterDefinition>(
                 parameters ?? throw new ArgumentNullException(nameof(parameters))).AsReadOnly();
-            Command = command ?? throw new ArgumentNullException(nameof(command));
         }
 
         public string Name { get; }
         public string DisplayName { get; }
         public string Category { get; }
         public IReadOnlyList<EffectCommandParameterDefinition> Parameters { get; }
+    }
+
+    public sealed class EffectCommandDefinition
+    {
+        public EffectCommandDefinition(
+            string name,
+            string displayName,
+            string category,
+            IEnumerable<EffectCommandParameterDefinition> parameters,
+            IEffectCommand command)
+            : this(
+                new EffectCommandDescriptor(name, displayName, category, parameters),
+                command)
+        {
+        }
+
+        public EffectCommandDefinition(
+            EffectCommandDescriptor descriptor,
+            IEffectCommand command)
+        {
+            Descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
+            Command = command ?? throw new ArgumentNullException(nameof(command));
+        }
+
+        public EffectCommandDescriptor Descriptor { get; }
+        public string Name => Descriptor.Name;
+        public string DisplayName => Descriptor.DisplayName;
+        public string Category => Descriptor.Category;
+        public IReadOnlyList<EffectCommandParameterDefinition> Parameters => Descriptor.Parameters;
         internal IEffectCommand Command { get; }
     }
 }

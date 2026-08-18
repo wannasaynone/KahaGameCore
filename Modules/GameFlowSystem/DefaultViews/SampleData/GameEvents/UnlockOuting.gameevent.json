@@ -1,9 +1,8 @@
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "DocumentGuid": "33333333-3333-4333-8333-333333333010",
   "DisplayName": "解鎖外出",
   "TriggerTiming": "PhaseStart:Morning",
   "Condition": "$Day>=2 && !$OutingUnlocked",
-  "Priority": 100,
   "Commands": "StartDialogue(2);SetParameter(LocationUnlocked_2,true);SetParameter(OutingUnlocked,true);ShowHint(902);"
 }

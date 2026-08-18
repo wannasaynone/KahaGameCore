@@ -69,7 +69,6 @@ namespace KahaGameCore.GameEvents.Tests
                 displayName,
                 triggerTiming,
                 condition,
-                0,
                 commands);
         }
     }
@@ -77,12 +76,12 @@ namespace KahaGameCore.GameEvents.Tests
     public sealed class GameEventDocumentJsonCodecTests
     {
         [Test]
-        public void Read_MissingPriorityFailsExplicitly()
+        public void Read_VersionOneFailsExplicitly()
         {
             const string json = @"{
   ""SchemaVersion"": 1,
   ""DocumentGuid"": ""40000000-0000-0000-0000-000000000001"",
-  ""DisplayName"": ""Missing Priority"",
+  ""DisplayName"": ""Old Schema"",
   ""TriggerTiming"": """",
   ""Condition"": """",
   ""Commands"": """"
@@ -91,19 +90,17 @@ namespace KahaGameCore.GameEvents.Tests
             GameEventException exception = Assert.Throws<GameEventException>(() =>
                 new GameEventDocumentJsonCodec().Read(json));
 
-            Assert.That(exception.Code, Is.EqualTo("MissingField"));
-            StringAssert.Contains("Priority", exception.Message);
+            Assert.That(exception.Code, Is.EqualTo("UnsupportedSchemaVersion"));
         }
 
         [Test]
         public void Read_MissingTriggerTimingFailsExplicitly()
         {
             const string json = @"{
-  ""SchemaVersion"": 1,
+  ""SchemaVersion"": 2,
   ""DocumentGuid"": ""40000000-0000-0000-0000-000000000003"",
   ""DisplayName"": ""Missing Trigger Timing"",
   ""Condition"": """",
-  ""Priority"": 0,
   ""Commands"": """"
 }";
 
@@ -118,12 +115,11 @@ namespace KahaGameCore.GameEvents.Tests
         public void Read_NullTriggerTimingFailsExplicitly()
         {
             const string json = @"{
-  ""SchemaVersion"": 1,
+  ""SchemaVersion"": 2,
   ""DocumentGuid"": ""40000000-0000-0000-0000-000000000005"",
   ""DisplayName"": ""Null Trigger Timing"",
   ""TriggerTiming"": null,
   ""Condition"": """",
-  ""Priority"": 0,
   ""Commands"": """"
 }";
 
@@ -137,12 +133,11 @@ namespace KahaGameCore.GameEvents.Tests
         public void Write_UnsupportedSchemaVersionFailsExplicitly()
         {
             GameEventDocument document = new GameEventDocument(
-                schemaVersion: 2,
+                schemaVersion: 1,
                 documentGuid: new Guid("40000000-0000-0000-0000-000000000006"),
                 displayName: "Unsupported Schema",
                 triggerTiming: string.Empty,
                 condition: string.Empty,
-                priority: 0,
                 commands: string.Empty);
 
             GameEventException exception = Assert.Throws<GameEventException>(() =>
@@ -155,12 +150,11 @@ namespace KahaGameCore.GameEvents.Tests
         public void ReadAndWrite_PreservesSchemaIdentityAndCommands()
         {
             const string json = @"{
-  ""SchemaVersion"": 1,
+  ""SchemaVersion"": 2,
   ""DocumentGuid"": ""40000000-0000-0000-0000-000000000002"",
   ""DisplayName"": ""Round Trip"",
   ""TriggerTiming"": ""tick"",
   ""Condition"": ""$Gate == 0"",
-  ""Priority"": 42,
   ""Commands"": ""Record(ok);""
 }";
             GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
@@ -168,10 +162,9 @@ namespace KahaGameCore.GameEvents.Tests
             GameEventDocument first = codec.Read(json);
             GameEventDocument second = codec.Read(codec.Write(first));
 
-            Assert.That(second.SchemaVersion, Is.EqualTo(1));
+            Assert.That(second.SchemaVersion, Is.EqualTo(2));
             Assert.That(second.DocumentGuid, Is.EqualTo(first.DocumentGuid));
             Assert.That(second.TriggerTiming, Is.EqualTo("tick"));
-            Assert.That(second.Priority, Is.EqualTo(42));
             Assert.That(second.Commands, Is.EqualTo("Record(ok);"));
         }
     }

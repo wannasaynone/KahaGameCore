@@ -40,12 +40,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         [SerializeField] private DialogueView dialogueView;
         [Tooltip("行動選單、提示視窗等覆蓋層 View 的父節點。")]
         [SerializeField] private RectTransform overlayRoot;
-        [Tooltip("五張表的 JSON TextAsset（檔名需與資料型別名稱一致，如 TimePhaseData.txt，含 DialogueData）。留空時改從 Resources/GameData/{型別名}.txt 載入。")]
-        [SerializeField] private TextAsset[] gameDataTables;
-        [Tooltip("可指定多張 .parameters.json 大表。留空時改從 Resources/GameData/Parameters 載入。")]
-        [SerializeField] private TextAsset[] parameterTables;
-        [Tooltip("Game Event catalog。由 composition root 明確指定，不自動掃描 Resources。")]
-        [SerializeField] private TextAsset[] gameEventFiles;
+        [Tooltip("GameFlow runtime 與 Game Event Editor 共用的唯一資料入口。")]
+        [SerializeField] private GameFlowDataCatalogAsset dataCatalog;
         [SerializeField] private SceneGameEventTrigger[] sceneGameEventTriggers;
         [SerializeField] private SceneGameEventTrigger2D[] sceneGameEventTriggers2D;
         [SerializeField] private ParameterStateBinder[] parameterStateBinders;
@@ -88,24 +84,21 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
 
         private void LoadStaticData()
         {
+            if (dataCatalog == null)
+            {
+                throw new InvalidOperationException(
+                    "[DefaultGameLauncher] dataCatalog is required.");
+            }
+
+            dataCatalog.ValidateRequiredReferences();
             staticDataManager = new GameStaticDataManager();
-            IGameStaticDataHandler handler = gameDataTables != null && gameDataTables.Length > 0
-                ? new TextAssetJsonStaticDataHandler(gameDataTables)
-                : new ResourcesJsonStaticDataHandler();
+            IGameStaticDataHandler handler = new TextAssetJsonStaticDataHandler(
+                dataCatalog.GetGameDataTables());
             GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
             staticDataManager.Add<DialogueData>(handler);
 
-            TextAsset[] tableAssets = parameterTables != null && parameterTables.Length > 0
-                ? parameterTables
-                : Resources.LoadAll<TextAsset>("GameData/Parameters");
-            if (tableAssets.Length == 0)
-            {
-                throw new InvalidOperationException(
-                    "[DefaultGameLauncher] 沒有 Parameter Tables。請指定 parameterTables，或放到 Resources/GameData/Parameters。");
-            }
-
             ParameterTableJsonCodec codec = new ParameterTableJsonCodec();
-            parameterDefinitions = tableAssets
+            parameterDefinitions = dataCatalog.ParameterTables
                 .Select(tableAsset => codec.Read(tableAsset.text))
                 .SelectMany(table => table.Definitions)
                 .ToList();
@@ -161,8 +154,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             hintPresenter = new HintPresenter(InstantiateOverlayView<HintPopupView>(HINT_POPUP_VIEW_PATH));
 
             GameEventDocumentJsonCodec gameEventCodec = new GameEventDocumentJsonCodec();
-            GameEventCatalog gameEventCatalog = new GameEventCatalog(
-                gameEventFiles ?? Array.Empty<TextAsset>(),
+            GameEventCatalog runtimeGameEventCatalog = new GameEventCatalog(
+                dataCatalog.GameEventCatalog,
                 gameEventCodec);
 
             // 全部採用預設實作；Game Events 由可選 integration assembly 接入。
@@ -174,7 +167,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                 .WithEventTriggerFactory(effectRuntime =>
                 {
                     gameEventRunner = new GameEventRunner(
-                        gameEventCatalog,
+                        runtimeGameEventCatalog,
                         effectRuntime,
                         parameters,
                         gameEventCodec);

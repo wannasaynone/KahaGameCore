@@ -1,9 +1,8 @@
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "DocumentGuid": "22222222-2222-4222-8222-222222222190",
   "DisplayName": "Phase 飢餓結局",
   "TriggerTiming": "PhaseStart",
   "Condition": "$Satiety<=0",
-  "Priority": 1000,
   "Commands": "StartDialogue(90);ReturnToTitle();"
 }

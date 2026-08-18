@@ -100,14 +100,6 @@ namespace KahaGameCore.GameEvents
                 }
             }
 
-            snapshot.Sort((left, right) =>
-            {
-                int priority = right.Document.Priority.CompareTo(left.Document.Priority);
-                return priority != 0
-                    ? priority
-                    : left.InputOrder.CompareTo(right.InputOrder);
-            });
-
             for (int index = 0; index < snapshot.Count; index++)
             {
                 await RunCommandsAsync(snapshot[index].Document, context);

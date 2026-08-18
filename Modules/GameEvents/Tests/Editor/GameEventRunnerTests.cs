@@ -8,6 +8,7 @@ using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Commands;
 using KahaGameCore.Parameters;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 namespace KahaGameCore.GameEvents.Tests
@@ -84,12 +85,11 @@ namespace KahaGameCore.GameEvents.Tests
             GameEventCatalog catalog = new GameEventCatalog(Array.Empty<TextAsset>(), codec);
             GameEventRunner runner = new GameEventRunner(catalog, effects, parameters);
             TextAsset file = new TextAsset(@"{
-  ""SchemaVersion"": 1,
+  ""SchemaVersion"": 2,
   ""DocumentGuid"": ""4c920099-f4f8-4ed6-b7f4-7acf7e105be8"",
   ""DisplayName"": ""Activate Machine"",
   ""TriggerTiming"": ""machine_interact"",
   ""Condition"": ""$machine_01_stage == 0"",
-  ""Priority"": 100,
   ""Commands"": ""SetParameter(machine_01_stage,1);""
 }") { name = "MachineActivate.gameevent.json" };
 
@@ -108,7 +108,7 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
-        public void TriggerAsync_UsesPriorityStableOrderAndCandidateSnapshot()
+        public void TriggerAsync_UsesCatalogOrderAndCandidateSnapshot()
         {
             ParameterStore parameters = new ParameterStore(new[]
             {
@@ -133,28 +133,24 @@ namespace KahaGameCore.GameEvents.Tests
                 "First High",
                 "tick",
                 "$Gate == 0",
-                100,
                 "Record(high-first);SetParameter(Gate,1);");
             TextAsset secondHigh = CreateEvent(
                 "10000000-0000-0000-0000-000000000002",
                 "Second High",
                 "tick",
                 "$Gate == 0",
-                100,
                 "Record(high-second);");
             TextAsset lower = CreateEvent(
                 "10000000-0000-0000-0000-000000000003",
                 "Lower",
                 "tick",
                 "",
-                10,
                 "Record(low);");
             TextAsset lateMatch = CreateEvent(
                 "10000000-0000-0000-0000-000000000004",
                 "Late Match",
                 "tick",
                 "$Gate == 1",
-                0,
                 "Record(late-match);");
             TextAsset[] files = { firstHigh, secondHigh, lower, lateMatch };
 
@@ -214,14 +210,12 @@ namespace KahaGameCore.GameEvents.Tests
                 "Direct",
                 "",
                 "",
-                0,
                 "Block(first);");
             TextAsset queued = CreateEvent(
                 "20000000-0000-0000-0000-000000000002",
                 "Queued",
                 "second",
                 "",
-                0,
                 "Record(second);");
             GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
             GameEventCatalog catalog = new GameEventCatalog(new[] { queued }, codec);
@@ -287,14 +281,12 @@ namespace KahaGameCore.GameEvents.Tests
                 "Direct",
                 "",
                 "",
-                0,
                 "Block(first);");
             TextAsset queued = CreateEvent(
                 "20000000-0000-0000-0000-000000000008",
                 "Queued",
                 "second",
                 "",
-                0,
                 "Record(second);");
             GameEventDocumentJsonCodec codec =
                 new GameEventDocumentJsonCodec();
@@ -354,7 +346,6 @@ namespace KahaGameCore.GameEvents.Tests
                 "First",
                 "",
                 "",
-                0,
                 "Block(first);");
             TextAsset invalidFile = new TextAsset("{") { name = "Invalid.gameevent.json" };
             EventContext context = new EventContext(CancellationToken.None);
@@ -383,8 +374,8 @@ namespace KahaGameCore.GameEvents.Tests
         public void Catalog_DuplicateDocumentGuidFailsFast()
         {
             const string duplicateGuid = "30000000-0000-0000-0000-000000000001";
-            TextAsset first = CreateEvent(duplicateGuid, "First", "tick", "", 0, "");
-            TextAsset second = CreateEvent(duplicateGuid, "Second", "tick", "", 0, "");
+            TextAsset first = CreateEvent(duplicateGuid, "First", "tick", "", "");
+            TextAsset second = CreateEvent(duplicateGuid, "Second", "tick", "", "");
 
             try
             {
@@ -403,6 +394,60 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
+        public void CatalogAsset_OrderIsRuntimeExecutionOrder()
+        {
+            ParameterStore parameters =
+                new ParameterStore(Array.Empty<ParameterDefinition>());
+            List<string> records = new List<string>();
+            EffectCommandRegistry registry = CreateRecordingRegistry(records);
+            TextAsset second = CreateEvent(
+                "30000000-0000-0000-0000-000000000011",
+                "Second",
+                "tick",
+                "",
+                "Record(second);");
+            TextAsset first = CreateEvent(
+                "30000000-0000-0000-0000-000000000010",
+                "First",
+                "tick",
+                "",
+                "Record(first);");
+            GameEventCatalogAsset asset =
+                ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+
+            try
+            {
+                SerializedObject serialized = new SerializedObject(asset);
+                SerializedProperty files = serialized.FindProperty("files");
+                files.arraySize = 2;
+                files.GetArrayElementAtIndex(0).objectReferenceValue = first;
+                files.GetArrayElementAtIndex(1).objectReferenceValue = second;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+
+                GameEventDocumentJsonCodec codec =
+                    new GameEventDocumentJsonCodec();
+                GameEventRunner runner = new GameEventRunner(
+                    new GameEventCatalog(asset, codec),
+                    new EffectRuntime(registry),
+                    parameters,
+                    codec);
+                runner.TriggerAsync(
+                        "tick",
+                        new EventContext(CancellationToken.None))
+                    .GetAwaiter()
+                    .GetResult();
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(asset);
+                UnityEngine.Object.DestroyImmediate(first);
+                UnityEngine.Object.DestroyImmediate(second);
+            }
+
+            CollectionAssert.AreEqual(new[] { "first", "second" }, records);
+        }
+
+        [Test]
         public void RunAsync_ConditionFalseSkipsCommands()
         {
             ParameterStore parameters = new ParameterStore(new[]
@@ -416,7 +461,6 @@ namespace KahaGameCore.GameEvents.Tests
                 "Skipped",
                 "",
                 "$Gate == 1",
-                0,
                 "Record(should-not-run);");
 
             try
@@ -444,7 +488,6 @@ namespace KahaGameCore.GameEvents.Tests
                 "Invalid Condition",
                 "",
                 "$Missing == 1",
-                0,
                 "");
 
             try
@@ -473,7 +516,6 @@ namespace KahaGameCore.GameEvents.Tests
                 "Unknown Effect",
                 "",
                 "",
-                0,
                 "Missing();");
 
             try
@@ -514,7 +556,6 @@ namespace KahaGameCore.GameEvents.Tests
                 "Cancellation During Command",
                 "",
                 "",
-                0,
                 "Block(running);");
             CancellationTokenSource cancellation = new CancellationTokenSource();
 
@@ -548,7 +589,6 @@ namespace KahaGameCore.GameEvents.Tests
                 "Cancelled",
                 "",
                 "",
-                0,
                 "Record(should-not-run);");
             CancellationTokenSource cancellation = new CancellationTokenSource();
             cancellation.Cancel();
@@ -620,16 +660,14 @@ namespace KahaGameCore.GameEvents.Tests
             string displayName,
             string triggerTiming,
             string condition,
-            int priority,
             string commands)
         {
             string json = "{"
-                + "\"SchemaVersion\":1,"
+                + "\"SchemaVersion\":2,"
                 + "\"DocumentGuid\":\"" + documentGuid + "\","
                 + "\"DisplayName\":\"" + displayName + "\","
                 + "\"TriggerTiming\":\"" + triggerTiming + "\","
                 + "\"Condition\":\"" + condition + "\","
-                + "\"Priority\":" + priority + ","
                 + "\"Commands\":\"" + commands + "\""
                 + "}";
             return new TextAsset(json) { name = displayName + ".gameevent.json" };

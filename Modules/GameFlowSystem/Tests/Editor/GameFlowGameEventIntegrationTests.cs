@@ -96,12 +96,11 @@ namespace KahaGameCore.GameFlowSystem.Tests
             EffectRuntime runtime = new EffectRuntime(registry);
             GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
             TextAsset actionEvent = new TextAsset(
-                "{\"SchemaVersion\":1," +
+                "{\"SchemaVersion\":2," +
                 "\"DocumentGuid\":\"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\"," +
                 "\"DisplayName\":\"睡覺\"," +
                 "\"TriggerTiming\":\"Action:Sleep\"," +
                 "\"Condition\":\"\"," +
-                "\"Priority\":100," +
                 "\"Commands\":\"AdvancePhase();\"}");
             GameEventRunner runner = new GameEventRunner(
                 new GameEventCatalog(new[] { actionEvent }, codec),

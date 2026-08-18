@@ -3,7 +3,12 @@
     "rootNamespace": "",
     "references": [
         "KahaGameCore.Modules.GameFlowSystem.DefaultViews",
+        "KahaGameCore.Modules.GameFlowSystem",
+        "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
+        "KahaGameCore.Modules.StaticData",
         "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.GameEvents.Editor",
+        "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Presentation",
         "KahaGameCore.Modules.UserInterfaceSystem",
         "KahaGameCore.Modules.Dialogue",

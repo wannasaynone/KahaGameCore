@@ -6,6 +6,7 @@
         "UnityEditor.TestRunner",
         "KahaGameCore.Modules.GameFlowSystem",
         "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
+        "KahaGameCore.Modules.GameFlowSystem.DefaultViews",
         "KahaGameCore.Modules.GameFlowSystem.GameEventsIntegration",
         "KahaGameCore.Modules.GameEvents",
         "KahaGameCore.Foundation.Messaging",

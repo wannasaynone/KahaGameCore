@@ -86,6 +86,8 @@ Load 透過 `ParameterTableJsonCodec` 把 canonical JSON 填入表格；Save 先
 
 Editor 不建立 ScriptableObject 副本、ScriptedImporter 或自動掃描 registry；磁碟上的 JSON 仍是唯一權威資料。
 
+同一套表格編輯介面也以 `ParameterTableEditorPanel` 提供給其他 EditorWindow 重用；Game Event Editor 會用它直接編輯已選取的 Authoring Parameter Table。獨立視窗與內嵌面板共用驗證、讀取與寫回流程，不各自維護一份格式邏輯。
+
 ## Snapshot 與 Persistence
 
 `Capture()` 產生 schema-versioned、獨立複本；`Restore()` 先以所有 definitions 的 InitialValue 建立候選狀態，再覆蓋 snapshot values。Schema、unknown key 或 type 驗證失敗時不修改目前狀態。

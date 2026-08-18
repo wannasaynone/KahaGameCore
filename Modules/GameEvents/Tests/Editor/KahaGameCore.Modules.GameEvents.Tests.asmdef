@@ -5,6 +5,7 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.GameEvents.Editor",
         "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Parameters",
         "KahaGameCore.Modules.Expressions",

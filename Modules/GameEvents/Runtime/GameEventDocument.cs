@@ -10,7 +10,6 @@ namespace KahaGameCore.GameEvents
             string displayName,
             string triggerTiming,
             string condition,
-            int priority,
             string commands)
         {
             if (documentGuid == Guid.Empty)
@@ -32,7 +31,6 @@ namespace KahaGameCore.GameEvents
             DisplayName = displayName;
             TriggerTiming = triggerTiming;
             Condition = condition;
-            Priority = priority;
             Commands = commands;
         }
 
@@ -41,7 +39,6 @@ namespace KahaGameCore.GameEvents
         public string DisplayName { get; }
         public string TriggerTiming { get; }
         public string Condition { get; }
-        public int Priority { get; }
         public string Commands { get; }
     }
 }

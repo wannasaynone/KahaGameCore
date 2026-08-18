@@ -1,9 +1,8 @@
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "DocumentGuid": "22222222-2222-4222-8222-222222222192",
   "DisplayName": "Action 後飢餓結局",
   "TriggerTiming": "AfterAction",
   "Condition": "$Satiety<=0",
-  "Priority": 1000,
   "Commands": "StartDialogue(90);ReturnToTitle();"
 }

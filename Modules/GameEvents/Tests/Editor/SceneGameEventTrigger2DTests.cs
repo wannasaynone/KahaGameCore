@@ -114,12 +114,11 @@ namespace KahaGameCore.GameEvents.Tests
         private static TextAsset CreateEvent(string documentGuid, string condition)
         {
             return new TextAsset($@"{{
-  ""SchemaVersion"": 1,
+  ""SchemaVersion"": 2,
   ""DocumentGuid"": ""{documentGuid}"",
   ""DisplayName"": ""Scene Trigger 2D"",
   ""TriggerTiming"": """",
   ""Condition"": ""{condition}"",
-  ""Priority"": 0,
   ""Commands"": ""SetParameter(Stage,1);""
 }}");
         }

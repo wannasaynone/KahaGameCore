@@ -38,12 +38,11 @@ namespace KahaGameCore.GameEvents.Tests
                 parameters,
                 codec);
             TextAsset file = new TextAsset(@"{
-  ""SchemaVersion"": 1,
+  ""SchemaVersion"": 2,
   ""DocumentGuid"": ""50000000-0000-0000-0000-000000000001"",
   ""DisplayName"": ""Scene Trigger"",
   ""TriggerTiming"": """",
   ""Condition"": ""$Stage == 0"",
-  ""Priority"": 0,
   ""Commands"": ""SetParameter(Stage,1);""
 }");
             GameObject host = new GameObject("SceneGameEventTrigger Host");
@@ -98,12 +97,11 @@ namespace KahaGameCore.GameEvents.Tests
                 parameters,
                 codec);
             TextAsset file = new TextAsset(@"{
-  ""SchemaVersion"": 1,
+  ""SchemaVersion"": 2,
   ""DocumentGuid"": ""50000000-0000-0000-0000-000000000002"",
   ""DisplayName"": ""Filtered Scene Trigger"",
   ""TriggerTiming"": """",
   ""Condition"": """",
-  ""Priority"": 0,
   ""Commands"": ""SetParameter(Stage,1);""
 }");
             GameObject host = new GameObject("SceneGameEventTrigger Host");

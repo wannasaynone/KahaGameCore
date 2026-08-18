@@ -95,6 +95,38 @@ namespace KahaGameCore.Parameters.Tests
         }
 
         [Test]
+        public void ReusablePanel_TracksChangesAndBecomesCleanAfterSave()
+        {
+            const string assetPath =
+                "Assets/KahaGameCore/Modules/Parameters/Tests/Editor/TempPanel.parameters.json";
+            ParameterTableEditorPanel panel = new ParameterTableEditorPanel();
+
+            try
+            {
+                panel.InitializeIfNeeded();
+                Assert.That(panel.IsDirty, Is.False);
+
+                panel.SetTableDisplayName("Embedded Gameplay");
+                panel.AddBool("DoorOpen", "門已開啟", false);
+                Assert.That(panel.IsDirty, Is.True);
+
+                panel.SaveTable(assetPath);
+                Assert.That(panel.IsDirty, Is.False);
+                Assert.That(panel.AssetPath, Is.EqualTo(assetPath));
+
+                panel.SetTableDisplayName("Changed");
+                panel.Reload();
+                Assert.That(panel.IsDirty, Is.False);
+                Assert.That(panel.TableDisplayName, Is.EqualTo("Embedded Gameplay"));
+                Assert.That(panel.ParameterCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
         public void SaveTable_DuplicateKeysDoNotCreateAsset()
         {
             const string assetPath =

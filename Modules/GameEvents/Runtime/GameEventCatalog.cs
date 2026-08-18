@@ -8,17 +8,26 @@ namespace KahaGameCore.GameEvents
     {
         internal sealed class Entry
         {
-            public Entry(GameEventDocument document, int inputOrder)
+            public Entry(GameEventDocument document)
             {
                 Document = document;
-                InputOrder = inputOrder;
             }
 
             public GameEventDocument Document { get; }
-            public int InputOrder { get; }
         }
 
         private readonly List<Entry> entries = new List<Entry>();
+
+        public GameEventCatalog(
+            GameEventCatalogAsset asset,
+            GameEventDocumentJsonCodec codec)
+            : this(
+                asset != null
+                    ? asset.Files
+                    : throw new ArgumentNullException(nameof(asset)),
+                codec)
+        {
+        }
 
         public GameEventCatalog(
             IEnumerable<TextAsset> files,
@@ -28,7 +37,6 @@ namespace KahaGameCore.GameEvents
             if (codec == null) throw new ArgumentNullException(nameof(codec));
 
             HashSet<Guid> documentGuids = new HashSet<Guid>();
-            int inputOrder = 0;
             foreach (TextAsset file in files)
             {
                 if (file == null)
@@ -44,7 +52,7 @@ namespace KahaGameCore.GameEvents
                         $"Duplicate Game Event DocumentGuid '{document.DocumentGuid:D}'.");
                 }
 
-                entries.Add(new Entry(document, inputOrder++));
+                entries.Add(new Entry(document));
             }
         }
 

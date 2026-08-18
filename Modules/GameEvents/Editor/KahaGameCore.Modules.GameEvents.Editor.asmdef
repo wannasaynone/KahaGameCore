@@ -1,0 +1,22 @@
+{
+    "name": "KahaGameCore.Modules.GameEvents.Editor",
+    "rootNamespace": "KahaGameCore.GameEvents.Editor",
+    "references": [
+        "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.Effects",
+        "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Parameters.Editor",
+        "KahaGameCore.Modules.Expressions"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

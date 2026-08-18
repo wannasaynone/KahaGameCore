@@ -6,7 +6,7 @@ namespace KahaGameCore.GameEvents
 {
     public sealed class GameEventDocumentJsonCodec
     {
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
 
         private sealed class DocumentDto
         {
@@ -15,7 +15,6 @@ namespace KahaGameCore.GameEvents
             public string DisplayName;
             public string TriggerTiming;
             public string Condition;
-            public int Priority;
             public string Commands;
         }
 
@@ -48,7 +47,6 @@ namespace KahaGameCore.GameEvents
             RequireField(fields, "DisplayName");
             RequireField(fields, "TriggerTiming");
             RequireField(fields, "Condition");
-            RequireField(fields, "Priority");
             RequireField(fields, "Commands");
 
             if (dto.SchemaVersion != CurrentSchemaVersion)
@@ -91,7 +89,6 @@ namespace KahaGameCore.GameEvents
                 dto.DisplayName,
                 dto.TriggerTiming,
                 dto.Condition,
-                dto.Priority,
                 dto.Commands);
         }
 
@@ -124,7 +121,6 @@ namespace KahaGameCore.GameEvents
                 DisplayName = document.DisplayName,
                 TriggerTiming = document.TriggerTiming,
                 Condition = document.Condition,
-                Priority = document.Priority,
                 Commands = document.Commands
             });
         }

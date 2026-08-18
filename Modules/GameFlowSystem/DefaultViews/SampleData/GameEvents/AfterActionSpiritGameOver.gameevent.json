@@ -1,9 +1,8 @@
 {
-  "SchemaVersion": 1,
+  "SchemaVersion": 2,
   "DocumentGuid": "22222222-2222-4222-8222-222222222193",
   "DisplayName": "Action 後精神結局",
   "TriggerTiming": "AfterAction",
   "Condition": "$Spirit<=0",
-  "Priority": 990,
   "Commands": "StartDialogue(91);ReturnToTitle();"
 }

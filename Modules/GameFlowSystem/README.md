@@ -32,23 +32,22 @@
 ## 在專案中組裝預設實作
 
 ```csharp
-// 1. 載入表格——二擇一：
-//    a) Inspector 手動指定 TextAsset（推薦，不依賴 Resources 路徑；檔名需與型別名一致）
+// 1. Data Catalog 是 Runtime 與 Game Event Editor 共用的唯一資料入口。
+dataCatalog.ValidateRequiredReferences();
 var staticDataManager = new GameStaticDataManager();
-var handler = new TextAssetJsonStaticDataHandler(gameDataTables);   // TextAsset[] 序列化欄位
-//    b) 或從 Resources/GameData/{類別名}.txt 載入：new ResourcesJsonStaticDataHandler()
+var handler = new TextAssetJsonStaticDataHandler(dataCatalog.GetGameDataTables());
 GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
 staticDataManager.Add<DialogueData>(handler); // 對話表另外加
 
 // 可載入多張 .parameters.json 大表；每張表含多列 Parameter。
 var parameterCodec = new ParameterTableJsonCodec();
-ParameterDefinition[] parameterDefinitions = parameterTables
+ParameterDefinition[] parameterDefinitions = dataCatalog.ParameterTables
     .Select(tableAsset => parameterCodec.Read(tableAsset.text))
     .SelectMany(table => table.Definitions)
     .ToArray();
 var parameters = new ParameterStore(parameterDefinitions);
 var eventCodec = new GameEventDocumentJsonCodec();
-var eventCatalog = new GameEventCatalog(gameEventFiles, eventCodec);
+var eventCatalog = new GameEventCatalog(dataCatalog.GameEventCatalog, eventCodec);
 GameEventRunner eventRunner = null;
 
 // 2. 組裝（UI 層與對話系統是各專案的演出資產，由外部提供；其餘全用預設）
@@ -136,9 +135,9 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 |---|---|
 | `Views/`（9 個腳本） | 主選單、HUD（含 StatValueItem）、行動/移動選單（含按鈕 item）、提示視窗、製作名單。皆繼承 UserInterfaceSystem 的 `AView` |
 | `Presenters/`（5 個腳本） | `IActionMenuPresenter` / `IHintPresenter` / `ILocationMenuPresenter` 的轉接實作＋HUD Presenter＋`IStagePerformance` 範例（CreditsPerformance） |
-| `DefaultGameLauncher.cs` | 預設組裝根：載表（Inspector 指定 TextAsset，留空 fallback 到 Resources/GameData/）→ Builder 組裝 → 主標題/流程切換、返回標題處理 |
+| `DefaultGameLauncher.cs` | 預設組裝根：從 `GameFlowDataCatalogAsset` 載入表格、Parameters 與 Event Catalog → Builder 組裝 → 主標題/流程切換、返回標題處理 |
 | `Editor/DefaultUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**：在專案內生成 `Assets/Resources/GameFlowUIViews/` 九個 prefab 與 `Assets/Scenes/GameFlowGame.unity`（全部接好、測試表已掛上、可直接 Play）。全程式化版面（TMP 預設字型＋內建 UISprite），零美術資產依賴，可重複執行覆寫 |
-| `SampleData/*.txt`、`SampleData/GameEvents/*.gameevent.json` + `SampleData/Parameters/*.parameters.json` | 五張測試表、Game Event documents 與 Parameter table；HUD key 由 composition root 明列。 |
+| `SampleData/GameFlowDataCatalog.asset` | Sample Scene 的單一資料入口，引用五張測試表、Parameter table 與 Game Event Catalog。 |
 
 最短組裝路徑：確認專案包含 KahaGameCore → 跑一次 builder 選單 → 開生成的場景直接 **Play**（測試內容可玩）→ 將欄位裡的 TextAsset 換成專案資料表。客製腳本放在專案 assembly 並使用專案命名；prefab 可直接修改，但重跑 builder 會覆寫生成內容。
 
