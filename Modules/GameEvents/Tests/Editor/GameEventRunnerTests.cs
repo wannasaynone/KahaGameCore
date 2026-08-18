@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using KahaGameCore.Effects;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
-using KahaGameCore.GameFlowSystem.DefaultImplements.Commands;
 using KahaGameCore.Parameters;
+using KahaGameCore.Parameters.EffectsIntegration;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -79,7 +79,7 @@ namespace KahaGameCore.GameEvents.Tests
                     new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
                 },
-                new SetParameterCommand(parameters, expressions)));
+                new SetParameterCommand(parameters)));
             EffectRuntime effects = new EffectRuntime(registry);
             GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
             GameEventCatalog catalog = new GameEventCatalog(Array.Empty<TextAsset>(), codec);
@@ -652,7 +652,7 @@ namespace KahaGameCore.GameEvents.Tests
                     new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
                 },
-                new SetParameterCommand(parameters, expressions)));
+                new SetParameterCommand(parameters)));
         }
 
         private static TextAsset CreateEvent(

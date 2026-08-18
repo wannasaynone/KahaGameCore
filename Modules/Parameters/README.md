@@ -48,13 +48,13 @@ ExpressionResult<bool> canLeave = parameters.EvaluateCondition(
 
 `Calculate` 與 `EvaluateCondition` 直接以目前的 Parameter 值求值，caller 不需要組裝 Expression context。一般 gameplay caller 使用 typed methods，不需要依 `ParameterType` switch；`TryGetValue` 與 `ParameterValue` 主要供 Editor、Snapshot 與工具使用。
 
-若 Parameter 是由 Parameter Table Editor 建立的 `.parameters.json` 文字資產，不要在程式中重複宣告 definitions。場景的 composition root 應負責把 `TextAsset` 解析成唯一的 live `ParameterStore`，並初始化成 Editor 工具可辨識的 runtime source：
+若 Parameter 是由 Parameter Table Editor 建立的 `.parameters.json` 文字資產，不要在程式中重複宣告 definitions。只使用 Parameters + Effects + Game Events 時，直接把 Parameter Table 加入 `GameEventCatalogAsset`，並在場景掛上 `DefaultSimpleGameLauncher`；它會建立唯一的 live `ParameterStore`、註冊共用 Parameter Commands，並初始化 child Game Event triggers。
 
 ```csharp
 using KahaGameCore.Parameters;
 using UnityEngine;
 
-public sealed class GameManager : ParameterRuntimeSource
+public sealed class ParametersOnlyLauncher : ParameterRuntimeSource
 {
     [SerializeField] private TextAsset paramTable;
 
@@ -68,7 +68,9 @@ public sealed class GameManager : ParameterRuntimeSource
 }
 ```
 
-把 `GameManager` 掛到場景中的 GameObject，並在 Inspector 將 `.parameters.json` 指定給 `Param Table`。進入 Play Mode 後，這個 component 本身就是可供 Runtime Parameter Monitor 讀取的 `ParameterRuntimeSource`。若專案載入多張表，composition root 應先展平所有 table 的 `Definitions`，再建立同一份 `ParameterStore`，不要為每張表建立各自的 Store。
+上面是完全不使用 Game Events 時的最小手動版本。一般專案把 `DefaultSimpleGameLauncher` 掛到場景 GameObject、指定 Game Event Catalog 即可；進入 Play Mode 後它本身也是 Runtime Parameter Monitor 可讀取的 `ParameterRuntimeSource`。若專案載入多張表，composition root 應先展平 definitions 建立同一份 Store，不要為每張表各建 Store。
+
+`KahaGameCore.Modules.Parameters.EffectsIntegration` 提供 `AddParameter`、`SetParameter`、`ParameterEffectCommandRegistrar.RegisterAll(...)` 與對應 descriptor provider。這是 Parameters 與 Effects 的明確整合模組；專案不需要再複製自己的 `AddParameter`。
 
 ## 查看 Runtime Parameter
 

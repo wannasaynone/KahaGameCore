@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using KahaGameCore.GameEvents;
-using KahaGameCore.GameFlowSystem.Composition;
 using KahaGameCore.UserInterfaceSystem;
 using TMPro;
 using UnityEditor;
@@ -16,7 +15,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
     /// 一鍵建置工具：產生 DefaultViews 全部 View prefabs（Assets/Resources/GameFlowUIViews）
     /// 與可直接運行的遊戲場景（Assets/Scenes/GameFlowGame.unity，含 Camera、EventSystem、
     /// 4K Canvas、DialogueView 縮放包覆、DefaultGameLauncher，全部接好）。
-    /// 跑完只需把自己的 TextAsset 指定到 GameFlowDataCatalogAsset 即可按 Play。
+    /// 跑完可直接以 Sample tables 與 Game Event Catalog 按 Play。
     /// 可重複執行（會覆寫既有產物）。美術調整建議直接改 prefab；重跑本工具會還原為基礎版面。
     /// </summary>
     public static class DefaultUiBuilder
@@ -26,8 +25,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
         private const string SAMPLE_DATA_FOLDER = "Assets/KahaGameCore/Modules/GameFlowSystem/DefaultViews/SampleData";
         private const string SAMPLE_EVENT_CATALOG_PATH =
             SAMPLE_DATA_FOLDER + "/GameEvents/GameEventCatalog.asset";
-        private const string SAMPLE_DATA_CATALOG_PATH =
-            SAMPLE_DATA_FOLDER + "/GameFlowDataCatalog.asset";
         private const string DIALOGUE_VIEW_PREFAB_PATH = "Assets/KahaGameCore/Modules/Dialogue/Prefabs/DialogueView.prefab";
 
         /// <summary>設計解析度（CanvasScaler 參考值）。</summary>
@@ -358,8 +355,15 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
             {
                 SetReference(launcher, "dialogueView", dialogueViewInstance.GetComponent<KahaGameCore.Dialogue.View.DialogueView>());
             }
-            // Sample Scene 只引用一個 Catalog；Runtime 與 Editor 都從同一資產取資料來源。
-            SetReference(launcher, "dataCatalog", LoadOrCreateSampleDataCatalog());
+            SetReference(launcher, "timePhaseData", LoadSampleTextAsset("TimePhaseData.txt"));
+            SetReference(launcher, "playerActionData", LoadSampleTextAsset("PlayerActionData.txt"));
+            SetReference(launcher, "locationData", LoadSampleTextAsset("LocationData.txt"));
+            SetReference(launcher, "gameTextData", LoadSampleTextAsset("GameTextData.txt"));
+            SetReference(launcher, "dialogueData", LoadSampleTextAsset("DialogueData.txt"));
+            SetReference(
+                launcher,
+                "gameEventCatalog",
+                AssetDatabase.LoadAssetAtPath<GameEventCatalogAsset>(SAMPLE_EVENT_CATALOG_PATH));
 
             EditorSceneManager.SaveScene(scene, SCENE_PATH);
         }
@@ -502,33 +506,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
             }
             property.objectReferenceValue = value;
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static GameFlowDataCatalogAsset LoadOrCreateSampleDataCatalog()
-        {
-            GameFlowDataCatalogAsset catalog =
-                AssetDatabase.LoadAssetAtPath<GameFlowDataCatalogAsset>(
-                    SAMPLE_DATA_CATALOG_PATH);
-            if (catalog == null)
-            {
-                catalog = ScriptableObject.CreateInstance<GameFlowDataCatalogAsset>();
-                AssetDatabase.CreateAsset(catalog, SAMPLE_DATA_CATALOG_PATH);
-            }
-
-            catalog.SetGameDataTables(
-                LoadSampleTextAsset("TimePhaseData.txt"),
-                LoadSampleTextAsset("PlayerActionData.txt"),
-                LoadSampleTextAsset("LocationData.txt"),
-                LoadSampleTextAsset("GameTextData.txt"),
-                LoadSampleTextAsset("DialogueData.txt"));
-            catalog.SetParameterTables(
-                FindSampleTextAssets(".parameters.json").Cast<TextAsset>());
-            catalog.SetGameEventCatalog(
-                AssetDatabase.LoadAssetAtPath<GameEventCatalogAsset>(
-                    SAMPLE_EVENT_CATALOG_PATH));
-            EditorUtility.SetDirty(catalog);
-            AssetDatabase.SaveAssetIfDirty(catalog);
-            return catalog;
         }
 
         private static TextAsset LoadSampleTextAsset(string fileName)

@@ -8,6 +8,7 @@
         "KahaGameCore.Modules.GameEvents.Editor",
         "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Parameters.EffectsIntegration",
         "KahaGameCore.Modules.Expressions",
         "KahaGameCore.Modules.ValueContainer",
         "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",

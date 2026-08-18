@@ -1,0 +1,19 @@
+{
+    "name": "KahaGameCore.Modules.Parameters.EffectsIntegration",
+    "rootNamespace": "KahaGameCore.Parameters.EffectsIntegration",
+    "references": [
+        "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Expressions",
+        "KahaGameCore.Modules.Effects",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

@@ -262,10 +262,7 @@ namespace KahaGameCore.GameEvents.Tests
         public void ProjectCatalog_NoSelectionDoesNotLoadSampleParameterTables()
         {
             GameEventProjectAuthoringCatalog catalog =
-                GameEventProjectAuthoringCatalog.Load(
-                    Array.Empty<TextAsset>(),
-                    null,
-                    null);
+                GameEventProjectAuthoringCatalog.Load(null);
 
             Assert.That(catalog.Parameters, Is.Empty);
         }
@@ -274,10 +271,7 @@ namespace KahaGameCore.GameEvents.Tests
         public void ProjectCatalog_NoSelectionDoesNotLoadDefaultCommands()
         {
             GameEventProjectAuthoringCatalog catalog =
-                GameEventProjectAuthoringCatalog.Load(
-                    Array.Empty<TextAsset>(),
-                    null,
-                    null);
+                GameEventProjectAuthoringCatalog.Load(null);
 
             Assert.That(catalog.Commands, Is.Empty);
         }
@@ -312,29 +306,39 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
-        public void HasRequiredDataCatalog_RejectsMissingCatalog()
+        public void CommandCatalog_ScansOnlySelectedAsmdef()
         {
-            GameEventEditorDataSource source = new GameEventEditorDataSource(
-                "Test Catalog",
-                typeof(GameEventCatalogAsset),
-                asset => (GameEventCatalogAsset)asset,
-                (asset, eventCatalog) => { },
-                asset => Array.Empty<TextAsset>(),
-                (asset, tables) => { },
-                asset => Array.Empty<string>(),
-                (asset, commandNames) => { },
-                asset => Array.Empty<string>());
+            var warnings = new List<string>();
+
+            IReadOnlyList<EffectCommandDescriptor> none =
+                EffectCommandAssemblyCatalog.GetDescriptors(Array.Empty<string>(), warnings);
+            IReadOnlyList<EffectCommandDescriptor> parameters =
+                EffectCommandAssemblyCatalog.GetDescriptors(
+                    new[] { "KahaGameCore.Modules.Parameters.EffectsIntegration" },
+                    warnings);
+
+            Assert.That(none, Is.Empty);
+            Assert.That(
+                parameters.Select(item => item.Name),
+                Is.EquivalentTo(new[] { "AddParameter", "SetParameter" }));
+            Assert.That(warnings, Is.Empty);
+        }
+
+        [Test]
+        public void GameEventCatalog_NormalizesEditableAuthoringSettings()
+        {
             GameEventCatalogAsset catalog =
                 ScriptableObject.CreateInstance<GameEventCatalogAsset>();
 
             try
             {
-                Assert.That(
-                    GameEventDocumentEditorWindow.HasRequiredDataCatalog(source, null),
-                    Is.False);
-                Assert.That(
-                    GameEventDocumentEditorWindow.HasRequiredDataCatalog(source, catalog),
-                    Is.True);
+                catalog.SetTriggerTimings(new[] { " GameStart ", "GameStart", "" });
+                catalog.SetCommandAssemblyNames(new[] { "Project.Game", "Project.Game" });
+                catalog.SetEnabledCommandNames(new[] { "AddParameter", "AddParameter" });
+
+                Assert.That(catalog.TriggerTimings, Is.EqualTo(new[] { "GameStart" }));
+                Assert.That(catalog.CommandAssemblyNames, Is.EqualTo(new[] { "Project.Game" }));
+                Assert.That(catalog.EnabledCommandNames, Is.EqualTo(new[] { "AddParameter" }));
             }
             finally
             {
@@ -351,16 +355,22 @@ namespace KahaGameCore.GameEvents.Tests
             TextAsset selected = AssetDatabase.LoadAssetAtPath<TextAsset>(selectedPath);
 
             Assert.That(selected, Is.Not.Null);
-            GameEventProjectAuthoringCatalog catalog =
-                GameEventProjectAuthoringCatalog.Load(
-                    new[] { selected },
-                    null,
-                    null);
+            GameEventCatalogAsset asset = ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+            try
+            {
+                asset.SetParameterTables(new[] { selected });
+                GameEventProjectAuthoringCatalog catalog =
+                    GameEventProjectAuthoringCatalog.Load(asset);
 
-            Assert.That(catalog.Parameters.Count, Is.EqualTo(8));
-            Assert.That(
-                catalog.Parameters.Select(parameter => parameter.Key),
-                Does.Contain("Supplies"));
+                Assert.That(catalog.Parameters.Count, Is.EqualTo(8));
+                Assert.That(
+                    catalog.Parameters.Select(parameter => parameter.Key),
+                    Does.Contain("Supplies"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(asset);
+            }
         }
 
         [Test]

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KahaGameCore.Effects;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Commands;
 using KahaGameCore.Parameters;
+using KahaGameCore.Parameters.EffectsIntegration;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
@@ -13,14 +15,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
     /// </summary>
     public static class EffectCommandRegistrar
     {
-        private static readonly EffectCommandDescriptor AddParameterDescriptor = Describe(
-            "AddParameter", "Parameters",
-            Parameter("key", EffectCommandParameterKind.ParameterKey),
-            Parameter("value", EffectCommandParameterKind.NumberExpression));
-        private static readonly EffectCommandDescriptor SetParameterDescriptor = Describe(
-            "SetParameter", "Parameters",
-            Parameter("key", EffectCommandParameterKind.ParameterKey),
-            Parameter("value", EffectCommandParameterKind.Literal));
         private static readonly EffectCommandDescriptor AdvancePhaseDescriptor = Describe(
             "AdvancePhase", "Game Flow");
         private static readonly EffectCommandDescriptor SetPhaseDescriptor = Describe(
@@ -50,10 +44,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             Parameter("seconds", EffectCommandParameterKind.Literal));
 
         private static readonly IReadOnlyList<EffectCommandDescriptor> descriptors =
-            Array.AsReadOnly(new[]
+            Array.AsReadOnly(ParameterEffectCommandRegistrar.Descriptors.Concat(new[]
             {
-                AddParameterDescriptor,
-                SetParameterDescriptor,
                 AdvancePhaseDescriptor,
                 SetPhaseDescriptor,
                 MoveToLocationDescriptor,
@@ -64,7 +56,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                 OpenLocationMenuDescriptor,
                 ReturnToTitleDescriptor,
                 WaitDescriptor
-            });
+            }).ToArray());
 
         public static IReadOnlyList<EffectCommandDescriptor> Descriptors => descriptors;
 
@@ -80,12 +72,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             IHintPresenter hintPresenter,
             ILocationMenuPresenter locationMenuPresenter)
         {
-            registry.Register(Bind(
-                AddParameterDescriptor,
-                new AddParameterCommand(parameters, expressions)));
-            registry.Register(Bind(
-                SetParameterDescriptor,
-                new SetParameterCommand(parameters, expressions)));
+            ParameterEffectCommandRegistrar.RegisterAll(registry, parameters);
             registry.Register(Bind(AdvancePhaseDescriptor, new AdvancePhaseCommand(timeService)));
             registry.Register(Bind(SetPhaseDescriptor, new SetPhaseCommand(timeService)));
             registry.Register(Bind(

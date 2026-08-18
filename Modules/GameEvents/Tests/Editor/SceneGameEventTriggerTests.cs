@@ -3,8 +3,8 @@ using System.Reflection;
 using System.Threading;
 using KahaGameCore.Effects;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
-using KahaGameCore.GameFlowSystem.DefaultImplements.Commands;
 using KahaGameCore.Parameters;
+using KahaGameCore.Parameters.EffectsIntegration;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -30,7 +30,7 @@ namespace KahaGameCore.GameEvents.Tests
                     new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
                 },
-                new SetParameterCommand(parameters, expressions)));
+                new SetParameterCommand(parameters)));
             GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
             GameEventRunner runner = new GameEventRunner(
                 new GameEventCatalog(Array.Empty<TextAsset>(), codec),
@@ -89,7 +89,7 @@ namespace KahaGameCore.GameEvents.Tests
                     new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
                 },
-                new SetParameterCommand(parameters, expressions)));
+                new SetParameterCommand(parameters)));
             GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
             GameEventRunner runner = new GameEventRunner(
                 new GameEventCatalog(Array.Empty<TextAsset>(), codec),

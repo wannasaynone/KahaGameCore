@@ -3,7 +3,6 @@
     "rootNamespace": "",
     "references": [
         "KahaGameCore.Modules.GameFlowSystem",
-        "KahaGameCore.Modules.GameFlowSystem.Composition",
         "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
         "KahaGameCore.Modules.StaticData",
         "KahaGameCore.Modules.Parameters",

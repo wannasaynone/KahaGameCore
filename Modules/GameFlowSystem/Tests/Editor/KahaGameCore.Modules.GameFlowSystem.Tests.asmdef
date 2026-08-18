@@ -5,7 +5,7 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "KahaGameCore.Modules.GameFlowSystem",
-        "KahaGameCore.Modules.GameFlowSystem.Composition",
+        "KahaGameCore.Modules.Parameters.EffectsIntegration",
         "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
         "KahaGameCore.Modules.GameFlowSystem.DefaultViews",
         "KahaGameCore.Modules.GameFlowSystem.GameEventsIntegration",

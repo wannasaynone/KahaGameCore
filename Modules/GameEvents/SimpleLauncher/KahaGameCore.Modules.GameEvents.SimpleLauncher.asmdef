@@ -1,0 +1,21 @@
+{
+    "name": "KahaGameCore.Modules.GameEvents.SimpleLauncher",
+    "rootNamespace": "KahaGameCore.GameEvents",
+    "references": [
+        "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.Effects",
+        "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Parameters.Unity",
+        "KahaGameCore.Modules.Parameters.EffectsIntegration",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

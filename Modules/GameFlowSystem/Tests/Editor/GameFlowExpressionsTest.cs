@@ -5,6 +5,7 @@ using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Commands;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.Parameters;
+using KahaGameCore.Parameters.EffectsIntegration;
 using KahaGameCore.Effects;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
@@ -91,7 +92,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
                     new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
                     new EffectCommandParameterDefinition("value", EffectCommandParameterKind.NumberExpression)
                 },
-                new SetParameterCommand(parameters, expressions)));
+                new SetParameterCommand(parameters)));
             EffectRuntime runtime = new EffectRuntime(registry);
             ICommandExecutor executor = new EffectCommandExecutor(runtime);
 
@@ -147,9 +148,9 @@ namespace KahaGameCore.GameFlowSystem.Tests
             {
                 ParameterDefinition.Int("Supplies", "物資", initialValue: 12, minValue: 0, maxValue: 9999)
             });
-            AddParameterCommand command = new AddParameterCommand(parameters, new GameFlowExpressions(parameters));
+            AddParameterCommand command = new AddParameterCommand(parameters);
 
-            Assert.Throws<GameFlowExpressionException>(() =>
+            Assert.Throws<InvalidOperationException>(() =>
                 Execute(command, "Supplies", "$Missing + 1"));
 
             Assert.That(parameters.GetInt("Supplies"), Is.EqualTo(12));
@@ -164,7 +165,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 ParameterDefinition.Int("Result", "結果", initialValue: 0, minValue: 0, maxValue: 99)
             });
 
-            Execute(new SetParameterCommand(parameters, new GameFlowExpressions(parameters)), "Result", "$Base * 3");
+            Execute(new SetParameterCommand(parameters), "Result", "$Base * 3");
 
             Assert.That(parameters.GetInt("Result"), Is.EqualTo(12));
         }
@@ -179,7 +180,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
             });
 
             Execute(
-                new SetParameterCommand(parameters, new GameFlowExpressions(parameters)),
+                new SetParameterCommand(parameters),
                 "OutingUnlocked",
                 "$Day >= 2");
 
@@ -196,7 +197,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
             });
 
             Execute(
-                new AddParameterCommand(parameters, new GameFlowExpressions(parameters)),
+                new AddParameterCommand(parameters),
                 "Speed",
                 "$Bonus * 2");
 
@@ -212,7 +213,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
             });
 
             Execute(
-                new SetParameterCommand(parameters, new GameFlowExpressions(parameters)),
+                new SetParameterCommand(parameters),
                 "PlayerName",
                 "Noah");
 
@@ -228,7 +229,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
             });
 
             Execute(
-                new SetParameterCommand(parameters, new GameFlowExpressions(parameters)),
+                new SetParameterCommand(parameters),
                 "Speed",
                 "$Speed + 0.25");
 

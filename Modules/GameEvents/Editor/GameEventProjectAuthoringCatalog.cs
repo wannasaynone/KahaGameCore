@@ -35,26 +35,19 @@ namespace KahaGameCore.GameEvents.Editor
         public IReadOnlyList<string> TriggerTimings { get; }
         public IReadOnlyList<string> Warnings { get; }
 
-        public static GameEventProjectAuthoringCatalog Load(
-            IReadOnlyList<TextAsset> selectedParameterTables,
-            GameEventCatalogAsset eventCatalog,
-            UnityEngine.Object dataCatalog)
+        public static GameEventProjectAuthoringCatalog Load(GameEventCatalogAsset eventCatalog)
         {
-            if (selectedParameterTables == null)
-            {
-                throw new ArgumentNullException(nameof(selectedParameterTables));
-            }
-
             ParameterTableJsonCodec parameterCodec = new ParameterTableJsonCodec();
             GameEventDocumentJsonCodec eventCodec = new GameEventDocumentJsonCodec();
             EffectRuntime effectRuntime = new EffectRuntime(new EffectCommandRegistry());
             Dictionary<string, ParameterDefinition> parameterMap =
                 new Dictionary<string, ParameterDefinition>(StringComparer.Ordinal);
-            SortedSet<string> timings = new SortedSet<string>(StringComparer.Ordinal);
             Dictionary<string, SortedSet<string>> argumentSets =
                 new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
             List<string> warnings = new List<string>();
 
+            IReadOnlyList<TextAsset> selectedParameterTables =
+                eventCatalog?.ParameterTables ?? Array.Empty<TextAsset>();
             for (int index = 0; index < selectedParameterTables.Count; index++)
             {
                 TextAsset selectedTable = selectedParameterTables[index];
@@ -89,42 +82,22 @@ namespace KahaGameCore.GameEvents.Editor
                         asset.text,
                         eventCodec,
                         effectRuntime,
-                        timings,
                         argumentSets,
                         warnings);
-                }
-            }
-
-            GameEventEditorDataSource source =
-                GameEventEditorCommandCatalog.GetDataSource();
-            if (source == null)
-            {
-                warnings.Add("No Game Event Editor data source is registered.");
-            }
-            else if (dataCatalog == null)
-            {
-                warnings.Add($"No {source.DisplayName} is selected.");
-            }
-            else
-            {
-                foreach (string timing in source.GetTriggerTimings(dataCatalog))
-                {
-                    if (!string.IsNullOrWhiteSpace(timing))
-                    {
-                        timings.Add(timing);
-                    }
                 }
             }
 
             IReadOnlyList<ParameterDefinition> parameters = parameterMap.Values
                 .OrderBy(item => item.Key, StringComparer.Ordinal)
                 .ToArray();
-            IReadOnlyList<EffectCommandDescriptor> commands = source != null && dataCatalog != null
-                ? SelectCommands(
-                    GameEventEditorCommandCatalog.GetDescriptors(),
-                    source.GetCommandNames(dataCatalog),
-                    warnings)
-                : Array.Empty<EffectCommandDescriptor>();
+            IReadOnlyList<EffectCommandDescriptor> commands = eventCatalog == null
+                ? Array.Empty<EffectCommandDescriptor>()
+                : SelectCommands(
+                    EffectCommandAssemblyCatalog.GetDescriptors(
+                        eventCatalog.CommandAssemblyNames,
+                        warnings),
+                    eventCatalog.EnabledCommandNames,
+                    warnings);
             Dictionary<string, IReadOnlyList<string>> options = argumentSets
                 .ToDictionary(
                     item => item.Key,
@@ -134,7 +107,7 @@ namespace KahaGameCore.GameEvents.Editor
             return new GameEventProjectAuthoringCatalog(
                 parameters,
                 commands,
-                timings.ToArray(),
+                eventCatalog?.TriggerTimings ?? Array.Empty<string>(),
                 options,
                 warnings);
         }
@@ -153,7 +126,7 @@ namespace KahaGameCore.GameEvents.Editor
                 string commandName = selectedNames[index];
                 if (string.IsNullOrWhiteSpace(commandName))
                 {
-                    warnings.Add($"Data Catalog Command row {index + 1} is empty.");
+                    warnings.Add($"Game Event Catalog Command row {index + 1} is empty.");
                     continue;
                 }
 
@@ -167,7 +140,7 @@ namespace KahaGameCore.GameEvents.Editor
                         out EffectCommandDescriptor descriptor))
                 {
                     warnings.Add(
-                        $"Data Catalog Command '{commandName}' is not registered by the project.");
+                        $"Game Event Catalog Command '{commandName}' is unavailable in its asmdef scopes.");
                     continue;
                 }
 
@@ -233,18 +206,12 @@ namespace KahaGameCore.GameEvents.Editor
             string json,
             GameEventDocumentJsonCodec codec,
             EffectRuntime effectRuntime,
-            SortedSet<string> timings,
             Dictionary<string, SortedSet<string>> argumentSets,
             List<string> warnings)
         {
             try
             {
                 GameEventDocument document = codec.Read(json);
-                if (!string.IsNullOrWhiteSpace(document.TriggerTiming))
-                {
-                    timings.Add(document.TriggerTiming);
-                }
-
                 EffectParseResult parsed = effectRuntime.Parse(document.Commands);
                 if (!parsed.IsSuccess)
                 {

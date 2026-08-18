@@ -14,7 +14,6 @@ using KahaGameCore.Dialogue;
 using KahaGameCore.Dialogue.View;
 using KahaGameCore.Parameters;
 using KahaGameCore.GameEvents;
-using KahaGameCore.GameFlowSystem.Composition;
 using KahaGameCore.GameFlowSystem.GameEventsIntegration;
 using KahaGameCore.Presentation;
 using UnityEngine;
@@ -41,8 +40,14 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         [SerializeField] private DialogueView dialogueView;
         [Tooltip("行動選單、提示視窗等覆蓋層 View 的父節點。")]
         [SerializeField] private RectTransform overlayRoot;
-        [Tooltip("GameFlow runtime 與 Game Event Editor 共用的唯一資料入口。")]
-        [SerializeField] private GameFlowDataCatalogAsset dataCatalog;
+        [Header("GameFlow Tables")]
+        [SerializeField] private TextAsset timePhaseData;
+        [SerializeField] private TextAsset playerActionData;
+        [SerializeField] private TextAsset locationData;
+        [SerializeField] private TextAsset gameTextData;
+        [SerializeField] private TextAsset dialogueData;
+        [Header("Game Events")]
+        [SerializeField] private GameEventCatalogAsset gameEventCatalog;
         [SerializeField] private SceneGameEventTrigger[] sceneGameEventTriggers;
         [SerializeField] private SceneGameEventTrigger2D[] sceneGameEventTriggers2D;
         [SerializeField] private ParameterStateBinder[] parameterStateBinders;
@@ -85,21 +90,22 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
 
         private void LoadStaticData()
         {
-            if (dataCatalog == null)
-            {
-                throw new InvalidOperationException(
-                    "[DefaultGameLauncher] dataCatalog is required.");
-            }
-
-            dataCatalog.ValidateRequiredReferences();
+            ValidateStaticData();
             staticDataManager = new GameStaticDataManager();
             IGameStaticDataHandler handler = new TextAssetJsonStaticDataHandler(
-                dataCatalog.GetGameDataTables());
+                new[]
+                {
+                    timePhaseData,
+                    playerActionData,
+                    locationData,
+                    gameTextData,
+                    dialogueData
+                });
             GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
             staticDataManager.Add<DialogueData>(handler);
 
             ParameterTableJsonCodec codec = new ParameterTableJsonCodec();
-            parameterDefinitions = dataCatalog.ParameterTables
+            parameterDefinitions = gameEventCatalog.ParameterTables
                 .Select(tableAsset => codec.Read(tableAsset.text))
                 .SelectMany(table => table.Definitions)
                 .ToList();
@@ -157,7 +163,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
 
             GameEventDocumentJsonCodec gameEventCodec = new GameEventDocumentJsonCodec();
             GameEventCatalog runtimeGameEventCatalog = new GameEventCatalog(
-                dataCatalog.GameEventCatalog,
+                gameEventCatalog,
                 gameEventCodec);
 
             // 全部採用預設實作；Game Events 由可選 integration assembly 接入。
@@ -190,6 +196,47 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             }
 
             RegisterPerformances();
+        }
+
+        private void ValidateStaticData()
+        {
+            TextAsset[] tables =
+            {
+                timePhaseData,
+                playerActionData,
+                locationData,
+                gameTextData,
+                dialogueData
+            };
+            string[] names =
+            {
+                "TimePhaseData",
+                "PlayerActionData",
+                "LocationData",
+                "GameTextData",
+                "DialogueData"
+            };
+            for (int index = 0; index < tables.Length; index++)
+            {
+                if (tables[index] == null)
+                    throw new InvalidOperationException(
+                        $"[DefaultGameLauncher] {names[index]} is required.");
+                if (!string.Equals(tables[index].name, names[index], StringComparison.Ordinal))
+                    throw new InvalidOperationException(
+                        $"[DefaultGameLauncher] {names[index]} must reference a TextAsset named '{names[index]}'.");
+            }
+            if (gameEventCatalog == null)
+                throw new InvalidOperationException(
+                    "[DefaultGameLauncher] Game Event Catalog is required.");
+            if (gameEventCatalog.ParameterTables.Count == 0)
+                throw new InvalidOperationException(
+                    "[DefaultGameLauncher] Game Event Catalog needs a Parameter Table.");
+            for (int index = 0; index < gameEventCatalog.ParameterTables.Count; index++)
+            {
+                if (gameEventCatalog.ParameterTables[index] == null)
+                    throw new InvalidOperationException(
+                        $"[DefaultGameLauncher] Parameter Table row {index + 1} is missing.");
+            }
         }
 
         private void InitializeSceneGameEventTriggers(CancellationToken cancellationToken)

@@ -23,7 +23,7 @@
 - **`Scripts/`（核心）**：`GameFlowController` 與 7 個最小介面，只依賴 UniTask。
 - **`DefaultImplements/`（預設實作）**：Parameters adapter、TimeService、LocationService、效果指令、條件式與表格定義，加上 `GameFlowSystemBuilder`。不依賴 GameEvents 或 Dialogue。
 - **`GameEventsIntegration/`（可選整合）**：`GameFlowGameEventAdapter`；這是 GameFlow core 與 GameEvents 唯一互相認識的位置。
-- **`Composition/`（預設組裝資料）**：`GameFlowDataCatalogAsset` 與其 Game Event Editor adapter。它彙整預設 GameFlow 所需的 TextAssets、Parameter tables、Game Event catalog 與允許的 commands，不屬於 UI；只用 Parameters + Game Events 的專案不需要引用它。
+- **組裝邊界**：GameFlow 不再提供跨模組 Data Catalog。`DefaultGameLauncher` 直接持有五張 Flow tables 與一個 `GameEventCatalogAsset`；Game Event authoring 設定由該 Catalog 自己擁有。
 - **`DefaultViews/`（預設 UI＋範例橋接）**：整套 UGUI View / Presenter / `DefaultGameLauncher`（組裝根）腳本＋`DefaultUiBuilder`（Editor 選單一鍵生成全部 prefab 與可運行場景），**並含範例對話橋接 `DialoguePlayer` + `GameEffectDialogueCommand`**（連接具體 Dialogue Module）。純腳本、零美術資產——prefab 在各專案內按需生成。
 
 > **對話橋接屬於範例／各專案的程式碼，不是 Module 的共用層。** 核心與 DefaultImplements 刻意與 Dialogue Module 無關（只認 `IDialoguePlayer`）。`DefaultViews` 內附一份範例橋接示範如何接上 Dialogue Module；**各專案請複製一份到自己的組件並依需求修改**。
@@ -33,23 +33,24 @@
 ## 在專案中組裝預設實作
 
 ```csharp
-// 1. 採用預設 GameFlow 組裝時，Composition Data Catalog 是 Runtime 與
-//    Game Event Editor 共用的單一專案資料入口。
-dataCatalog.ValidateRequiredReferences();
+// 1. GameFlow 明確持有自己的五張 Flow tables；Game Events 使用專用 Catalog。
 var staticDataManager = new GameStaticDataManager();
-var handler = new TextAssetJsonStaticDataHandler(dataCatalog.GetGameDataTables());
+var handler = new TextAssetJsonStaticDataHandler(new[]
+{
+    timePhaseData, playerActionData, locationData, gameTextData, dialogueData
+});
 GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
 staticDataManager.Add<DialogueData>(handler); // 對話表另外加
 
 // 可載入多張 .parameters.json 大表；每張表含多列 Parameter。
 var parameterCodec = new ParameterTableJsonCodec();
-ParameterDefinition[] parameterDefinitions = dataCatalog.ParameterTables
+ParameterDefinition[] parameterDefinitions = gameEventCatalogAsset.ParameterTables
     .Select(tableAsset => parameterCodec.Read(tableAsset.text))
     .SelectMany(table => table.Definitions)
     .ToArray();
 var parameters = new ParameterStore(parameterDefinitions);
 var eventCodec = new GameEventDocumentJsonCodec();
-var eventCatalog = new GameEventCatalog(dataCatalog.GameEventCatalog, eventCodec);
+var eventCatalog = new GameEventCatalog(gameEventCatalogAsset, eventCodec);
 GameEventRunner eventRunner = null;
 
 // 2. 組裝（UI 層與對話系統是各專案的演出資產，由外部提供；其餘全用預設）
@@ -137,9 +138,9 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 |---|---|
 | `Views/`（9 個腳本） | 主選單、HUD（含 StatValueItem）、行動/移動選單（含按鈕 item）、提示視窗、製作名單。皆繼承 UserInterfaceSystem 的 `AView` |
 | `Presenters/`（5 個腳本） | `IActionMenuPresenter` / `IHintPresenter` / `ILocationMenuPresenter` 的轉接實作＋HUD Presenter＋`IStagePerformance` 範例（CreditsPerformance） |
-| `DefaultGameLauncher.cs` | 預設組裝根：從 Composition assembly 的 `GameFlowDataCatalogAsset` 載入表格、Parameters 與 Event Catalog → Builder 組裝 → 主標題/流程切換、返回標題處理 |
+| `DefaultGameLauncher.cs` | 預設 Flow 組裝根：載入五張 Flow tables，並從 `GameEventCatalogAsset` 取得 Parameters 與 Events → Builder 組裝 → 主標題/流程切換、返回標題處理 |
 | `Editor/DefaultUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**：在專案內生成 `Assets/Resources/GameFlowUIViews/` 九個 prefab 與 `Assets/Scenes/GameFlowGame.unity`（全部接好、測試表已掛上、可直接 Play）。全程式化版面（TMP 預設字型＋內建 UISprite），零美術資產依賴，可重複執行覆寫 |
-| `SampleData/GameFlowDataCatalog.asset` | Sample Scene 的單一資料入口，引用五張測試表、Parameter table 與 Game Event Catalog。 |
+| `SampleData/GameEvents/GameEventCatalog.asset` | Sample Game Events 的事件順序、Parameter Tables、Trigger Timings 與 Command assembly scopes。 |
 
 最短組裝路徑：確認專案包含 KahaGameCore → 跑一次 builder 選單 → 開生成的場景直接 **Play**（測試內容可玩）→ 將欄位裡的 TextAsset 換成專案資料表。客製腳本放在專案 assembly 並使用專案命名；prefab 可直接修改，但重跑 builder 會覆寫生成內容。
 

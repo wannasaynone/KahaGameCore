@@ -10,67 +10,45 @@ namespace KahaGameCore.GameEvents.Editor
     internal sealed class GameEventEditorProjectSettings :
         ScriptableSingleton<GameEventEditorProjectSettings>
     {
-        [SerializeField] private string dataCatalogGuid;
+        [SerializeField] private string eventCatalogGuid;
 
-        public UnityEngine.Object LoadDataCatalog()
+        public GameEventCatalogAsset LoadEventCatalog()
         {
-            GameEventEditorDataSource source =
-                GameEventEditorCommandCatalog.GetDataSource();
-            if (source == null)
+            if (string.IsNullOrEmpty(eventCatalogGuid))
             {
                 return null;
             }
 
-            if (string.IsNullOrEmpty(dataCatalogGuid))
-            {
-                return null;
-            }
-
-            string path = AssetDatabase.GUIDToAssetPath(dataCatalogGuid);
-            UnityEngine.Object catalog = string.IsNullOrEmpty(path)
+            string path = AssetDatabase.GUIDToAssetPath(eventCatalogGuid);
+            GameEventCatalogAsset catalog = string.IsNullOrEmpty(path)
                 ? null
-                : AssetDatabase.LoadAssetAtPath(path, source.AssetType);
+                : AssetDatabase.LoadAssetAtPath<GameEventCatalogAsset>(path);
             if (catalog != null)
             {
                 return catalog;
             }
 
-            dataCatalogGuid = string.Empty;
+            eventCatalogGuid = string.Empty;
             Save(true);
             return null;
         }
 
-        public void SetDataCatalog(UnityEngine.Object catalog)
+        public void SetEventCatalog(GameEventCatalogAsset catalog)
         {
             string newGuid = catalog == null
                 ? string.Empty
                 : GetValidatedGuid(catalog);
-            if (string.Equals(dataCatalogGuid, newGuid, StringComparison.Ordinal))
+            if (string.Equals(eventCatalogGuid, newGuid, StringComparison.Ordinal))
             {
                 return;
             }
 
-            dataCatalogGuid = newGuid;
+            eventCatalogGuid = newGuid;
             Save(true);
         }
 
-        private static string GetValidatedGuid(UnityEngine.Object catalog)
+        private static string GetValidatedGuid(GameEventCatalogAsset catalog)
         {
-            GameEventEditorDataSource source =
-                GameEventEditorCommandCatalog.GetDataSource();
-            if (source == null)
-            {
-                throw new InvalidOperationException(
-                    "No Game Event Editor data source is registered.");
-            }
-
-            if (!source.IsValidAsset(catalog))
-            {
-                throw new ArgumentException(
-                    $"Data Catalog must be a {source.AssetType.Name}.",
-                    nameof(catalog));
-            }
-
             string path = AssetDatabase.GetAssetPath(catalog);
             string guid = AssetDatabase.AssetPathToGUID(path);
             if (string.IsNullOrEmpty(guid))

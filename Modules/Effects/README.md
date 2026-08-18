@@ -112,6 +112,7 @@ public sealed class EffectTextFileExample : MonoBehaviour
 - `EffectCommandRegistry`：保存可用的 `EffectCommandDefinition`；`TryGetDefinition` 提供 metadata 查詢，重複名稱會在 composition 時立即拋出 `InvalidOperationException`。
 - `EffectCommandDefinition`：名稱、顯示名稱、分類與參數 metadata；handler 只由 Effects Runtime 讀取。
 - `IEffectCommand`：非同步 handler，接收 `EffectExecutionContext`、參數與 `CancellationToken`。
+- `IEffectCommandDescriptorProvider`：由某個 runtime asmdef 公開其 Editor authoring metadata。Game Event Catalog 只掃描明確選取的 assembly。
 - `EffectExecutionResult`：區分 `Succeeded`、`Failed`、`Cancelled`；非成功結果必須附 `EffectDiagnostic`。
 - `EffectExecutionContext`：Caster、Targets 與每次執行的 CustomData，不保存全域遊戲狀態。
 
@@ -179,6 +180,21 @@ builder.AddCommandRegistration(registry =>
 ```
 
 不要另建第二套 parser、factory 或 callback processor；擴充點就是 `EffectCommandDefinition` 與 `IEffectCommand`。
+
+## 讓 Game Event Editor 看見專案 Command
+
+在擁有 Command 的 runtime asmdef 實作 provider；不要建立全域 editor initializer：
+
+```csharp
+public sealed class ProjectCommandDescriptorProvider :
+    IEffectCommandDescriptorProvider
+{
+    public IReadOnlyList<EffectCommandDescriptor> GetDescriptors()
+        => ProjectCommandRegistrar.Descriptors;
+}
+```
+
+回到 Game Event Editor 的 `Commands` TAB，勾選這個 asmdef 的 assembly name，再勾選需要的 Commands。這只控制 authoring 選單；遊戲啟動時仍須呼叫 `ProjectCommandRegistrar.RegisterAll(registry, services...)`，確保 metadata 與真正 handler 由同一個 registrar 定義。
 
 ## 測試
 
