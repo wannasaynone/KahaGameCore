@@ -47,6 +47,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         [Tooltip("Game Event catalog。由 composition root 明確指定，不自動掃描 Resources。")]
         [SerializeField] private TextAsset[] gameEventFiles;
         [SerializeField] private SceneGameEventTrigger[] sceneGameEventTriggers;
+        [SerializeField] private SceneGameEventTrigger2D[] sceneGameEventTriggers2D;
         [SerializeField] private ParameterStateBinder[] parameterStateBinders;
         [SerializeField] private string gameTitle = "My Game";
         [Tooltip("製作人員名單文字（GameTextData 表的 ID）。")]
@@ -208,6 +209,20 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                 {
                     throw new InvalidOperationException(
                         $"[DefaultGameLauncher] sceneGameEventTriggers[{index}] is missing.");
+                }
+
+                trigger.Initialize(gameEventRunner, eventContext);
+            }
+
+            SceneGameEventTrigger2D[] triggers2D =
+                sceneGameEventTriggers2D ?? Array.Empty<SceneGameEventTrigger2D>();
+            for (int index = 0; index < triggers2D.Length; index++)
+            {
+                SceneGameEventTrigger2D trigger = triggers2D[index];
+                if (trigger == null)
+                {
+                    throw new InvalidOperationException(
+                        $"[DefaultGameLauncher] sceneGameEventTriggers2D[{index}] is missing.");
                 }
 
                 trigger.Initialize(gameEventRunner, eventContext);

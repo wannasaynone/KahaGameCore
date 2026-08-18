@@ -178,7 +178,7 @@ public sealed class DoorGameEventExample : MonoBehaviour
 
 ### 使用 SceneGameEventTrigger
 
-若場景物件固定執行一份事件檔，可掛 `SceneGameEventTrigger`，在 Inspector 指定該 `TextAsset`，並由 composition root 完成初始化：
+若場景物件固定執行一份事件檔，可掛 `SceneGameEventTrigger`，在 Inspector 指定該 `TextAsset` 與允許進入的 Collider Layers，並由 composition root 完成初始化：
 
 ```csharp
 sceneGameEventTrigger.Initialize(
@@ -186,7 +186,25 @@ sceneGameEventTrigger.Initialize(
     new EventContext(lifetime.Token));
 ```
 
-UnityEvent 綁定 `SceneGameEventTrigger.Trigger()`。這條路徑呼叫 `runner.RunAsync(file, context)`，會直接執行指定文件並檢查 condition，但不比對文件的 `TriggerTiming`。
+初始化後，允許 Layer 的 Collider 進入時，`OnTriggerEnter` 會呼叫 `runner.RunAsync(file, context)`；也可以由 UnityEvent 手動綁定 `SceneGameEventTrigger.Trigger()`。這條路徑會直接執行指定文件並檢查 condition，但不比對文件的 `TriggerTiming`。
+
+`SceneGameEventTrigger` 不保存碰撞歷史，也不自行判斷「只能觸發一次」。需要跨存檔保持的一次性事件應使用 Parameter 作為權威狀態：
+
+```json
+{
+  "SchemaVersion": 1,
+  "DocumentGuid": "b21ecb37-f6a7-413f-86b7-532d04c31f51",
+  "DisplayName": "首次進入倉庫",
+  "TriggerTiming": "",
+  "Condition": "$WarehouseEntered == false",
+  "Priority": 0,
+  "Commands": "StartDialogue(12);SetParameter(WarehouseEntered,true);"
+}
+```
+
+`WarehouseEntered` 必須由 Parameter Table 宣告。使用 `GameSaveCoordinator` 存檔時，它會先等待 Game Event queue 清空，再保存 Parameters；載入後 condition 因此仍能阻止事件重複執行。Collider 接觸本身是瞬時輸入，不進存檔。
+
+2D 場景使用 `SceneGameEventTrigger2D`。它提供相同的 Game Event File、Triggering Layers、`Initialize`、`Trigger` 與存檔語意，但自動入口是 `OnTriggerEnter2D(Collider2D)`；composition root 必須將它加入自己的 2D trigger 清單並初始化。
 
 ## 重要規則
 

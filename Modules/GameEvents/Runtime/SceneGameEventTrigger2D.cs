@@ -5,12 +5,12 @@ using UnityEngine;
 namespace KahaGameCore.GameEvents
 {
     [DisallowMultipleComponent]
-    public sealed class SceneGameEventTrigger : MonoBehaviour
+    public sealed class SceneGameEventTrigger2D : MonoBehaviour
     {
         [SerializeField]
         private TextAsset gameEventFile;
 
-        [Tooltip("Only colliders on these layers can trigger this Game Event.")]
+        [Tooltip("Only Collider2D objects on these layers can trigger this Game Event.")]
         [SerializeField]
         private LayerMask triggeringLayers = ~0;
 
@@ -44,19 +44,19 @@ namespace KahaGameCore.GameEvents
             if (runner == null)
             {
                 throw new InvalidOperationException(
-                    "SceneGameEventTrigger must be initialized by the composition root.");
+                    "SceneGameEventTrigger2D must be initialized by the composition root.");
             }
 
             if (gameEventFile == null)
             {
                 throw new InvalidOperationException(
-                    "SceneGameEventTrigger requires a Game Event TextAsset.");
+                    "SceneGameEventTrigger2D requires a Game Event TextAsset.");
             }
 
             return runner.RunAsync(gameEventFile, context);
         }
 
-        private void OnTriggerEnter(Collider other)
+        private void OnTriggerEnter2D(Collider2D other)
         {
             if (runner == null || other == null || !IncludesLayer(other.gameObject.layer))
             {
