@@ -43,7 +43,7 @@ namespace KahaGameCore.GameEvents.Editor
                         if (byName.ContainsKey(descriptor.Name))
                         {
                             warnings?.Add(
-                                $"Command '{descriptor.Name}' is declared more than once in the selected assemblies.");
+                                $"指令「{descriptor.Name}」在所選組件中重複宣告。");
                             continue;
                         }
 
@@ -53,7 +53,7 @@ namespace KahaGameCore.GameEvents.Editor
                 catch (Exception exception)
                 {
                     warnings?.Add(
-                        $"Cannot load Command descriptors from '{type.FullName}': {exception.Message}");
+                        $"無法從「{type.FullName}」載入指令描述：{exception.Message}");
                 }
             }
 
@@ -61,7 +61,7 @@ namespace KahaGameCore.GameEvents.Editor
                          GetProviderAssemblyNames(), StringComparer.Ordinal))
             {
                 warnings?.Add(
-                    $"Command assembly '{missing}' has no descriptor provider.");
+                    $"指令組件「{missing}」沒有描述提供者。");
             }
 
             return byName.Values

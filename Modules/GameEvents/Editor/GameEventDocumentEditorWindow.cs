@@ -31,10 +31,14 @@ namespace KahaGameCore.GameEvents.Editor
         }
 
         private static readonly string[] NumericOperatorLabels =
-            { "Equals", "Not Equal", "Greater", "Greater or Equal", "Less", "Less or Equal" };
+            { "等於", "不等於", "大於", "大於或等於", "小於", "小於或等於" };
         private static readonly string[] NumericOperatorSymbols =
             { "==", "!=", ">", ">=", "<", "<=" };
-        private static readonly string[] BoolOperatorLabels = { "Is True", "Is False" };
+        private static readonly string[] BoolOperatorLabels = { "為真", "為假" };
+
+        private static GUIStyle cardStyle;
+        private static GUIStyle sectionTitleStyle;
+        private static GUIStyle commandTitleStyle;
 
         [SerializeField] private GameEventEditorSession session;
         [SerializeField] private List<GameEventCommandDraft> commandDrafts =
@@ -50,6 +54,7 @@ namespace KahaGameCore.GameEvents.Editor
         [SerializeField] private string conditionEditorError;
         [SerializeField] private bool parameterTablesFoldout = true;
         [SerializeField] private bool parameterEditorFoldout = true;
+        [SerializeField] private bool serializedPreviewFoldout;
         [SerializeField] private ParameterTableEditorPanel parameterEditor =
             new ParameterTableEditorPanel();
 
@@ -86,13 +91,63 @@ namespace KahaGameCore.GameEvents.Editor
             }
         }
 
-        [MenuItem("KahaGameCore/Game Events/Game Event Editor")]
+        private static GUIStyle CardStyle
+        {
+            get
+            {
+                if (cardStyle == null)
+                {
+                    cardStyle = new GUIStyle(EditorStyles.helpBox)
+                    {
+                        padding = new RectOffset(14, 14, 12, 12),
+                        margin = new RectOffset(8, 8, 5, 8)
+                    };
+                }
+
+                return cardStyle;
+            }
+        }
+
+        private static GUIStyle SectionTitleStyle
+        {
+            get
+            {
+                if (sectionTitleStyle == null)
+                {
+                    sectionTitleStyle = new GUIStyle(EditorStyles.boldLabel)
+                    {
+                        fontSize = 15,
+                        margin = new RectOffset(0, 0, 0, 3)
+                    };
+                }
+
+                return sectionTitleStyle;
+            }
+        }
+
+        private static GUIStyle CommandTitleStyle
+        {
+            get
+            {
+                if (commandTitleStyle == null)
+                {
+                    commandTitleStyle = new GUIStyle(EditorStyles.boldLabel)
+                    {
+                        fontSize = 12
+                    };
+                }
+
+                return commandTitleStyle;
+            }
+        }
+
+        [MenuItem("KahaGameCore/遊戲事件/遊戲事件編輯器")]
         public static void OpenWindow()
         {
             GameEventDocumentEditorWindow window =
                 GetWindow<GameEventDocumentEditorWindow>();
-            window.titleContent = new GUIContent("Game Event");
-            window.minSize = new Vector2(920f, 620f);
+            window.titleContent = new GUIContent("遊戲事件");
+            window.minSize = new Vector2(980f, 680f);
             window.Show();
         }
 
@@ -100,10 +155,10 @@ namespace KahaGameCore.GameEvents.Editor
         {
             EditorApplication.hierarchyChanged -= Repaint;
             EditorApplication.hierarchyChanged += Repaint;
-            titleContent = new GUIContent("Game Event");
-            minSize = new Vector2(920f, 620f);
+            titleContent = new GUIContent("遊戲事件");
+            minSize = new Vector2(980f, 680f);
             saveChangesMessage =
-                "Save changes to this Game Event document and its open Parameter Table?";
+                "要儲存此遊戲事件與目前開啟的參數表變更嗎？";
             if (session == null)
             {
                 session = new GameEventEditorSession();
@@ -155,13 +210,13 @@ namespace KahaGameCore.GameEvents.Editor
                 RefreshConditionDrafts();
                 RefreshCommandDrafts();
                 SetStatus(
-                    $"Closed deleted Game Event: {deletedEventPath}",
+                    $"已關閉被刪除的遊戲事件：{deletedEventPath}",
                     MessageType.Warning);
             }
             else if (parameterWasDeleted)
             {
                 SetStatus(
-                    $"Closed deleted Parameter Table: {deletedParameterPath}",
+                    $"已關閉被刪除的參數表：{deletedParameterPath}",
                     MessageType.Warning);
             }
 
@@ -240,20 +295,20 @@ namespace KahaGameCore.GameEvents.Editor
         private void DrawTabs()
         {
             string gameEventLabel = session != null && session.IsDirty
-                ? "Game Event *"
-                : "Game Event";
+                ? "事件編輯 *"
+                : "事件編輯";
             string parameterLabel = ParameterEditor.IsDirty
-                ? "Parameter Tables *"
-                : "Parameter Tables";
+                ? "參數表 *"
+                : "參數表";
             selectedTab = (EditorTab)GUILayout.Toolbar(
                 (int)selectedTab,
                 new[]
                 {
                     gameEventLabel,
-                    "Event Catalog",
+                    "事件目錄",
                     parameterLabel,
-                    "Trigger Timings",
-                    "Commands"
+                    "觸發時機",
+                    "指令設定"
                 },
                 GUILayout.Height(26f));
         }
@@ -285,31 +340,32 @@ namespace KahaGameCore.GameEvents.Editor
         {
             using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
             {
-                if (GUILayout.Button("New", EditorStyles.toolbarButton) && ConfirmDiscardChanges())
+                if (GUILayout.Button("新增", EditorStyles.toolbarButton) && ConfirmDiscardChanges())
                 {
                     CreateNewDocumentFile();
                 }
 
-                if (GUILayout.Button("Open", EditorStyles.toolbarButton) && ConfirmDiscardChanges())
+                if (GUILayout.Button("開啟", EditorStyles.toolbarButton) && ConfirmDiscardChanges())
                 {
                     LoadFromDialog();
                 }
 
-                if (GUILayout.Button("Refresh Choices", EditorStyles.toolbarButton))
+                if (GUILayout.Button("重新整理選項", EditorStyles.toolbarButton))
                 {
                     RefreshCatalog(true);
                 }
 
-                if (GUILayout.Button("Validate", EditorStyles.toolbarButton))
+                if (GUILayout.Button("驗證", EditorStyles.toolbarButton))
                 {
                     RunCommand(
                         ValidateEditorDocument,
                         document =>
-                            $"Structure, Commands syntax, and GUID are valid: " +
-                            $"{document.DisplayName} ({document.DocumentGuid:D}).");
+                            $"結構、指令語法與 GUID 均正確：" +
+                            $"{document.DisplayName}（{document.DocumentGuid:D}）。");
                 }
 
-                if (GUILayout.Button("Save As", EditorStyles.toolbarButton))
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("另存新檔", EditorStyles.toolbarButton))
                 {
                     SaveAsFromDialog();
                 }
@@ -318,25 +374,52 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void DrawDocumentFields()
         {
-            EditorGUILayout.LabelField("Game Event Document", EditorStyles.boldLabel);
-            TextAsset documentAsset = DrawDocumentAssetHeader();
-            DrawSceneTriggerReferences(documentAsset);
-
-            using (new EditorGUI.DisabledScope(true))
+            TextAsset documentAsset;
+            using (new EditorGUILayout.VerticalScope(CardStyle))
             {
-                EditorGUILayout.IntField("Schema Version", session.SchemaVersion);
+                DrawSectionHeader(
+                    "事件基本資料",
+                    "設定事件名稱、觸發時機與識別資訊。");
+                documentAsset = DrawDocumentAssetHeader();
+
+                using (new EditorGUI.DisabledScope(true))
+                {
+                    EditorGUILayout.IntField("資料格式版本", session.SchemaVersion);
+                }
+
+                DrawDocumentGuid();
+                session.DisplayName = EditorGUILayout.TextField(
+                    "顯示名稱",
+                    session.DisplayName ?? string.Empty);
+                DrawTriggerTiming();
+                DrawDocumentSaveButton();
             }
 
-            DrawDocumentGuid();
-            session.DisplayName = EditorGUILayout.TextField(
-                "Display Name",
-                session.DisplayName ?? string.Empty);
-            DrawTriggerTiming();
-            DrawDocumentSaveButton();
-            EditorGUILayout.Space();
-            DrawConditionEditor();
-            EditorGUILayout.Space();
-            DrawCommandsEditor();
+            using (new EditorGUILayout.VerticalScope(CardStyle))
+            {
+                DrawSceneTriggerReferences(documentAsset);
+            }
+
+            using (new EditorGUILayout.VerticalScope(CardStyle))
+            {
+                DrawConditionEditor();
+            }
+
+            using (new EditorGUILayout.VerticalScope(CardStyle))
+            {
+                DrawCommandsEditor();
+            }
+        }
+
+        private static void DrawSectionHeader(string title, string description = null)
+        {
+            EditorGUILayout.LabelField(title, SectionTitleStyle);
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                EditorGUILayout.LabelField(description, EditorStyles.wordWrappedMiniLabel);
+            }
+
+            EditorGUILayout.Space(6f);
         }
 
         private void DrawDocumentSaveButton()
@@ -352,8 +435,8 @@ namespace KahaGameCore.GameEvents.Editor
             GUI.contentColor = Color.white;
 
             GUIContent saveLabel = new GUIContent(
-                "Save *",
-                "This Game Event has unsaved changes.");
+                "儲存變更 *",
+                "此遊戲事件有尚未儲存的變更。");
             bool saveClicked = GUILayout.Button(saveLabel, GUILayout.Height(30f));
             GUI.backgroundColor = previousBackgroundColor;
             GUI.contentColor = previousContentColor;
@@ -382,7 +465,7 @@ namespace KahaGameCore.GameEvents.Editor
                 GUILayout.FlexibleSpace();
                 using (new EditorGUI.DisabledScope(documentAsset == null))
                 {
-                    if (GUILayout.Button("Ping", GUILayout.Width(56f), GUILayout.Height(28f)))
+                    if (GUILayout.Button("定位", GUILayout.Width(56f), GUILayout.Height(28f)))
                     {
                         EditorGUIUtility.PingObject(documentAsset);
                     }
@@ -398,20 +481,19 @@ namespace KahaGameCore.GameEvents.Editor
             IReadOnlyList<Component> references =
                 FindSceneTriggersReferencing(documentAsset, activeScene);
 
-            EditorGUILayout.Space(2f);
-            EditorGUILayout.LabelField(
-                $"Scene Trigger References ({references.Count})",
-                EditorStyles.boldLabel);
+            DrawSectionHeader(
+                $"場景觸發器引用（{references.Count}）",
+                "列出目前場景中使用此事件的物件。");
             EditorGUILayout.LabelField(
                 activeScene.IsValid()
-                    ? $"Active Scene: {activeScene.name}"
-                    : "No active scene.",
+                    ? $"目前場景：{activeScene.name}"
+                    : "目前沒有開啟場景。",
                 EditorStyles.miniLabel);
 
             if (references.Count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "No Scene Trigger in the active scene references this Game Event.",
+                    "目前場景中沒有觸發器引用此遊戲事件。",
                     MessageType.Info);
                 return;
             }
@@ -426,7 +508,7 @@ namespace KahaGameCore.GameEvents.Editor
                         trigger is SceneGameEventTrigger2D ? "2D" : "3D",
                         EditorStyles.miniLabel,
                         GUILayout.Width(24f));
-                    if (GUILayout.Button("Ping", GUILayout.Width(48f)))
+                    if (GUILayout.Button("定位", GUILayout.Width(48f)))
                     {
                         EditorGUIUtility.PingObject(trigger.gameObject);
                     }
@@ -492,19 +574,18 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void DrawEventCatalogSettings()
         {
-            EditorGUILayout.LabelField("Runtime Event Catalog", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField(
-                "This Game Event Catalog is both the authoring manifest and the runtime event order for events sharing a TriggerTiming.",
-                EditorStyles.wordWrappedMiniLabel);
+            DrawSectionHeader(
+                "執行事件目錄",
+                "事件目錄同時決定可編輯的事件清單，以及相同觸發時機下的執行順序。");
 
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.ObjectField(
-                    "Catalog", selectedEventCatalog, typeof(GameEventCatalogAsset), false);
+                    "事件目錄", selectedEventCatalog, typeof(GameEventCatalogAsset), false);
 
                 using (new EditorGUI.DisabledScope(EventCatalogEditor.Catalog == null))
                 {
-                    if (GUILayout.Button("Ping", GUILayout.Width(48f)))
+                    if (GUILayout.Button("定位", GUILayout.Width(48f)))
                     {
                         EditorGUIUtility.PingObject(EventCatalogEditor.Catalog);
                     }
@@ -531,10 +612,9 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void DrawCommandCatalogSettings()
         {
-            EditorGUILayout.LabelField("Command Assembly Scope", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField(
-                "Only descriptor providers compiled by the selected asmdef assemblies are scanned.",
-                EditorStyles.wordWrappedMiniLabel);
+            DrawSectionHeader(
+                "指令來源範圍",
+                "只會掃描下列 asmdef 中提供的指令描述；這些技術名稱需保留原文。");
 
             IReadOnlyList<string> availableAssemblies =
                 EffectCommandAssemblyCatalog.GetProviderAssemblyNames();
@@ -553,7 +633,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (availableAssemblies.Count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "No asmdef contains an IEffectCommandDescriptorProvider implementation.",
+                    "找不到包含 IEffectCommandDescriptorProvider 實作的 asmdef。",
                     MessageType.Warning);
             }
 
@@ -566,11 +646,9 @@ namespace KahaGameCore.GameEvents.Editor
             }
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Available Commands", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField(
-                "Choose which Commands from the selected asmdef scopes belong to this Game Event Catalog. " +
-                "Only checked Commands appear in Game Event rows.",
-                EditorStyles.wordWrappedMiniLabel);
+            DrawSectionHeader(
+                "可用指令",
+                "勾選要開放給此事件目錄使用的指令；只有勾選的指令會出現在事件編輯頁。");
 
             List<string> discoveryWarnings = new List<string>();
             List<EffectCommandDescriptor> registeredCommands =
@@ -583,7 +661,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (registeredCommands.Count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "No Commands were found in the selected asmdef scopes.",
+                    "選取的 asmdef 範圍中找不到任何指令。",
                     MessageType.Warning);
                 return;
             }
@@ -599,7 +677,7 @@ namespace KahaGameCore.GameEvents.Editor
             EditorGUILayout.Space();
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("Enable All", GUILayout.Width(96f)))
+                if (GUILayout.Button("全部啟用", GUILayout.Width(96f)))
                 {
                     selectedNames = registeredCommands
                         .Select(command => command.Name)
@@ -608,7 +686,7 @@ namespace KahaGameCore.GameEvents.Editor
                     changed = true;
                 }
 
-                if (GUILayout.Button("Clear All", GUILayout.Width(96f)))
+                if (GUILayout.Button("全部清除", GUILayout.Width(96f)))
                 {
                     selectedNames.Clear();
                     selected.Clear();
@@ -621,7 +699,9 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 EditorGUILayout.Space();
                 EditorGUILayout.LabelField(
-                    string.IsNullOrWhiteSpace(group.Key) ? "Uncategorized" : group.Key,
+                    string.IsNullOrWhiteSpace(group.Key)
+                        ? "未分類"
+                        : FormatCommandCategory(group.Key),
                     EditorStyles.miniBoldLabel);
                 foreach (EffectCommandDescriptor descriptor in group)
                 {
@@ -658,13 +738,13 @@ namespace KahaGameCore.GameEvents.Editor
             if (missingNames.Count > 0)
             {
                 EditorGUILayout.Space();
-                EditorGUILayout.LabelField("Missing Registrations", EditorStyles.miniBoldLabel);
+                EditorGUILayout.LabelField("遺失的指令註冊", EditorStyles.miniBoldLabel);
                 foreach (string missingName in missingNames)
                 {
                     using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
                     {
-                        EditorGUILayout.LabelField($"Missing / {missingName}");
-                        if (GUILayout.Button("Remove", GUILayout.Width(72f)))
+                        EditorGUILayout.LabelField($"遺失／{missingName}");
+                        if (GUILayout.Button("移除", GUILayout.Width(72f)))
                         {
                             selectedNames.RemoveAll(name => name == missingName);
                             changed = true;
@@ -683,26 +763,22 @@ namespace KahaGameCore.GameEvents.Editor
             EditorUtility.SetDirty(selectedEventCatalog);
             RefreshCatalog(false);
             SetStatus(
-                $"Available Commands updated: {selectedNames.Count} selected.",
+                $"已更新可用指令，共選取 {selectedNames.Count} 個。",
                 MessageType.Info);
         }
 
         private void DrawEventCatalogSetup()
         {
             EditorGUILayout.Space(24f);
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            using (new EditorGUILayout.VerticalScope(CardStyle))
             {
-                EditorGUILayout.LabelField(
-                    "Game Event Catalog Required",
-                    EditorStyles.boldLabel);
+                DrawSectionHeader("需要事件目錄", "建立或指定事件目錄後，才能開始編輯遊戲事件。");
                 EditorGUILayout.HelpBox(
-                    "The Game Event Editor needs its own Catalog before events, event order, " +
-                    "timings, Parameter Tables, or Commands can be edited. " +
-                    "Create the project catalog now, or assign an existing one.",
+                    "事件目錄會管理事件清單、執行順序、觸發時機、參數表與可用指令。",
                     MessageType.Warning);
 
                 GameEventCatalogAsset existing = (GameEventCatalogAsset)EditorGUILayout.ObjectField(
-                    "Use Existing",
+                    "使用既有目錄",
                     null,
                     typeof(GameEventCatalogAsset),
                     false);
@@ -714,7 +790,7 @@ namespace KahaGameCore.GameEvents.Editor
 
                 EditorGUILayout.Space(8f);
                 if (GUILayout.Button(
-                        "Create Game Event Catalog",
+                        "建立事件目錄",
                         GUILayout.Height(34f)))
                 {
                     CreateEventCatalog();
@@ -724,26 +800,21 @@ namespace KahaGameCore.GameEvents.Editor
 
             EditorGUILayout.Space(8f);
             EditorGUILayout.LabelField(
-                "After creation, the Catalog is selected automatically. It contains only " +
-                "Game Event authoring/runtime dependencies; Flow integration is separate.",
+                "建立完成後會自動選取。事件目錄只保存事件編輯與執行所需資料。",
                 EditorStyles.wordWrappedMiniLabel);
         }
 
         private void DrawGameEventDocumentSetup()
         {
             EditorGUILayout.Space(24f);
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            using (new EditorGUILayout.VerticalScope(CardStyle))
             {
-                EditorGUILayout.LabelField(
-                    "Game Event Document Required",
-                    EditorStyles.boldLabel);
+                DrawSectionHeader("尚未開啟遊戲事件", "建立新事件，或開啟既有的 .gameevent.json 檔案。");
                 EditorGUILayout.HelpBox(
-                    "Create a new Game Event document before editing its timing, " +
-                    "conditions, or commands. You can also open an existing " +
-                    ".gameevent.json file.",
+                    "開啟事件後，即可設定觸發時機、執行條件與指令。",
                     MessageType.Info);
 
-                if (GUILayout.Button("Create New", GUILayout.Height(34f)))
+                if (GUILayout.Button("建立新事件", GUILayout.Height(34f)))
                 {
                     if (CreateNewDocumentFile())
                     {
@@ -751,7 +822,7 @@ namespace KahaGameCore.GameEvents.Editor
                     }
                 }
 
-                if (GUILayout.Button("Open Existing", GUILayout.Height(26f)))
+                if (GUILayout.Button("開啟既有事件", GUILayout.Height(30f)))
                 {
                     LoadFromDialog();
                     if (session.HasOpenFile)
@@ -765,10 +836,10 @@ namespace KahaGameCore.GameEvents.Editor
         private bool CreateNewDocumentFile()
         {
             string selectedPath = EditorUtility.SaveFilePanelInProject(
-                "Create Game Event",
+                "建立遊戲事件",
                 "NewGameEvent.gameevent",
                 "json",
-                "Create and open a canonical Game Event file under Assets/.");
+                "在 Assets/ 下建立並開啟遊戲事件檔案。");
             if (string.IsNullOrEmpty(selectedPath))
             {
                 return false;
@@ -778,8 +849,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (AssetDatabase.LoadMainAssetAtPath(selectedPath) != null)
             {
                 SetStatus(
-                    $"A Game Event file already exists at '{selectedPath}'. " +
-                    "Choose a new file name.",
+                    $"路徑「{selectedPath}」已存在遊戲事件，請改用其他檔名。",
                     MessageType.Error);
                 return false;
             }
@@ -796,7 +866,7 @@ namespace KahaGameCore.GameEvents.Editor
                 if (createdAsset == null)
                 {
                     throw new InvalidOperationException(
-                        $"Created Game Event could not be loaded: {selectedPath}");
+                        $"無法載入剛建立的遊戲事件：{selectedPath}");
                 }
 
                 EventCatalogEditor.SetCatalog(eventCatalog);
@@ -809,7 +879,7 @@ namespace KahaGameCore.GameEvents.Editor
                 EventCatalogEditor.Refresh();
                 Selection.activeObject = createdAsset;
                 SetStatus(
-                    $"Created, cataloged, and opened: {selectedPath}.",
+                    $"已建立、加入目錄並開啟：{selectedPath}",
                     MessageType.Info);
                 SyncUnsavedState();
                 return true;
@@ -836,8 +906,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (existingAsset != null && !(existingAsset is GameEventCatalogAsset))
             {
                 throw new InvalidOperationException(
-                    $"Cannot create Game Event Catalog because '{catalogPath}' " +
-                    "is already used by another asset type.");
+                    $"無法建立事件目錄，因為「{catalogPath}」已被其他資產類型使用。");
             }
 
             eventCatalog = existingAsset as GameEventCatalogAsset;
@@ -859,7 +928,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (string.IsNullOrEmpty(directory))
             {
                 throw new ArgumentException(
-                    "Game Event asset must have a parent directory.",
+                    "遊戲事件資產必須位於資料夾內。",
                     nameof(eventAssetPath));
             }
 
@@ -872,7 +941,7 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 GameEventCatalogAsset selected =
                     (GameEventCatalogAsset)EditorGUILayout.ObjectField(
-                    "Game Event Catalog",
+                    "事件目錄",
                     selectedEventCatalog,
                     typeof(GameEventCatalogAsset),
                     false);
@@ -881,7 +950,7 @@ namespace KahaGameCore.GameEvents.Editor
                     SetEventCatalog(selected);
                 }
 
-                if (GUILayout.Button("Create New", GUILayout.Width(92f)))
+                if (GUILayout.Button("建立新的", GUILayout.Width(92f)))
                 {
                     CreateEventCatalog();
                     GUIUtility.ExitGUI();
@@ -889,7 +958,7 @@ namespace KahaGameCore.GameEvents.Editor
 
                 using (new EditorGUI.DisabledScope(selectedEventCatalog == null))
                 {
-                    if (GUILayout.Button("Ping", GUILayout.Width(48f)))
+                    if (GUILayout.Button("定位", GUILayout.Width(48f)))
                     {
                         EditorGUIUtility.PingObject(selectedEventCatalog);
                     }
@@ -908,8 +977,8 @@ namespace KahaGameCore.GameEvents.Editor
                 RefreshCatalog(false);
                 SetStatus(
                     selected == null
-                        ? "Game Event Catalog selection cleared."
-                        : $"Game Event Catalog selected: {AssetDatabase.GetAssetPath(selected)}",
+                        ? "已清除事件目錄選擇。"
+                        : $"已選擇事件目錄：{AssetDatabase.GetAssetPath(selected)}",
                     MessageType.Info);
             }
             catch (Exception exception)
@@ -921,10 +990,10 @@ namespace KahaGameCore.GameEvents.Editor
         private void CreateEventCatalog()
         {
             string path = EditorUtility.SaveFilePanelInProject(
-                "Create Game Event Catalog",
+                "建立事件目錄",
                 "GameEventCatalog",
                 "asset",
-                "Create the runtime Game Event Catalog under Assets/.");
+                "在 Assets/ 下建立執行時使用的事件目錄。");
             if (string.IsNullOrEmpty(path))
             {
                 return;
@@ -958,7 +1027,7 @@ namespace KahaGameCore.GameEvents.Editor
                     session.LoadDocument(AssetDatabase.GetAssetPath(eventAsset));
                     return session.ValidateDocument();
                 },
-                document => $"Loaded from catalog: {document.DisplayName}.");
+                document => $"已從目錄開啟：{document.DisplayName}。");
             if (!loaded)
             {
                 return;
@@ -976,24 +1045,24 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 using (new EditorGUI.DisabledScope(true))
                 {
-                    EditorGUILayout.TextField("Document GUID", session.DocumentGuid ?? string.Empty);
+                    EditorGUILayout.TextField("事件 GUID", session.DocumentGuid ?? string.Empty);
                 }
 
-                if (GUILayout.Button("Copy", GUILayout.Width(52f)))
+                if (GUILayout.Button("複製", GUILayout.Width(52f)))
                 {
                     EditorGUIUtility.systemCopyBuffer = session.DocumentGuid ?? string.Empty;
-                    SetStatus("Document GUID copied.", MessageType.Info);
+                    SetStatus("已複製事件 GUID。", MessageType.Info);
                 }
 
-                if (GUILayout.Button("Regenerate", GUILayout.Width(82f)) &&
+                if (GUILayout.Button("重新產生", GUILayout.Width(82f)) &&
                     EditorUtility.DisplayDialog(
-                        "Regenerate Document GUID?",
-                        "References to the current GUID will no longer identify this document.",
-                        "Regenerate",
-                        "Cancel"))
+                        "要重新產生事件 GUID 嗎？",
+                        "目前引用此 GUID 的資料將無法再識別這份事件。",
+                        "重新產生",
+                        "取消"))
                 {
                     session.RegenerateDocumentGuid();
-                    SetStatus("Document GUID regenerated.", MessageType.Warning);
+                    SetStatus("已重新產生事件 GUID。", MessageType.Warning);
                 }
             }
         }
@@ -1008,15 +1077,13 @@ namespace KahaGameCore.GameEvents.Editor
             int selectedCount = selectedParameterTables.Count(table => table != null);
             parameterTablesFoldout = EditorGUILayout.Foldout(
                 parameterTablesFoldout,
-                $"Authoring Parameter Tables ({selectedCount})",
+                $"編輯用參數表（{selectedCount}）",
                 true);
             if (parameterTablesFoldout)
             {
                 EditorGUILayout.HelpBox(
-                    "Only the tables selected here are used for Condition and ParameterKey choices. " +
-                    "Create a new table here or add an existing one. Click Edit to modify it; " +
-                    "saving refreshes those choices immediately. " +
-                    "The selection is stored in this Game Event Catalog.",
+                    "只有此處選取的參數表會出現在條件與參數鍵選項中。" +
+                    "可建立新表或加入既有表，儲存後會立即重新整理選項。",
                     MessageType.Info);
 
                 int removeIndex = -1;
@@ -1026,7 +1093,7 @@ namespace KahaGameCore.GameEvents.Editor
                     {
                         TextAsset current = selectedParameterTables[index];
                         TextAsset selected = (TextAsset)EditorGUILayout.ObjectField(
-                            $"Table {index + 1}",
+                            $"參數表 {index + 1}",
                             current,
                             typeof(TextAsset),
                             false);
@@ -1037,7 +1104,7 @@ namespace KahaGameCore.GameEvents.Editor
 
                         using (new EditorGUI.DisabledScope(current == null))
                         {
-                            if (GUILayout.Button("Edit", GUILayout.Width(48f)))
+                            if (GUILayout.Button("編輯", GUILayout.Width(48f)))
                             {
                                 OpenEmbeddedParameterTable(current);
                             }
@@ -1058,12 +1125,12 @@ namespace KahaGameCore.GameEvents.Editor
                 using (new EditorGUI.DisabledScope(selectedEventCatalog == null))
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("+ Create New Table", GUILayout.Width(160f)))
+                    if (GUILayout.Button("＋ 建立新參數表", GUILayout.Width(160f)))
                     {
                         CreateParameterTableFromDialog();
                     }
 
-                    if (GUILayout.Button("+ Add Existing Table", GUILayout.Width(170f)))
+                    if (GUILayout.Button("＋ 加入既有參數表", GUILayout.Width(170f)))
                     {
                         selectedParameterTables.Add(null);
                     }
@@ -1073,8 +1140,8 @@ namespace KahaGameCore.GameEvents.Editor
                 {
                     EditorGUILayout.HelpBox(
                         selectedEventCatalog == null
-                            ? "Select or create a Game Event Catalog before adding Parameter Tables."
-                            : "No Parameter Tables selected. Project and sample tables are not loaded automatically.",
+                            ? "請先選擇或建立事件目錄，再加入參數表。"
+                            : "目前未選取參數表；專案與範例資料不會自動載入。",
                         MessageType.Warning);
                 }
             }
@@ -1090,10 +1157,10 @@ namespace KahaGameCore.GameEvents.Editor
             }
 
             string selectedPath = EditorUtility.SaveFilePanelInProject(
-                "Create Parameter Table",
+                "建立參數表",
                 "NewParameterTable.parameters",
                 "json",
-                "Create the Parameter Table JSON under Assets/.");
+                "在 Assets/ 下建立參數表 JSON。");
             if (string.IsNullOrEmpty(selectedPath))
             {
                 return;
@@ -1119,7 +1186,7 @@ namespace KahaGameCore.GameEvents.Editor
                 if (created == null)
                 {
                     throw new InvalidOperationException(
-                        $"Created Parameter Table could not be loaded: {ParameterEditor.AssetPath}");
+                        $"無法載入剛建立的參數表：{ParameterEditor.AssetPath}");
                 }
 
                 bool alreadySelected = selectedParameterTables.Any(
@@ -1147,7 +1214,7 @@ namespace KahaGameCore.GameEvents.Editor
                 SaveParameterTableSettings();
                 parameterEditorFoldout = true;
                 SetStatus(
-                    $"Created and opened Parameter Table: {ParameterEditor.AssetPath}",
+                    $"已建立並開啟參數表：{ParameterEditor.AssetPath}",
                     MessageType.Info);
                 SyncUnsavedState();
                 return true;
@@ -1183,7 +1250,7 @@ namespace KahaGameCore.GameEvents.Editor
                 if (!path.EndsWith(".parameters.json", StringComparison.OrdinalIgnoreCase))
                 {
                     SetStatus(
-                        $"'{path}' is not a .parameters.json asset.",
+                        $"「{path}」不是 .parameters.json 資產。",
                         MessageType.Error);
                     return;
                 }
@@ -1195,7 +1262,7 @@ namespace KahaGameCore.GameEvents.Editor
                     if (tableIndex != index && selectedParameterTables[tableIndex] == selected)
                     {
                         SetStatus(
-                            $"Parameter Table '{path}' is already selected.",
+                            $"參數表「{path}」已經選取。",
                             MessageType.Error);
                         return;
                     }
@@ -1260,7 +1327,7 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 ParameterEditor.LoadTable(path);
                 parameterEditorFoldout = true;
-                SetStatus($"Editing Parameter Table: {path}", MessageType.Info);
+                SetStatus($"正在編輯參數表：{path}", MessageType.Info);
             }
             catch (Exception exception)
             {
@@ -1277,8 +1344,8 @@ namespace KahaGameCore.GameEvents.Editor
 
             EditorGUILayout.Space();
             string title = string.IsNullOrWhiteSpace(ParameterEditor.TableDisplayName)
-                ? "Parameter Table Editor"
-                : "Parameter Table Editor — " + ParameterEditor.TableDisplayName;
+                ? "參數表編輯器"
+                : "參數表編輯器 — " + ParameterEditor.TableDisplayName;
             parameterEditorFoldout = EditorGUILayout.Foldout(
                 parameterEditorFoldout,
                 title,
@@ -1302,10 +1369,10 @@ namespace KahaGameCore.GameEvents.Editor
                     }
 
                     GUIContent saveLabel = new GUIContent(
-                        isDirty ? "Save Table *" : "Save Table",
+                        isDirty ? "儲存參數表 *" : "儲存參數表",
                         isDirty
-                            ? "This Parameter Table has unsaved changes."
-                            : "Save this Parameter Table.");
+                            ? "此參數表有尚未儲存的變更。"
+                            : "儲存此參數表。");
                     bool saveClicked = GUILayout.Button(
                         saveLabel,
                         EditorStyles.toolbarButton,
@@ -1317,14 +1384,14 @@ namespace KahaGameCore.GameEvents.Editor
                         SaveEmbeddedParameterTable();
                     }
 
-                    if (GUILayout.Button("Reload Table", EditorStyles.toolbarButton) &&
+                    if (GUILayout.Button("重新載入", EditorStyles.toolbarButton) &&
                         ConfirmDiscardParameterTableChanges())
                     {
                         ReloadEmbeddedParameterTable();
                     }
 
                     GUILayout.FlexibleSpace();
-                    if (GUILayout.Button("Close", EditorStyles.toolbarButton) &&
+                    if (GUILayout.Button("關閉", EditorStyles.toolbarButton) &&
                         ConfirmDiscardParameterTableChanges())
                     {
                         ParameterEditor.Clear();
@@ -1352,7 +1419,7 @@ namespace KahaGameCore.GameEvents.Editor
                 ParameterEditor.SaveTable(path);
                 RefreshCatalog(false);
                 SetStatus(
-                    $"Saved Parameter Table and refreshed event choices: {path}",
+                    $"已儲存參數表並重新整理事件選項：{path}",
                     MessageType.Info);
                 SyncUnsavedState();
                 return true;
@@ -1372,7 +1439,7 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 ParameterEditor.Reload();
                 RefreshCatalog(false);
-                SetStatus("Parameter Table reloaded from disk.", MessageType.Info);
+                SetStatus("已從磁碟重新載入參數表。", MessageType.Info);
                 SyncUnsavedState();
             }
             catch (Exception exception)
@@ -1385,10 +1452,10 @@ namespace KahaGameCore.GameEvents.Editor
         private bool ConfirmDiscardParameterTableChanges()
         {
             return !ParameterEditor.IsDirty || EditorUtility.DisplayDialog(
-                "Unsaved Parameter Table",
-                $"Discard unsaved changes to '{ParameterEditor.TableDisplayName}'?",
-                "Discard",
-                "Cancel");
+                "參數表尚未儲存",
+                $"要捨棄「{ParameterEditor.TableDisplayName}」尚未儲存的變更嗎？",
+                "捨棄變更",
+                "取消");
         }
 
         private bool IsEditingParameterTable(TextAsset tableAsset)
@@ -1423,7 +1490,7 @@ namespace KahaGameCore.GameEvents.Editor
             try
             {
                 if (selectedEventCatalog == null)
-                    throw new InvalidOperationException("Select a Game Event Catalog first.");
+                    throw new InvalidOperationException("請先選擇事件目錄。");
                 Undo.RecordObject(selectedEventCatalog, "Change Game Event Parameter Tables");
                 selectedEventCatalog.SetParameterTables(
                     selectedParameterTables.Where(table => table != null));
@@ -1438,9 +1505,11 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void DrawTriggerTimingSettings()
         {
-            EditorGUILayout.LabelField("Trigger Timings", EditorStyles.boldLabel);
+            DrawSectionHeader(
+                "觸發時機",
+                "管理可供事件選擇的觸發契約；修改名稱不會自動更新既有事件。");
             EditorGUILayout.HelpBox(
-                "These are explicit Game Event trigger contracts. Add, rename, reorder, or remove them here. Existing documents are not treated as configuration.",
+                "可在此新增、重新命名或移除觸發時機。請避免建立重複名稱。",
                 MessageType.Info);
 
             List<string> values = selectedEventCatalog.TriggerTimings.ToList();
@@ -1450,7 +1519,7 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    string edited = EditorGUILayout.TextField($"Timing {index + 1}", values[index]);
+                    string edited = EditorGUILayout.TextField($"時機 {index + 1}", values[index]);
                     if (!string.Equals(edited, values[index], StringComparison.Ordinal))
                     {
                         values[index] = edited;
@@ -1468,7 +1537,7 @@ namespace KahaGameCore.GameEvents.Editor
                 changed = true;
             }
 
-            if (GUILayout.Button("+ Add Trigger Timing", GUILayout.Width(170f)))
+            if (GUILayout.Button("＋ 新增觸發時機", GUILayout.Width(170f), GUILayout.Height(28f)))
             {
                 values.Add("NewTiming");
                 changed = true;
@@ -1480,7 +1549,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (normalized.Count() != normalized.Distinct(StringComparer.Ordinal).Count())
             {
                 EditorGUILayout.HelpBox(
-                    "Trigger Timings must be unique. Duplicate rows are ignored when saved.",
+                    "觸發時機名稱不可重複；儲存時會忽略重複項目。",
                     MessageType.Warning);
             }
 
@@ -1506,17 +1575,17 @@ namespace KahaGameCore.GameEvents.Editor
 
             string[] labels = values
                 .Select(value => string.IsNullOrEmpty(value)
-                    ? "Direct Scene Trigger (no timing)"
+                    ? "由場景直接觸發（無指定時機）"
                     : value)
                 .ToArray();
             int selectedIndex = Math.Max(0, values.IndexOf(session.TriggerTiming ?? string.Empty));
-            int newIndex = EditorGUILayout.Popup("Trigger Timing", selectedIndex, labels);
+            int newIndex = EditorGUILayout.Popup("觸發時機", selectedIndex, labels);
             session.TriggerTiming = values[newIndex];
             if (!string.IsNullOrWhiteSpace(session.TriggerTiming) &&
                 !catalog.TriggerTimings.Contains(session.TriggerTiming))
             {
                 EditorGUILayout.HelpBox(
-                    $"'{session.TriggerTiming}' is used by this document but is not configured in the Catalog.",
+                    $"此事件使用「{session.TriggerTiming}」，但事件目錄中尚未設定這個觸發時機。",
                     MessageType.Warning);
             }
         }
@@ -1529,16 +1598,17 @@ namespace KahaGameCore.GameEvents.Editor
                 RefreshConditionDrafts();
             }
 
-            EditorGUILayout.LabelField("Condition", EditorStyles.boldLabel);
+            DrawSectionHeader(
+                "執行條件",
+                "只有條件成立時才會執行下方指令；沒有條件代表永遠執行。");
 
             if (!string.IsNullOrEmpty(conditionEditorError))
             {
                 EditorGUILayout.HelpBox(
-                    "This event uses condition syntax that is not supported by the " +
-                    "structured editor. The saved condition is preserved. Clear it to " +
-                    "rebuild the condition as rows.",
+                    "此事件使用了結構化編輯器不支援的條件語法。原始條件仍會保留；" +
+                    "若要改用圖形介面編輯，請先清除並重建。",
                     MessageType.Error);
-                if (GUILayout.Button("Clear and Rebuild", GUILayout.Width(130f)))
+                if (GUILayout.Button("清除並重建", GUILayout.Width(130f)))
                 {
                     conditionRoot = new GameEventConditionGroupDraft();
                     conditionEditorError = null;
@@ -1559,11 +1629,11 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 if (conditionRoot.Children.Count == 0)
                 {
-                    EditorGUILayout.LabelField("Always.", EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField("永遠執行。", EditorStyles.miniLabel);
                     if (GUILayout.Button(
                             setupState == ConditionSetupState.SelectParameterTable
-                                ? "Select a Parameter Table to Add Conditions"
-                                : "Add a Bool or Number Parameter to Build Conditions",
+                                ? "先選擇參數表，才能新增條件"
+                                : "先新增布林或數值參數，才能建立條件",
                             GUILayout.Height(28f)))
                     {
                         selectedTab = EditorTab.ParameterTables;
@@ -1575,10 +1645,9 @@ namespace KahaGameCore.GameEvents.Editor
                 else
                 {
                     EditorGUILayout.HelpBox(
-                        "The condition references Parameters that are not available from " +
-                        "the selected Parameter Tables.",
+                        "條件引用的參數不在目前選取的參數表中。",
                         MessageType.Error);
-                    if (GUILayout.Button("Clear Conditions", GUILayout.Width(130f)))
+                    if (GUILayout.Button("清除條件", GUILayout.Width(130f)))
                     {
                         conditionRoot = new GameEventConditionGroupDraft();
                         session.Condition = string.Empty;
@@ -1623,13 +1692,13 @@ namespace KahaGameCore.GameEvents.Editor
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     EditorGUILayout.LabelField(
-                        isRoot ? "Root Group" : "Condition Group",
+                        isRoot ? "主要條件群組" : "條件群組",
                         EditorStyles.boldLabel,
                         GUILayout.Width(110f));
                     EditorGUI.BeginChangeCheck();
                     group.Mode = (GameEventConditionGroupMode)EditorGUILayout.Popup(
                         (int)group.Mode,
-                        new[] { "Match All (AND)", "Match Any (OR)" });
+                        new[] { "全部成立（AND）", "任一成立（OR）" });
                     changed |= EditorGUI.EndChangeCheck();
 
                     if (!isRoot && GUILayout.Button("×", GUILayout.Width(28f)))
@@ -1683,7 +1752,7 @@ namespace KahaGameCore.GameEvents.Editor
                 {
                     if (isRoot)
                     {
-                        EditorGUILayout.HelpBox("Always — no conditions.", MessageType.Info);
+                        EditorGUILayout.HelpBox("沒有條件，事件會永遠執行。", MessageType.Info);
                     }
                     else
                     {
@@ -1694,13 +1763,13 @@ namespace KahaGameCore.GameEvents.Editor
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("+ Condition", GUILayout.Width(100f)))
+                    if (GUILayout.Button("＋ 新增條件", GUILayout.Width(110f)))
                     {
                         group.Children.Add(CreateDefaultCondition(parameters[0]));
                         changed = true;
                     }
 
-                    if (GUILayout.Button("+ Group", GUILayout.Width(90f)))
+                    if (GUILayout.Button("＋ 新增群組", GUILayout.Width(100f)))
                     {
                         GameEventConditionGroupDraft childGroup =
                             new GameEventConditionGroupDraft();
@@ -1754,7 +1823,7 @@ namespace KahaGameCore.GameEvents.Editor
                 else
                 {
                     EditorGUILayout.HelpBox(
-                        $"Parameter '{draft.ParameterKey}' is not available.",
+                        $"找不到參數「{draft.ParameterKey}」。",
                         MessageType.Error);
                 }
             }
@@ -1778,7 +1847,7 @@ namespace KahaGameCore.GameEvents.Editor
             }
             else
             {
-                labels = new[] { $"Missing / {currentValue}" }
+                labels = new[] { $"遺失／{currentValue}" }
                     .Concat(parameters.Select(FormatParameterLabel))
                     .ToArray();
                 selectedIndex = 0;
@@ -1802,7 +1871,7 @@ namespace KahaGameCore.GameEvents.Editor
                 bool expected = GetExpectedBoolean(draft);
                 int selectedIndex = expected ? 0 : 1;
                 selectedIndex = EditorGUILayout.Popup(
-                    "State",
+                    "狀態",
                     selectedIndex,
                     BoolOperatorLabels);
                 draft.Operator = "==";
@@ -1815,7 +1884,7 @@ namespace KahaGameCore.GameEvents.Editor
                 draft.Operator ?? string.Empty);
             operatorIndex = Mathf.Max(0, operatorIndex);
             operatorIndex = EditorGUILayout.Popup(
-                "Comparison",
+                "比較方式",
                 operatorIndex,
                 NumericOperatorLabels);
             draft.Operator = NumericOperatorSymbols[operatorIndex];
@@ -1827,7 +1896,7 @@ namespace KahaGameCore.GameEvents.Editor
                     NumberStyles.Integer,
                     CultureInfo.InvariantCulture,
                     out int value);
-                value = EditorGUILayout.IntField("Value", value);
+                value = EditorGUILayout.IntField("比較值", value);
                 draft.Value = value.ToString(CultureInfo.InvariantCulture);
                 return;
             }
@@ -1837,7 +1906,7 @@ namespace KahaGameCore.GameEvents.Editor
                 NumberStyles.Float,
                 CultureInfo.InvariantCulture,
                 out float floatValue);
-            floatValue = EditorGUILayout.FloatField("Value", floatValue);
+            floatValue = EditorGUILayout.FloatField("比較值", floatValue);
             draft.Value = floatValue.ToString("R", CultureInfo.InvariantCulture);
         }
 
@@ -1874,13 +1943,15 @@ namespace KahaGameCore.GameEvents.Editor
         private void DrawCommandsEditor()
         {
             EnsureCatalog();
-            EditorGUILayout.LabelField("Commands", EditorStyles.boldLabel);
+            DrawSectionHeader(
+                $"執行指令（{commandDrafts.Count}）",
+                "指令會依照由上到下的順序執行；欄位中的英文 ID 是實際儲存值。");
             if (catalog.Commands.Count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "No Commands are enabled in the selected Game Event Catalog.",
+                    "目前的事件目錄尚未啟用任何指令。",
                     MessageType.Warning);
-                if (GUILayout.Button("Configure Commands"))
+                if (GUILayout.Button("前往設定可用指令", GUILayout.Height(30f)))
                 {
                     selectedTab = EditorTab.Commands;
                 }
@@ -1897,11 +1968,17 @@ namespace KahaGameCore.GameEvents.Editor
                 {
                     using (new EditorGUILayout.HorizontalScope())
                     {
-                        EditorGUILayout.LabelField($"#{index + 1}", GUILayout.Width(28f));
-                        DrawCommandSelector(draft);
+                        EditorGUILayout.LabelField(
+                            $"指令 {index + 1:00}",
+                            CommandTitleStyle,
+                            GUILayout.Width(80f));
+                        GUILayout.FlexibleSpace();
                         using (new EditorGUI.DisabledScope(index == 0))
                         {
-                            if (GUILayout.Button("↑", GUILayout.Width(28f)))
+                            if (GUILayout.Button(
+                                    new GUIContent("上移", "將此指令往前移動"),
+                                    GUILayout.Width(52f),
+                                    GUILayout.Height(22f)))
                             {
                                 moveFrom = index;
                                 moveTo = index - 1;
@@ -1910,42 +1987,56 @@ namespace KahaGameCore.GameEvents.Editor
 
                         using (new EditorGUI.DisabledScope(index == commandDrafts.Count - 1))
                         {
-                            if (GUILayout.Button("↓", GUILayout.Width(28f)))
+                            if (GUILayout.Button(
+                                    new GUIContent("下移", "將此指令往後移動"),
+                                    GUILayout.Width(52f),
+                                    GUILayout.Height(22f)))
                             {
                                 moveFrom = index;
                                 moveTo = index + 1;
                             }
                         }
 
-                        if (GUILayout.Button("×", GUILayout.Width(28f)))
+                        if (GUILayout.Button(
+                                new GUIContent("刪除", "移除此指令"),
+                                GUILayout.Width(52f),
+                                GUILayout.Height(22f)))
                         {
                             removeIndex = index;
                         }
                     }
 
+                    EditorGUILayout.Space(5f);
+                    DrawCommandSelector(draft);
+
                     if (catalog.TryGetCommand(draft.Name, out EffectCommandDescriptor descriptor))
                     {
                         EnsureArgumentCount(draft, descriptor);
+                        EditorGUILayout.Space(4f);
+                        EditorGUI.indentLevel++;
                         for (int argumentIndex = 0;
                              argumentIndex < descriptor.Parameters.Count;
                              argumentIndex++)
                         {
                             DrawCommandArgument(draft, descriptor, argumentIndex);
                         }
+                        EditorGUI.indentLevel--;
                     }
                     else if (string.IsNullOrWhiteSpace(draft.Name))
                     {
                         EditorGUILayout.HelpBox(
-                            "Select a command to configure its parameters.",
+                            "請先選擇指令，再設定它的參數。",
                             MessageType.Info);
                     }
                     else
                     {
                         EditorGUILayout.HelpBox(
-                            $"Command '{draft.Name}' is not registered. Select a replacement.",
+                            $"指令「{draft.Name}」尚未註冊，請選擇替代指令。",
                             MessageType.Error);
                     }
                 }
+
+                EditorGUILayout.Space(5f);
             }
 
             if (removeIndex >= 0)
@@ -1964,10 +2055,17 @@ namespace KahaGameCore.GameEvents.Editor
                 commandDrafts
                     .Where(draft => !string.IsNullOrWhiteSpace(draft.Name))
                     .ToList());
-            EditorGUILayout.LabelField("Serialized Preview", EditorStyles.miniBoldLabel);
-            using (new EditorGUI.DisabledScope(true))
+            EditorGUILayout.Space(6f);
+            serializedPreviewFoldout = EditorGUILayout.Foldout(
+                serializedPreviewFoldout,
+                "進階：序列化內容預覽",
+                true);
+            if (serializedPreviewFoldout)
             {
-                EditorGUILayout.TextArea(session.Commands, GUILayout.MinHeight(56f));
+                using (new EditorGUI.DisabledScope(true))
+                {
+                    EditorGUILayout.TextArea(session.Commands, GUILayout.MinHeight(56f));
+                }
             }
         }
 
@@ -1980,7 +2078,7 @@ namespace KahaGameCore.GameEvents.Editor
             bool isUnselected = string.IsNullOrWhiteSpace(draft.Name);
             if (isUnselected)
             {
-                labels = new[] { "Select Command…" }
+                labels = new[] { "請選擇指令…" }
                     .Concat(options.Select(FormatCommandLabel))
                     .ToArray();
                 selectedIndex = 0;
@@ -1992,13 +2090,13 @@ namespace KahaGameCore.GameEvents.Editor
             }
             else
             {
-                labels = new[] { $"Missing / {draft.Name}" }
+                labels = new[] { $"遺失／{draft.Name}" }
                     .Concat(options.Select(FormatCommandLabel))
                     .ToArray();
                 selectedIndex = 0;
             }
 
-            int newIndex = EditorGUILayout.Popup(selectedIndex, labels);
+            int newIndex = EditorGUILayout.Popup("指令類型", selectedIndex, labels);
             if (newIndex == selectedIndex)
             {
                 return;
@@ -2016,7 +2114,7 @@ namespace KahaGameCore.GameEvents.Editor
             int argumentIndex)
         {
             EffectCommandParameterDefinition parameter = descriptor.Parameters[argumentIndex];
-            string label = $"{parameter.Name} ({parameter.Kind})";
+            string label = FormatCommandParameterLabel(parameter);
             if (parameter.Kind == EffectCommandParameterKind.ParameterKey)
             {
                 draft.Arguments[argumentIndex] = DrawParameterKeyPopup(
@@ -2025,25 +2123,9 @@ namespace KahaGameCore.GameEvents.Editor
                 return;
             }
 
-            if (descriptor.Name == "SetParameter" && argumentIndex == 1 &&
-                draft.Arguments.Count > 0 &&
-                catalog.TryGetParameter(draft.Arguments[0], out ParameterDefinition target) &&
-                target.Type == ParameterType.Bool)
-            {
-                string[] values = { "true", "false" };
-                int selected = string.Equals(
-                    draft.Arguments[argumentIndex],
-                    "false",
-                    StringComparison.OrdinalIgnoreCase) ? 1 : 0;
-                draft.Arguments[argumentIndex] = values[
-                    EditorGUILayout.Popup(label, selected, new[] { "True", "False" })];
-                return;
-            }
-
-            draft.Arguments[argumentIndex] = DrawKnownValuePopup(
+            draft.Arguments[argumentIndex] = EditorGUILayout.TextField(
                 label,
-                draft.Arguments[argumentIndex],
-                catalog.GetArgumentOptions(descriptor.Name, argumentIndex));
+                draft.Arguments[argumentIndex] ?? string.Empty);
         }
 
         private string DrawParameterKeyPopup(string label, string currentValue)
@@ -2051,7 +2133,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (catalog.Parameters.Count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "No Parameter keys were found in the selected Parameter Tables.",
+                    "選取的參數表中找不到任何參數鍵。",
                     MessageType.Error);
                 return currentValue;
             }
@@ -2066,7 +2148,7 @@ namespace KahaGameCore.GameEvents.Editor
             }
             else
             {
-                labels = new[] { $"Missing / {currentValue}" }
+                labels = new[] { $"遺失／{currentValue}" }
                     .Concat(options.Select(FormatParameterLabel))
                     .ToArray();
                 selectedIndex = 0;
@@ -2081,31 +2163,9 @@ namespace KahaGameCore.GameEvents.Editor
             return options[isKnown ? newIndex : newIndex - 1].Key;
         }
 
-        private static string DrawKnownValuePopup(
-            string label,
-            string currentValue,
-            IReadOnlyList<string> knownValues)
-        {
-            List<string> values = knownValues
-                .Where(value => !string.IsNullOrEmpty(value))
-                .Distinct(StringComparer.Ordinal)
-                .ToList();
-            int knownIndex = values.IndexOf(currentValue ?? string.Empty);
-            string[] labels = values.Concat(new[] { "<Custom value…>" }).ToArray();
-            int customIndex = values.Count;
-            int selectedIndex = knownIndex >= 0 ? knownIndex : customIndex;
-            int newIndex = EditorGUILayout.Popup(label, selectedIndex, labels);
-            if (newIndex < customIndex)
-            {
-                return values[newIndex];
-            }
-
-            return EditorGUILayout.TextField("Custom", currentValue ?? string.Empty);
-        }
-
         private void DrawAddCommand()
         {
-            if (GUILayout.Button("Add Command"))
+            if (GUILayout.Button("＋ 新增指令", GUILayout.Height(32f)))
             {
                 commandDrafts.Add(new GameEventCommandDraft());
                 GUI.FocusControl(null);
@@ -2128,10 +2188,7 @@ namespace KahaGameCore.GameEvents.Editor
                     continue;
                 }
 
-                IReadOnlyList<string> knownValues = catalog.GetArgumentOptions(
-                    descriptor.Name,
-                    index);
-                draft.Arguments.Add(knownValues.Count > 0 ? knownValues[0] : string.Empty);
+                draft.Arguments.Add(string.Empty);
             }
         }
 
@@ -2155,7 +2212,7 @@ namespace KahaGameCore.GameEvents.Editor
         private void LoadFromDialog()
         {
             string selectedPath = EditorUtility.OpenFilePanel(
-                "Load Game Event",
+                "開啟遊戲事件",
                 Application.dataPath,
                 "json");
             if (string.IsNullOrEmpty(selectedPath))
@@ -2169,7 +2226,7 @@ namespace KahaGameCore.GameEvents.Editor
                     session.LoadDocument(selectedPath);
                     return session.ValidateDocument();
                 },
-                document => $"Loaded: {document.DisplayName}.");
+                document => $"已開啟：{document.DisplayName}。");
             if (loaded)
             {
                 RefreshCatalog(false);
@@ -2182,7 +2239,7 @@ namespace KahaGameCore.GameEvents.Editor
         {
             if (!session.HasOpenFile)
             {
-                SetStatus("No Game Event file is open.", MessageType.Error);
+                SetStatus("目前沒有開啟的遊戲事件檔案。", MessageType.Error);
                 return false;
             }
 
@@ -2193,7 +2250,7 @@ namespace KahaGameCore.GameEvents.Editor
                     session.SaveDocument(session.AssetPath);
                     return session.ValidateDocument();
                 },
-                document => $"Saved: {document.DisplayName}.");
+                document => $"已儲存：{document.DisplayName}。");
             if (saved)
             {
                 EventCatalogEditor.Refresh();
@@ -2205,10 +2262,10 @@ namespace KahaGameCore.GameEvents.Editor
         private bool SaveAsFromDialog()
         {
             string selectedPath = EditorUtility.SaveFilePanelInProject(
-                "Save Game Event",
+                "儲存遊戲事件",
                 GetDefaultFileName(),
                 "json",
-                "Save the canonical Game Event JSON under Assets/.");
+                "將遊戲事件 JSON 儲存在 Assets/ 下。");
             if (string.IsNullOrEmpty(selectedPath))
             {
                 return false;
@@ -2223,7 +2280,7 @@ namespace KahaGameCore.GameEvents.Editor
                     session.SaveDocument(selectedPath);
                     return session.ValidateDocument();
                 },
-                document => $"Saved: {document.DisplayName}.");
+                document => $"已儲存：{document.DisplayName}。");
             if (saved)
             {
                 EventCatalogEditor.Refresh();
@@ -2261,10 +2318,10 @@ namespace KahaGameCore.GameEvents.Editor
         private bool ConfirmDiscardChanges()
         {
             return !session.IsDirty || EditorUtility.DisplayDialog(
-                "Unsaved Game Event",
-                "Discard the current unsaved changes?",
-                "Discard",
-                "Cancel");
+                "遊戲事件尚未儲存",
+                "要捨棄目前尚未儲存的變更嗎？",
+                "捨棄變更",
+                "取消");
         }
 
         private bool RunCommand(
@@ -2294,19 +2351,19 @@ namespace KahaGameCore.GameEvents.Editor
                 if (string.IsNullOrWhiteSpace(draft.Name))
                 {
                     throw new InvalidOperationException(
-                        $"Command row {index + 1} has no command selected.");
+                        $"第 {index + 1} 筆指令尚未選擇指令類型。");
                 }
 
                 if (!catalog.TryGetCommand(draft.Name, out EffectCommandDescriptor descriptor))
                 {
                     throw new InvalidOperationException(
-                        $"Command row {index + 1} uses unregistered command '{draft.Name}'.");
+                        $"第 {index + 1} 筆使用了尚未註冊的指令「{draft.Name}」。");
                 }
 
                 if (draft.Arguments.Count != descriptor.Parameters.Count)
                 {
                     throw new InvalidOperationException(
-                        $"Command '{draft.Name}' expects {descriptor.Parameters.Count} arguments.");
+                        $"指令「{draft.Name}」需要 {descriptor.Parameters.Count} 個參數。");
                 }
 
                 for (int argumentIndex = 0;
@@ -2316,8 +2373,8 @@ namespace KahaGameCore.GameEvents.Editor
                     if (string.IsNullOrWhiteSpace(draft.Arguments[argumentIndex]))
                     {
                         throw new InvalidOperationException(
-                            $"Command '{draft.Name}' parameter " +
-                            $"'{descriptor.Parameters[argumentIndex].Name}' requires a value.");
+                            $"指令「{draft.Name}」的參數「" +
+                            $"{descriptor.Parameters[argumentIndex].Name}」不可留空。");
                     }
 
                     if (descriptor.Parameters[argumentIndex].Kind ==
@@ -2327,8 +2384,8 @@ namespace KahaGameCore.GameEvents.Editor
                             out ParameterDefinition _))
                     {
                         throw new InvalidOperationException(
-                            $"Command '{draft.Name}' references unknown Parameter " +
-                            $"'{draft.Arguments[argumentIndex]}'.");
+                            $"指令「{draft.Name}」引用了不存在的參數「" +
+                            $"{draft.Arguments[argumentIndex]}」。");
                     }
                 }
             }
@@ -2340,7 +2397,7 @@ namespace KahaGameCore.GameEvents.Editor
                 if (!conditionResult.IsSuccess)
                 {
                     throw new InvalidOperationException(
-                        "Condition is invalid: " + conditionResult.Error);
+                        "執行條件無效：" + conditionResult.Error);
                 }
             }
 
@@ -2363,8 +2420,8 @@ namespace KahaGameCore.GameEvents.Editor
             }
 
             string message =
-                $"Choices refreshed: {catalog.TriggerTimings.Count} timings, " +
-                $"{catalog.Parameters.Count} parameters, {catalog.Commands.Count} commands.";
+                $"已重新整理選項：{catalog.TriggerTimings.Count} 個觸發時機、" +
+                $"{catalog.Parameters.Count} 個參數、{catalog.Commands.Count} 個指令。";
             if (catalog.Warnings.Count > 0)
             {
                 message += "\n" + string.Join("\n", catalog.Warnings);
@@ -2384,7 +2441,7 @@ namespace KahaGameCore.GameEvents.Editor
             catch (Exception exception)
             {
                 commandDrafts = new List<GameEventCommandDraft>();
-                SetStatus("Cannot open Commands in structured editor: " + exception.Message, MessageType.Error);
+                SetStatus("無法在結構化編輯器中開啟指令：" + exception.Message, MessageType.Error);
             }
         }
 
@@ -2400,7 +2457,7 @@ namespace KahaGameCore.GameEvents.Editor
                 conditionRoot = new GameEventConditionGroupDraft();
                 conditionEditorError = exception.Message;
                 SetStatus(
-                    "Cannot open Condition in structured editor: " + exception.Message,
+                    "無法在結構化編輯器中開啟條件：" + exception.Message,
                     MessageType.Error);
             }
         }
@@ -2431,14 +2488,91 @@ namespace KahaGameCore.GameEvents.Editor
             string displayName = string.IsNullOrWhiteSpace(parameter.DisplayName)
                 ? parameter.Key
                 : parameter.DisplayName;
-            return $"{displayName}  (${parameter.Key}, {parameter.Type})";
+            return $"{displayName}　（${parameter.Key}，{FormatParameterType(parameter.Type)}）";
         }
 
         private static string FormatCommandLabel(EffectCommandDescriptor descriptor)
         {
+            string commandName = FormatCommandName(descriptor);
             return string.IsNullOrWhiteSpace(descriptor.Category)
-                ? descriptor.DisplayName
-                : descriptor.Category + " / " + descriptor.DisplayName;
+                ? commandName
+                : FormatCommandCategory(descriptor.Category) + "／" + commandName;
+        }
+
+        private static string FormatCommandName(EffectCommandDescriptor descriptor)
+        {
+            switch (descriptor.Name)
+            {
+                case "AddParameter": return "增加參數值";
+                case "SetParameter": return "設定參數值";
+                case "AdvancePhase": return "推進階段";
+                case "SetPhase": return "設定階段";
+                case "MoveToLocation": return "移動至地點";
+                case "StartDialogue": return "開始對話";
+                case "ShowHint": return "顯示提示";
+                case "Monologue": return "顯示獨白";
+                case "PlayPerformance": return "播放演出";
+                case "OpenLocationMenu": return "開啟地點選單";
+                case "ReturnToTitle": return "返回標題畫面";
+                case "Wait": return "等待";
+                default: return descriptor.DisplayName;
+            }
+        }
+
+        private static string FormatCommandCategory(string category)
+        {
+            switch (category)
+            {
+                case "Game Flow": return "遊戲流程";
+                case "Presentation": return "畫面表現";
+                case "Parameters": return "參數";
+                default: return category;
+            }
+        }
+
+        private static string FormatCommandParameterLabel(
+            EffectCommandParameterDefinition parameter)
+        {
+            string name;
+            switch (parameter.Name)
+            {
+                case "key": name = "參數"; break;
+                case "value": name = "值"; break;
+                case "phase": name = "階段"; break;
+                case "locationId": name = "地點 ID"; break;
+                case "dialogueId": name = "對話 ID"; break;
+                case "textId": name = "文字 ID"; break;
+                case "group": name = "群組"; break;
+                case "performanceId": name = "演出 ID"; break;
+                case "seconds": name = "秒數"; break;
+                default: name = parameter.Name; break;
+            }
+
+            string kind;
+            switch (parameter.Kind)
+            {
+                case EffectCommandParameterKind.Literal: kind = "固定值"; break;
+                case EffectCommandParameterKind.NumberExpression: kind = "數值／公式"; break;
+                case EffectCommandParameterKind.ConditionExpression: kind = "條件公式"; break;
+                case EffectCommandParameterKind.ParameterKey: kind = "參數鍵"; break;
+                case EffectCommandParameterKind.TextKey: kind = "文字鍵"; break;
+                case EffectCommandParameterKind.AssetKey: kind = "資源鍵"; break;
+                default: kind = parameter.Kind.ToString(); break;
+            }
+
+            return $"{name}　·　{kind}";
+        }
+
+        private static string FormatParameterType(ParameterType type)
+        {
+            switch (type)
+            {
+                case ParameterType.Int: return "整數";
+                case ParameterType.Float: return "小數";
+                case ParameterType.Bool: return "布林";
+                case ParameterType.String: return "文字";
+                default: return type.ToString();
+            }
         }
     }
 }

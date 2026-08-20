@@ -39,7 +39,7 @@ namespace KahaGameCore.GameEvents.Tests
             Assert.That(session.HasOpenFile, Is.False);
             Assert.That(document.SchemaVersion, Is.EqualTo(2));
             Assert.That(document.DocumentGuid, Is.Not.EqualTo(Guid.Empty));
-            Assert.That(document.DisplayName, Is.EqualTo("New Game Event"));
+            Assert.That(document.DisplayName, Is.EqualTo("新遊戲事件"));
             Assert.That(session.IsDirty, Is.True);
             Assert.That(session.AssetPath, Is.Null);
         }

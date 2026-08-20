@@ -75,52 +75,58 @@ namespace KahaGameCore.GameEvents.Editor
             if (catalog == null)
             {
                 EditorGUILayout.HelpBox(
-                    "Select or create a Game Event Catalog. The catalog is the runtime source of truth for event membership and execution order.",
+                    "請先選擇或建立事件目錄。事件目錄決定執行時包含哪些事件，以及事件的執行順序。",
                     MessageType.Info);
                 return;
             }
 
-            EditorGUILayout.LabelField("Catalog Events", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("目錄事件", EditorStyles.boldLabel);
             EditorGUILayout.LabelField(
-                "Events are grouped by TriggerTiming. Drag rows inside a group to change their runtime execution order.",
+                "事件會依觸發時機分組；拖曳群組內的項目即可調整執行順序。",
                 EditorStyles.wordWrappedMiniLabel);
 
-            using (new EditorGUILayout.HorizontalScope())
+            EditorGUILayout.Space(4f);
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                using (new EditorGUI.DisabledScope(currentEvent == null))
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("Add Current Event", GUILayout.Width(132f)))
+                    using (new EditorGUI.DisabledScope(currentEvent == null))
                     {
-                        AddEvent(currentEvent);
+                        if (GUILayout.Button("加入目前事件", GUILayout.Width(120f)))
+                        {
+                            AddEvent(currentEvent);
+                        }
+                    }
+
+                    GUILayout.FlexibleSpace();
+                    if (GUILayout.Button("驗證目錄", GUILayout.Width(88f)))
+                    {
+                        new GameEventCatalog(catalog, codec);
+                        Debug.Log(
+                            $"事件目錄「{catalog.name}」驗證成功，共 {catalog.Files.Count} 個事件。",
+                            catalog);
                     }
                 }
 
                 addCandidate = (TextAsset)EditorGUILayout.ObjectField(
+                    "選擇事件",
                     addCandidate,
                     typeof(TextAsset),
                     false);
                 using (new EditorGUI.DisabledScope(addCandidate == null))
                 {
-                    if (GUILayout.Button("Add Selected", GUILayout.Width(100f)))
+                    if (GUILayout.Button("加入選取的事件", GUILayout.Height(26f)))
                     {
                         AddEvent(addCandidate);
                         addCandidate = null;
                     }
-                }
-
-                if (GUILayout.Button("Validate", GUILayout.Width(72f)))
-                {
-                    new GameEventCatalog(catalog, codec);
-                    Debug.Log(
-                        $"Game Event Catalog '{catalog.name}' is valid ({catalog.Files.Count} events).",
-                        catalog);
                 }
             }
 
             EditorGUILayout.Space();
             if (groups.Count == 0)
             {
-                EditorGUILayout.HelpBox("The catalog has no events.", MessageType.Info);
+                EditorGUILayout.HelpBox("事件目錄目前沒有任何事件。", MessageType.Info);
                 return;
             }
 
@@ -185,11 +191,11 @@ namespace KahaGameCore.GameEvents.Editor
             EditorGUI.LabelField(orderRect, (row + 1).ToString());
             string label = info.Document != null
                 ? $"{info.Document.DisplayName}  ({info.Asset.name})"
-                : $"{info.Asset?.name ?? "Missing Asset"} — {info.Error}";
+                : $"{info.Asset?.name ?? "遺失資產"} — {info.Error}";
             EditorGUI.LabelField(labelRect, label);
             using (new EditorGUI.DisabledScope(info.Asset == null))
             {
-                if (GUI.Button(editRect, "Edit"))
+                if (GUI.Button(editRect, "編輯"))
                 {
                     openEvent?.Invoke(info.Asset);
                     GUIUtility.ExitGUI();
@@ -209,7 +215,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (catalog.Files.Contains(asset))
             {
                 throw new InvalidOperationException(
-                    $"'{asset.name}' is already in catalog '{catalog.name}'.");
+                    $"「{asset.name}」已存在於事件目錄「{catalog.name}」中。");
             }
 
             List<TextAsset> files = catalog.Files.ToList();
@@ -275,7 +281,7 @@ namespace KahaGameCore.GameEvents.Editor
         {
             if (asset == null)
             {
-                return new EventInfo { Error = "Missing TextAsset" };
+                return new EventInfo { Error = "遺失 TextAsset" };
             }
 
             try
@@ -307,7 +313,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (!path.EndsWith(".gameevent.json", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
-                    $"'{path}' is not a .gameevent.json asset.");
+                    $"「{path}」不是 .gameevent.json 資產。");
             }
 
             codec.Read(asset.text);
@@ -317,10 +323,10 @@ namespace KahaGameCore.GameEvents.Editor
         {
             if (string.IsNullOrEmpty(timing))
             {
-                return "No Timing (direct scene trigger)";
+                return "無指定時機（由場景直接觸發）";
             }
 
-            return timing == "<Invalid>" ? "Invalid Events" : timing;
+            return timing == "<Invalid>" ? "無效事件" : timing;
         }
     }
 }

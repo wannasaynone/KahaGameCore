@@ -23,7 +23,7 @@ namespace KahaGameCore.Parameters.Tests
                 ParameterTable table = window.ValidateTable();
 
                 Assert.That(Guid.TryParse(table.TableGuid, out _), Is.True);
-                Assert.That(table.DisplayName, Is.EqualTo("New Parameter Table"));
+                Assert.That(table.DisplayName, Is.EqualTo("新參數表"));
                 Assert.That(table.Definitions, Is.Empty);
             }
             finally

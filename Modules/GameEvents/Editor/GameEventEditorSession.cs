@@ -55,7 +55,7 @@ namespace KahaGameCore.GameEvents.Editor
         public void NewDocument()
         {
             documentGuid = Guid.NewGuid().ToString("D");
-            displayName = "New Game Event";
+            displayName = "新遊戲事件";
             triggerTiming = string.Empty;
             condition = string.Empty;
             commands = string.Empty;

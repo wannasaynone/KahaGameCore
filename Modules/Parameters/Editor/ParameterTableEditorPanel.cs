@@ -84,6 +84,10 @@ namespace KahaGameCore.Parameters.Editor
         private const float TYPE_WIDTH = 80f;
         private const float VALUE_WIDTH = 120f;
         private const float DELETE_WIDTH = 28f;
+        private static readonly ParameterType[] ParameterTypes =
+            { ParameterType.Int, ParameterType.Float, ParameterType.Bool, ParameterType.String };
+        private static readonly string[] ParameterTypeLabels =
+            { "整數", "小數", "布林", "文字" };
 
         [SerializeField] private string tableGuid;
         [SerializeField] private string tableDisplayName;
@@ -146,14 +150,14 @@ namespace KahaGameCore.Parameters.Editor
             DrawParameterGrid();
 
             EditorGUILayout.Space();
-            if (GUILayout.Button("+ Add Parameter", GUILayout.Width(140f)))
+            if (GUILayout.Button("＋ 新增參數", GUILayout.Width(140f), GUILayout.Height(28f)))
             {
                 AddInt(CreateUniqueKey(), string.Empty, 0, 0, 100);
             }
 
             if (EditorGUI.EndChangeCheck())
             {
-                MarkDirty("Table changed; validation required.");
+                MarkDirty("參數表已變更，請驗證後再儲存。");
             }
 
             EditorGUILayout.Space();
@@ -166,7 +170,7 @@ namespace KahaGameCore.Parameters.Editor
         public void NewTable()
         {
             tableGuid = Guid.NewGuid().ToString();
-            tableDisplayName = "New Parameter Table";
+            tableDisplayName = "新參數表";
             Rows.Clear();
             assetPath = null;
             isDirty = false;
@@ -196,7 +200,7 @@ namespace KahaGameCore.Parameters.Editor
             }
 
             tableDisplayName = displayName;
-            MarkDirty("Table changed; validation required.");
+            MarkDirty("參數表已變更，請驗證後再儲存。");
         }
 
         public void AddInt(
@@ -215,7 +219,7 @@ namespace KahaGameCore.Parameters.Editor
                 IntMin = minValue,
                 IntMax = maxValue
             });
-            MarkDirty("Parameter added; validation required.");
+            MarkDirty("已新增參數，請驗證後再儲存。");
         }
 
         public void AddFloat(
@@ -234,7 +238,7 @@ namespace KahaGameCore.Parameters.Editor
                 FloatMin = minValue,
                 FloatMax = maxValue
             });
-            MarkDirty("Parameter added; validation required.");
+            MarkDirty("已新增參數，請驗證後再儲存。");
         }
 
         public void AddBool(string key, string displayName, bool initialValue)
@@ -246,7 +250,7 @@ namespace KahaGameCore.Parameters.Editor
                 Type = ParameterType.Bool,
                 BoolInitial = initialValue
             });
-            MarkDirty("Parameter added; validation required.");
+            MarkDirty("已新增參數，請驗證後再儲存。");
         }
 
         public void AddString(string key, string displayName, string initialValue)
@@ -258,13 +262,13 @@ namespace KahaGameCore.Parameters.Editor
                 Type = ParameterType.String,
                 StringInitial = initialValue
             });
-            MarkDirty("Parameter added; validation required.");
+            MarkDirty("已新增參數，請驗證後再儲存。");
         }
 
         public void RemoveParameterAt(int index)
         {
             Rows.RemoveAt(index);
-            MarkDirty("Parameter removed; validation required.");
+            MarkDirty("已移除參數，請驗證後再儲存。");
         }
 
         public ParameterTable ValidateTable()
@@ -286,7 +290,7 @@ namespace KahaGameCore.Parameters.Editor
             assetPath = normalizedPath;
             isDirty = false;
             SetStatus(
-                $"Loaded: {table.DisplayName} ({table.Definitions.Count} parameters).",
+                $"已開啟：{table.DisplayName}（{table.Definitions.Count} 個參數）。",
                 MessageType.Info);
         }
 
@@ -294,7 +298,7 @@ namespace KahaGameCore.Parameters.Editor
         {
             if (string.IsNullOrEmpty(assetPath))
             {
-                throw new InvalidOperationException("The Parameter Table has not been saved yet.");
+                throw new InvalidOperationException("此參數表尚未儲存。");
             }
 
             LoadTable(assetPath);
@@ -311,7 +315,7 @@ namespace KahaGameCore.Parameters.Editor
             assetPath = normalizedPath;
             isDirty = false;
             SetStatus(
-                $"Saved: {table.DisplayName} ({table.Definitions.Count} parameters).",
+                $"已儲存：{table.DisplayName}（{table.Definitions.Count} 個參數）。",
                 MessageType.Info);
         }
 
@@ -336,15 +340,15 @@ namespace KahaGameCore.Parameters.Editor
 
         private void DrawTableIdentity()
         {
-            EditorGUILayout.LabelField("Parameter Table", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField("Asset", AssetPath ?? "Unsaved");
+            EditorGUILayout.LabelField("參數表資料", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("資產路徑", AssetPath ?? "尚未儲存");
             using (new EditorGUI.DisabledScope(true))
             {
-                EditorGUILayout.TextField("Table GUID", tableGuid ?? string.Empty);
+                EditorGUILayout.TextField("參數表 GUID", tableGuid ?? string.Empty);
             }
 
             tableDisplayName = EditorGUILayout.TextField(
-                "Display Name",
+                "顯示名稱",
                 tableDisplayName ?? string.Empty);
         }
 
@@ -363,7 +367,12 @@ namespace KahaGameCore.Parameters.Editor
                     row.DisplayName = EditorGUILayout.TextField(
                         row.DisplayName ?? string.Empty,
                         GUILayout.Width(DISPLAY_NAME_WIDTH));
-                    row.Type = (ParameterType)EditorGUILayout.EnumPopup(row.Type, GUILayout.Width(TYPE_WIDTH));
+                    int typeIndex = Math.Max(0, Array.IndexOf(ParameterTypes, row.Type));
+                    typeIndex = EditorGUILayout.Popup(
+                        typeIndex,
+                        ParameterTypeLabels,
+                        GUILayout.Width(TYPE_WIDTH));
+                    row.Type = ParameterTypes[typeIndex];
                     DrawInitialValue(row);
                     DrawMinimumValue(row);
                     DrawMaximumValue(row);
@@ -386,12 +395,12 @@ namespace KahaGameCore.Parameters.Editor
             using (new EditorGUILayout.HorizontalScope())
             {
                 EditorGUILayout.LabelField("#", EditorStyles.boldLabel, GUILayout.Width(INDEX_WIDTH));
-                EditorGUILayout.LabelField("Key", EditorStyles.boldLabel, GUILayout.Width(KEY_WIDTH));
-                EditorGUILayout.LabelField("Display Name", EditorStyles.boldLabel, GUILayout.Width(DISPLAY_NAME_WIDTH));
-                EditorGUILayout.LabelField("Type", EditorStyles.boldLabel, GUILayout.Width(TYPE_WIDTH));
-                EditorGUILayout.LabelField("Initial", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
-                EditorGUILayout.LabelField("Minimum", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
-                EditorGUILayout.LabelField("Maximum", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
+                EditorGUILayout.LabelField("參數鍵", EditorStyles.boldLabel, GUILayout.Width(KEY_WIDTH));
+                EditorGUILayout.LabelField("顯示名稱", EditorStyles.boldLabel, GUILayout.Width(DISPLAY_NAME_WIDTH));
+                EditorGUILayout.LabelField("類型", EditorStyles.boldLabel, GUILayout.Width(TYPE_WIDTH));
+                EditorGUILayout.LabelField("初始值", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
+                EditorGUILayout.LabelField("最小值", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
+                EditorGUILayout.LabelField("最大值", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
                 EditorGUILayout.LabelField(string.Empty, GUILayout.Width(DELETE_WIDTH));
             }
         }
@@ -481,7 +490,7 @@ namespace KahaGameCore.Parameters.Editor
         {
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new ArgumentException("Parameter Table asset path is required.", nameof(path));
+                throw new ArgumentException("必須提供參數表資產路徑。", nameof(path));
             }
 
             string fullPath = Path.IsPathRooted(path)
@@ -494,7 +503,7 @@ namespace KahaGameCore.Parameters.Editor
             if (!fullPath.StartsWith(assetsRoot, StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentException(
-                    "Parameter Table must be a .parameters.json file under Assets/.",
+                    "參數表必須是 Assets/ 下的 .parameters.json 檔案。",
                     nameof(path));
             }
 
@@ -503,7 +512,7 @@ namespace KahaGameCore.Parameters.Editor
             if (!normalizedPath.EndsWith(".parameters.json", StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentException(
-                    "Parameter Table must be a .parameters.json file under Assets/.",
+                    "參數表必須是 Assets/ 下的 .parameters.json 檔案。",
                     nameof(path));
             }
 

@@ -12,19 +12,16 @@ namespace KahaGameCore.GameEvents.Editor
     {
         private readonly Dictionary<string, ParameterDefinition> parametersByKey;
         private readonly Dictionary<string, EffectCommandDescriptor> commandsByName;
-        private readonly Dictionary<string, IReadOnlyList<string>> argumentOptions;
 
         private GameEventProjectAuthoringCatalog(
             IReadOnlyList<ParameterDefinition> parameters,
             IReadOnlyList<EffectCommandDescriptor> commands,
             IReadOnlyList<string> triggerTimings,
-            Dictionary<string, IReadOnlyList<string>> argumentOptions,
             IReadOnlyList<string> warnings)
         {
             Parameters = parameters;
             Commands = commands;
             TriggerTimings = triggerTimings;
-            this.argumentOptions = argumentOptions;
             Warnings = warnings;
             parametersByKey = parameters.ToDictionary(item => item.Key, StringComparer.Ordinal);
             commandsByName = commands.ToDictionary(item => item.Name, StringComparer.Ordinal);
@@ -42,8 +39,6 @@ namespace KahaGameCore.GameEvents.Editor
             EffectRuntime effectRuntime = new EffectRuntime(new EffectCommandRegistry());
             Dictionary<string, ParameterDefinition> parameterMap =
                 new Dictionary<string, ParameterDefinition>(StringComparer.Ordinal);
-            Dictionary<string, SortedSet<string>> argumentSets =
-                new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
             List<string> warnings = new List<string>();
 
             IReadOnlyList<TextAsset> selectedParameterTables =
@@ -53,7 +48,7 @@ namespace KahaGameCore.GameEvents.Editor
                 TextAsset selectedTable = selectedParameterTables[index];
                 if (selectedTable == null)
                 {
-                    warnings.Add($"Selected Parameter Table row {index + 1} is missing.");
+                    warnings.Add($"選取的第 {index + 1} 筆參數表已遺失。");
                     continue;
                 }
 
@@ -73,16 +68,15 @@ namespace KahaGameCore.GameEvents.Editor
                     TextAsset asset = eventCatalog.Files[index];
                     if (asset == null)
                     {
-                        warnings.Add($"Event Catalog row {index + 1} is missing.");
+                        warnings.Add($"事件目錄中的第 {index + 1} 筆事件已遺失。");
                         continue;
                     }
 
-                    TryCollectGameEvent(
+                    TryValidateGameEvent(
                         AssetDatabase.GetAssetPath(asset),
                         asset.text,
                         eventCodec,
                         effectRuntime,
-                        argumentSets,
                         warnings);
                 }
             }
@@ -98,17 +92,10 @@ namespace KahaGameCore.GameEvents.Editor
                         warnings),
                     eventCatalog.EnabledCommandNames,
                     warnings);
-            Dictionary<string, IReadOnlyList<string>> options = argumentSets
-                .ToDictionary(
-                    item => item.Key,
-                    item => (IReadOnlyList<string>)item.Value.ToArray(),
-                    StringComparer.Ordinal);
-
             return new GameEventProjectAuthoringCatalog(
                 parameters,
                 commands,
                 eventCatalog?.TriggerTimings ?? Array.Empty<string>(),
-                options,
                 warnings);
         }
 
@@ -126,7 +113,7 @@ namespace KahaGameCore.GameEvents.Editor
                 string commandName = selectedNames[index];
                 if (string.IsNullOrWhiteSpace(commandName))
                 {
-                    warnings.Add($"Game Event Catalog Command row {index + 1} is empty.");
+                    warnings.Add($"事件目錄中的第 {index + 1} 筆指令名稱為空白。");
                     continue;
                 }
 
@@ -140,7 +127,7 @@ namespace KahaGameCore.GameEvents.Editor
                         out EffectCommandDescriptor descriptor))
                 {
                     warnings.Add(
-                        $"Game Event Catalog Command '{commandName}' is unavailable in its asmdef scopes.");
+                        $"事件目錄指令「{commandName}」不在所選 asmdef 範圍內。");
                     continue;
                 }
 
@@ -163,15 +150,6 @@ namespace KahaGameCore.GameEvents.Editor
             return commandsByName.TryGetValue(name ?? string.Empty, out descriptor);
         }
 
-        public IReadOnlyList<string> GetArgumentOptions(string commandName, int argumentIndex)
-        {
-            return argumentOptions.TryGetValue(
-                MakeArgumentKey(commandName, argumentIndex),
-                out IReadOnlyList<string> values)
-                ? values
-                : Array.Empty<string>();
-        }
-
         private static void TryCollectParameters(
             string path,
             string json,
@@ -188,7 +166,7 @@ namespace KahaGameCore.GameEvents.Editor
                         existing.Type != definition.Type)
                     {
                         warnings.Add(
-                            $"Parameter '{definition.Key}' has conflicting types in '{path}'.");
+                            $"參數「{definition.Key}」在「{path}」中存在類型衝突。");
                         continue;
                     }
 
@@ -197,16 +175,15 @@ namespace KahaGameCore.GameEvents.Editor
             }
             catch (Exception exception)
             {
-                warnings.Add($"Cannot read Parameter Table '{path}': {exception.Message}");
+                warnings.Add($"無法讀取參數表「{path}」：{exception.Message}");
             }
         }
 
-        private static void TryCollectGameEvent(
+        private static void TryValidateGameEvent(
             string path,
             string json,
             GameEventDocumentJsonCodec codec,
             EffectRuntime effectRuntime,
-            Dictionary<string, SortedSet<string>> argumentSets,
             List<string> warnings)
         {
             try
@@ -216,39 +193,15 @@ namespace KahaGameCore.GameEvents.Editor
                 if (!parsed.IsSuccess)
                 {
                     warnings.Add(
-                        $"Cannot index Commands in '{path}': {parsed.FormatDiagnostics()}");
+                        $"無法解析「{path}」中的指令：{parsed.FormatDiagnostics()}");
                     return;
-                }
-
-                foreach (EffectTimingBlock block in parsed.Program.Blocks)
-                {
-                    foreach (EffectCommandCall command in block.Commands)
-                    {
-                        for (int argumentIndex = 0;
-                             argumentIndex < command.Arguments.Count;
-                             argumentIndex++)
-                        {
-                            string key = MakeArgumentKey(command.Name, argumentIndex);
-                            if (!argumentSets.TryGetValue(key, out SortedSet<string> values))
-                            {
-                                values = new SortedSet<string>(StringComparer.Ordinal);
-                                argumentSets.Add(key, values);
-                            }
-
-                            values.Add(command.Arguments[argumentIndex]);
-                        }
-                    }
                 }
             }
             catch (Exception exception)
             {
-                warnings.Add($"Cannot index Game Event '{path}': {exception.Message}");
+                warnings.Add($"無法讀取遊戲事件「{path}」：{exception.Message}");
             }
         }
 
-        private static string MakeArgumentKey(string commandName, int argumentIndex)
-        {
-            return (commandName ?? string.Empty) + "\n" + argumentIndex;
-        }
     }
 }
