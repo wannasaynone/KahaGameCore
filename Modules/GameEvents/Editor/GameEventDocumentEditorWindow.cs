@@ -701,7 +701,7 @@ namespace KahaGameCore.GameEvents.Editor
                 EditorGUILayout.LabelField(
                     string.IsNullOrWhiteSpace(group.Key)
                         ? "未分類"
-                        : FormatCommandCategory(group.Key),
+                        : group.Key,
                     EditorStyles.miniBoldLabel);
                 foreach (EffectCommandDescriptor descriptor in group)
                 {
@@ -2493,61 +2493,14 @@ namespace KahaGameCore.GameEvents.Editor
 
         private static string FormatCommandLabel(EffectCommandDescriptor descriptor)
         {
-            string commandName = FormatCommandName(descriptor);
             return string.IsNullOrWhiteSpace(descriptor.Category)
-                ? commandName
-                : FormatCommandCategory(descriptor.Category) + "／" + commandName;
-        }
-
-        private static string FormatCommandName(EffectCommandDescriptor descriptor)
-        {
-            switch (descriptor.Name)
-            {
-                case "AddParameter": return "增加參數值";
-                case "SetParameter": return "設定參數值";
-                case "AdvancePhase": return "推進階段";
-                case "SetPhase": return "設定階段";
-                case "MoveToLocation": return "移動至地點";
-                case "StartDialogue": return "開始對話";
-                case "ShowHint": return "顯示提示";
-                case "Monologue": return "顯示獨白";
-                case "PlayPerformance": return "播放演出";
-                case "OpenLocationMenu": return "開啟地點選單";
-                case "ReturnToTitle": return "返回標題畫面";
-                case "Wait": return "等待";
-                default: return descriptor.DisplayName;
-            }
-        }
-
-        private static string FormatCommandCategory(string category)
-        {
-            switch (category)
-            {
-                case "Game Flow": return "遊戲流程";
-                case "Presentation": return "畫面表現";
-                case "Parameters": return "參數";
-                default: return category;
-            }
+                ? descriptor.DisplayName
+                : descriptor.Category + " / " + descriptor.DisplayName;
         }
 
         private static string FormatCommandParameterLabel(
             EffectCommandParameterDefinition parameter)
         {
-            string name;
-            switch (parameter.Name)
-            {
-                case "key": name = "參數"; break;
-                case "value": name = "值"; break;
-                case "phase": name = "階段"; break;
-                case "locationId": name = "地點 ID"; break;
-                case "dialogueId": name = "對話 ID"; break;
-                case "textId": name = "文字 ID"; break;
-                case "group": name = "群組"; break;
-                case "performanceId": name = "演出 ID"; break;
-                case "seconds": name = "秒數"; break;
-                default: name = parameter.Name; break;
-            }
-
             string kind;
             switch (parameter.Kind)
             {
@@ -2560,7 +2513,7 @@ namespace KahaGameCore.GameEvents.Editor
                 default: kind = parameter.Kind.ToString(); break;
             }
 
-            return $"{name}　·　{kind}";
+            return $"{parameter.Name}　·　{kind}";
         }
 
         private static string FormatParameterType(ParameterType type)
