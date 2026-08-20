@@ -83,6 +83,7 @@ namespace KahaGameCore.Parameters.Editor
         private const float DISPLAY_NAME_WIDTH = 160f;
         private const float TYPE_WIDTH = 80f;
         private const float VALUE_WIDTH = 120f;
+        private const float SUPPLEMENTAL_WIDTH = 100f;
         private const float DELETE_WIDTH = 28f;
         private static readonly ParameterType[] ParameterTypes =
             { ParameterType.Int, ParameterType.Float, ParameterType.Bool, ParameterType.String };
@@ -96,6 +97,7 @@ namespace KahaGameCore.Parameters.Editor
         [SerializeField] private bool isDirty;
         [SerializeField] private string statusMessage;
         [SerializeField] private MessageType statusType = MessageType.Info;
+        [SerializeField] private string searchText;
 
         [NonSerialized] private ParameterTableJsonCodec codec;
 
@@ -142,12 +144,30 @@ namespace KahaGameCore.Parameters.Editor
 
         public void Draw()
         {
-            InitializeIfNeeded();
-            EditorGUI.BeginChangeCheck();
+            Draw(null, null, null);
+        }
 
+        public void Draw(
+            Func<string, bool> includeParameter,
+            Action<string> drawParameterSupplementalCell,
+            Action<string> drawParameterDetails)
+        {
+            InitializeIfNeeded();
+
+            EditorGUI.BeginChangeCheck();
             DrawTableIdentity();
+            if (EditorGUI.EndChangeCheck())
+            {
+                MarkDirty("參數表已變更，請驗證後再儲存。");
+            }
+
             EditorGUILayout.Space();
-            DrawParameterGrid();
+            DrawSearchToolbar(includeParameter);
+
+            bool rowsChanged = DrawParameterGrid(
+                includeParameter,
+                drawParameterSupplementalCell,
+                drawParameterDetails);
 
             EditorGUILayout.Space();
             if (GUILayout.Button("＋ 新增參數", GUILayout.Width(140f), GUILayout.Height(28f)))
@@ -155,7 +175,7 @@ namespace KahaGameCore.Parameters.Editor
                 AddInt(CreateUniqueKey(), string.Empty, 0, 0, 100);
             }
 
-            if (EditorGUI.EndChangeCheck())
+            if (rowsChanged)
             {
                 MarkDirty("參數表已變更，請驗證後再儲存。");
             }
@@ -173,6 +193,7 @@ namespace KahaGameCore.Parameters.Editor
             tableDisplayName = "新參數表";
             Rows.Clear();
             assetPath = null;
+            searchText = string.Empty;
             isDirty = false;
             ClearStatus();
         }
@@ -183,6 +204,7 @@ namespace KahaGameCore.Parameters.Editor
             tableDisplayName = null;
             Rows.Clear();
             assetPath = null;
+            searchText = string.Empty;
             isDirty = false;
             ClearStatus();
         }
@@ -288,6 +310,7 @@ namespace KahaGameCore.Parameters.Editor
             tableDisplayName = table.DisplayName;
             rows = table.Definitions.Select(ParameterRowDraft.FromDefinition).ToList();
             assetPath = normalizedPath;
+            searchText = string.Empty;
             isDirty = false;
             SetStatus(
                 $"已開啟：{table.DisplayName}（{table.Definitions.Count} 個參數）。",
@@ -352,45 +375,134 @@ namespace KahaGameCore.Parameters.Editor
                 tableDisplayName ?? string.Empty);
         }
 
-        private void DrawParameterGrid()
+        private bool DrawParameterGrid(
+            Func<string, bool> includeParameter,
+            Action<string> drawParameterSupplementalCell,
+            Action<string> drawParameterDetails)
         {
-            DrawGridHeader();
+            DrawGridHeader(drawParameterSupplementalCell != null);
 
             int deleteIndex = -1;
+            int visibleCount = 0;
+            bool changed = false;
             for (int index = 0; index < Rows.Count; index++)
             {
                 ParameterRowDraft row = Rows[index];
-                using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+                if (!MatchesSearch(row) ||
+                    (includeParameter != null &&
+                     !includeParameter(row.Key ?? string.Empty)))
                 {
-                    EditorGUILayout.LabelField((index + 1).ToString(), GUILayout.Width(INDEX_WIDTH));
-                    row.Key = EditorGUILayout.TextField(row.Key ?? string.Empty, GUILayout.Width(KEY_WIDTH));
-                    row.DisplayName = EditorGUILayout.TextField(
-                        row.DisplayName ?? string.Empty,
-                        GUILayout.Width(DISPLAY_NAME_WIDTH));
-                    int typeIndex = Math.Max(0, Array.IndexOf(ParameterTypes, row.Type));
-                    typeIndex = EditorGUILayout.Popup(
-                        typeIndex,
-                        ParameterTypeLabels,
-                        GUILayout.Width(TYPE_WIDTH));
-                    row.Type = ParameterTypes[typeIndex];
-                    DrawInitialValue(row);
-                    DrawMinimumValue(row);
-                    DrawMaximumValue(row);
-
-                    if (GUILayout.Button("×", GUILayout.Width(DELETE_WIDTH)))
-                    {
-                        deleteIndex = index;
-                    }
+                    continue;
                 }
+
+                visibleCount++;
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                {
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        EditorGUI.BeginChangeCheck();
+                        EditorGUILayout.LabelField(
+                            (index + 1).ToString(),
+                            GUILayout.Width(INDEX_WIDTH));
+                        row.Key = EditorGUILayout.TextField(
+                            row.Key ?? string.Empty,
+                            GUILayout.Width(KEY_WIDTH));
+                        row.DisplayName = EditorGUILayout.TextField(
+                            row.DisplayName ?? string.Empty,
+                            GUILayout.Width(DISPLAY_NAME_WIDTH));
+                        int typeIndex = Math.Max(0, Array.IndexOf(ParameterTypes, row.Type));
+                        typeIndex = EditorGUILayout.Popup(
+                            typeIndex,
+                            ParameterTypeLabels,
+                            GUILayout.Width(TYPE_WIDTH));
+                        row.Type = ParameterTypes[typeIndex];
+                        DrawInitialValue(row);
+                        DrawMinimumValue(row);
+                        DrawMaximumValue(row);
+                        changed |= EditorGUI.EndChangeCheck();
+
+                        if (drawParameterSupplementalCell != null)
+                        {
+                            using (new EditorGUILayout.VerticalScope(
+                                       GUILayout.Width(SUPPLEMENTAL_WIDTH)))
+                            {
+                                drawParameterSupplementalCell(row.Key ?? string.Empty);
+                            }
+                        }
+
+                        if (GUILayout.Button("×", GUILayout.Width(DELETE_WIDTH)))
+                        {
+                            deleteIndex = index;
+                        }
+                    }
+
+                    drawParameterDetails?.Invoke(row.Key ?? string.Empty);
+                }
+            }
+
+            if (visibleCount == 0 && Rows.Count > 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "找不到符合目前搜尋條件的參數。",
+                    MessageType.Info);
             }
 
             if (deleteIndex >= 0)
             {
                 RemoveParameterAt(deleteIndex);
             }
+
+            return changed;
         }
 
-        private static void DrawGridHeader()
+        private void DrawSearchToolbar(Func<string, bool> includeParameter)
+        {
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
+            {
+                EditorGUILayout.LabelField("搜尋", GUILayout.Width(34f));
+                searchText = EditorGUILayout.TextField(
+                    searchText ?? string.Empty,
+                    EditorStyles.toolbarSearchField);
+                int visibleCount = Rows.Count(row =>
+                    MatchesSearch(row) &&
+                    (includeParameter == null ||
+                     includeParameter(row.Key ?? string.Empty)));
+                EditorGUILayout.LabelField(
+                    $"{visibleCount} / {Rows.Count}",
+                    EditorStyles.miniLabel,
+                    GUILayout.Width(58f));
+                using (new EditorGUI.DisabledScope(string.IsNullOrEmpty(searchText)))
+                {
+                    if (GUILayout.Button(
+                            "×",
+                            EditorStyles.toolbarButton,
+                            GUILayout.Width(24f)))
+                    {
+                        searchText = string.Empty;
+                        GUI.FocusControl(null);
+                    }
+                }
+            }
+        }
+
+        private bool MatchesSearch(ParameterRowDraft row)
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                return true;
+            }
+
+            string key = row.Key ?? string.Empty;
+            string displayName = row.DisplayName ?? string.Empty;
+            string[] terms = searchText.Split(
+                new[] { ' ', '\t' },
+                StringSplitOptions.RemoveEmptyEntries);
+            return terms.All(term =>
+                key.IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                displayName.IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private static void DrawGridHeader(bool hasSupplementalCell)
         {
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -401,6 +513,13 @@ namespace KahaGameCore.Parameters.Editor
                 EditorGUILayout.LabelField("初始值", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
                 EditorGUILayout.LabelField("最小值", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
                 EditorGUILayout.LabelField("最大值", EditorStyles.boldLabel, GUILayout.Width(VALUE_WIDTH));
+                if (hasSupplementalCell)
+                {
+                    EditorGUILayout.LabelField(
+                        "Reference",
+                        EditorStyles.boldLabel,
+                        GUILayout.Width(SUPPLEMENTAL_WIDTH));
+                }
                 EditorGUILayout.LabelField(string.Empty, GUILayout.Width(DELETE_WIDTH));
             }
         }

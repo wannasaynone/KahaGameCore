@@ -123,9 +123,11 @@ runtimeSource.Initialize(parameters);
 
 ## 第一次建立 Parameter Table
 
-從 `KahaGameCore/Parameters/Parameter Table Editor` 開啟大表 EditorWindow。上方編輯表名，下方每列是一個 Parameter，可自行新增或刪除。欄位為 Key、Display Name、Type、Initial／Minimum／Maximum；Bool 與 String 不顯示數值界限。視窗提供 New、Load、Validate、Save 與 Save As，不提供可編輯 JSON 文字區。
+從 `KahaGameCore/Parameters/Parameter Table Editor` 開啟大表 EditorWindow。上方編輯表名，下方每列是一個 Parameter，可自行新增或刪除。欄位為 Key、Display Name、Type、Initial／Minimum／Maximum；Bool 與 String 不顯示數值界限。列搜尋同時比對 Key 與 Display Name，多個搜尋詞必須全部命中。視窗提供 New、Load、Validate、Save 與 Save As，不提供可編輯 JSON 文字區。
 
-Load 透過 `ParameterTableJsonCodec` 把 canonical JSON 填入表格；Save 先把整張表驗證成 `ParameterTable`，再由同一 codec 寫回 JSON。Save 只接受 `Assets/` 下的 `.parameters.json`。每次視窗編輯一張表；要有多張大表就建立多份表資產。
+Load 透過 `ParameterTableJsonCodec` 把 canonical JSON 填入表格；Save 先把整張表驗證成 `ParameterTable`，再由同一 codec 寫回 JSON。Save 只接受 `Assets/` 下的 `.parameters.json`。獨立 Parameter Table Editor 每個視窗編輯一張表；Game Event Editor 內的 `Parameter Tables` 分頁則是多表 workspace，每張表以 Folder 展開，可同時查看、編輯多張表並比對它們的事件引用。
+
+Parameter Table 是 authoring 分類與 ownership 邊界，例如 `Player`、`Story.Chapter01`、`World.Temp1`。Game Event Editor 的參數選擇器會依 Table 分組並提供搜尋；runtime 仍只以 Parameter Key 識別資料。跨表 Key 必須全域唯一，移動 Parameter 到另一張表不應改變 Key。
 
 Editor 不建立 ScriptableObject 副本、ScriptedImporter 或自動掃描 registry；磁碟上的 JSON 仍是唯一權威資料。
 

@@ -7,6 +7,7 @@ using KahaGameCore.Effects;
 using KahaGameCore.Parameters;
 using KahaGameCore.Parameters.Editor;
 using UnityEditor;
+using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -35,10 +36,15 @@ namespace KahaGameCore.GameEvents.Editor
         private static readonly string[] NumericOperatorSymbols =
             { "==", "!=", ">", ">=", "<", "<=" };
         private static readonly string[] BoolOperatorLabels = { "為真", "為假" };
+        private static readonly ParameterType[] AllParameterTypes =
+            { ParameterType.Int, ParameterType.Float, ParameterType.Bool, ParameterType.String };
+        private static readonly ParameterType[] ConditionParameterTypes =
+            { ParameterType.Int, ParameterType.Float, ParameterType.Bool };
 
         private static GUIStyle cardStyle;
         private static GUIStyle sectionTitleStyle;
         private static GUIStyle commandTitleStyle;
+        private static GUIStyle prominentSaveButtonStyle;
 
         [SerializeField] private GameEventEditorSession session;
         [SerializeField] private List<GameEventCommandDraft> commandDrafts =
@@ -53,12 +59,13 @@ namespace KahaGameCore.GameEvents.Editor
         [SerializeField] private Vector2 timingCatalogScrollPosition;
         [SerializeField] private string conditionEditorError;
         [SerializeField] private bool parameterTablesFoldout = true;
-        [SerializeField] private bool parameterEditorFoldout = true;
         [SerializeField] private bool serializedPreviewFoldout;
-        [SerializeField] private ParameterTableEditorPanel parameterEditor =
-            new ParameterTableEditorPanel();
+        [SerializeField] private ParameterTableWorkspace parameterWorkspace =
+            new ParameterTableWorkspace();
 
         [NonSerialized] private GameEventProjectAuthoringCatalog catalog;
+        [NonSerialized] private GameEventParameterUsageIndex parameterUsageIndex;
+        [NonSerialized] private string parameterUsageSignature;
         [NonSerialized] private GameEventCatalogAsset selectedEventCatalog;
         [NonSerialized] private List<TextAsset> selectedParameterTables;
         [NonSerialized] private GameEventConditionGroupDraft conditionRoot;
@@ -78,16 +85,16 @@ namespace KahaGameCore.GameEvents.Editor
             }
         }
 
-        private ParameterTableEditorPanel ParameterEditor
+        private ParameterTableWorkspace ParameterWorkspace
         {
             get
             {
-                if (parameterEditor == null)
+                if (parameterWorkspace == null)
                 {
-                    parameterEditor = new ParameterTableEditorPanel();
+                    parameterWorkspace = new ParameterTableWorkspace();
                 }
 
-                return parameterEditor;
+                return parameterWorkspace;
             }
         }
 
@@ -141,6 +148,29 @@ namespace KahaGameCore.GameEvents.Editor
             }
         }
 
+        private static GUIStyle ProminentSaveButtonStyle
+        {
+            get
+            {
+                if (prominentSaveButtonStyle == null)
+                {
+                    prominentSaveButtonStyle = new GUIStyle(GUI.skin.button)
+                    {
+                        fontSize = 15,
+                        fontStyle = FontStyle.Bold,
+                        fixedHeight = 46f,
+                        margin = new RectOffset(8, 8, 6, 6)
+                    };
+                    prominentSaveButtonStyle.normal.textColor = Color.white;
+                    prominentSaveButtonStyle.hover.textColor = Color.white;
+                    prominentSaveButtonStyle.active.textColor = Color.white;
+                    prominentSaveButtonStyle.focused.textColor = Color.white;
+                }
+
+                return prominentSaveButtonStyle;
+            }
+        }
+
         [MenuItem("KahaGameCore/遊戲事件/遊戲事件編輯器")]
         public static void OpenWindow()
         {
@@ -158,7 +188,7 @@ namespace KahaGameCore.GameEvents.Editor
             titleContent = new GUIContent("遊戲事件");
             minSize = new Vector2(980f, 680f);
             saveChangesMessage =
-                "要儲存此遊戲事件與目前開啟的參數表變更嗎？";
+                "要儲存此遊戲事件與所有參數表變更嗎？";
             if (session == null)
             {
                 session = new GameEventEditorSession();
@@ -191,17 +221,9 @@ namespace KahaGameCore.GameEvents.Editor
             string deletedEventPath = session != null ? session.AssetPath : null;
             bool eventWasDeleted = session != null && session.ResetIfAssetMissing();
 
-            string deletedParameterPath = ParameterEditor.AssetPath;
-            bool parameterWasDeleted =
-                !string.IsNullOrEmpty(deletedParameterPath) &&
-                AssetDatabase.LoadAssetAtPath<TextAsset>(deletedParameterPath) == null;
-            if (parameterWasDeleted)
-            {
-                ParameterEditor.Clear();
-            }
-
             LoadEventCatalogSettings();
             LoadParameterTableSettings();
+            ParameterWorkspace.Bind(selectedParameterTables);
             EventCatalogEditor.SetCatalog(GetSelectedEventCatalog());
             RefreshCatalog(false);
 
@@ -213,13 +235,6 @@ namespace KahaGameCore.GameEvents.Editor
                     $"已關閉被刪除的遊戲事件：{deletedEventPath}",
                     MessageType.Warning);
             }
-            else if (parameterWasDeleted)
-            {
-                SetStatus(
-                    $"已關閉被刪除的參數表：{deletedParameterPath}",
-                    MessageType.Warning);
-            }
-
             Repaint();
         }
 
@@ -297,7 +312,7 @@ namespace KahaGameCore.GameEvents.Editor
             string gameEventLabel = session != null && session.IsDirty
                 ? "事件編輯 *"
                 : "事件編輯";
-            string parameterLabel = ParameterEditor.IsDirty
+            string parameterLabel = ParameterWorkspace.HasUnsavedChanges
                 ? "參數表 *"
                 : "參數表";
             selectedTab = (EditorTab)GUILayout.Toolbar(
@@ -315,7 +330,7 @@ namespace KahaGameCore.GameEvents.Editor
 
         public override void SaveChanges()
         {
-            if (ParameterEditor.IsDirty && !SaveEmbeddedParameterTable())
+            if (ParameterWorkspace.HasUnsavedChanges && !SaveAllParameterTables())
             {
                 return;
             }
@@ -331,7 +346,15 @@ namespace KahaGameCore.GameEvents.Editor
         public override void DiscardChanges()
         {
             session?.MarkClean();
-            ParameterEditor?.MarkClean();
+            try
+            {
+                ParameterWorkspace.ReloadAll();
+                RefreshCatalog(false);
+            }
+            catch (Exception exception)
+            {
+                SetStatus(exception.Message, MessageType.Error);
+            }
             SyncUnsavedState();
             base.DiscardChanges();
         }
@@ -970,9 +993,35 @@ namespace KahaGameCore.GameEvents.Editor
         {
             try
             {
+                if (selected != selectedEventCatalog &&
+                    ParameterWorkspace.HasUnsavedChanges)
+                {
+                    int choice = EditorUtility.DisplayDialogComplex(
+                        "參數表有尚未儲存的變更",
+                        "切換事件目錄會離開目前的參數表 workspace。",
+                        "全部儲存並切換",
+                        "取消",
+                        "捨棄並切換");
+                    if (choice == 1)
+                    {
+                        return;
+                    }
+
+                    if (choice == 0 && !SaveAllParameterTables())
+                    {
+                        return;
+                    }
+
+                    if (choice == 2)
+                    {
+                        ParameterWorkspace.ReloadAll();
+                    }
+                }
+
                 GameEventEditorProjectSettings.instance.SetEventCatalog(selected);
                 selectedEventCatalog = selected;
                 LoadParameterTableSettings();
+                ParameterWorkspace.Bind(selectedParameterTables);
                 EventCatalogEditor.SetCatalog(selected);
                 RefreshCatalog(false);
                 SetStatus(
@@ -1072,18 +1121,25 @@ namespace KahaGameCore.GameEvents.Editor
             if (selectedParameterTables == null)
             {
                 LoadParameterTableSettings();
+                ParameterWorkspace.Bind(selectedParameterTables);
             }
 
+            DrawParameterWorkspaceToolbar();
+            DrawDirtyParameterSaveBanner();
+            EditorGUILayout.Space();
+            DrawParameterFolders();
+
+            EditorGUILayout.Space();
             int selectedCount = selectedParameterTables.Count(table => table != null);
             parameterTablesFoldout = EditorGUILayout.Foldout(
                 parameterTablesFoldout,
-                $"編輯用參數表（{selectedCount}）",
+                $"管理參數表來源（{selectedCount}）",
                 true);
             if (parameterTablesFoldout)
             {
                 EditorGUILayout.HelpBox(
                     "只有此處選取的參數表會出現在條件與參數鍵選項中。" +
-                    "可建立新表或加入既有表，儲存後會立即重新整理選項。",
+                    "可建立新表或加入既有表。",
                     MessageType.Info);
 
                 int removeIndex = -1;
@@ -1100,14 +1156,6 @@ namespace KahaGameCore.GameEvents.Editor
                         if (selected != current)
                         {
                             TrySetParameterTable(index, selected);
-                        }
-
-                        using (new EditorGUI.DisabledScope(current == null))
-                        {
-                            if (GUILayout.Button("編輯", GUILayout.Width(48f)))
-                            {
-                                OpenEmbeddedParameterTable(current);
-                            }
                         }
 
                         if (GUILayout.Button("×", GUILayout.Width(28f)))
@@ -1145,17 +1193,235 @@ namespace KahaGameCore.GameEvents.Editor
                         MessageType.Warning);
                 }
             }
-
-            DrawEmbeddedParameterEditor();
         }
 
-        private void CreateParameterTableFromDialog()
+        private void DrawParameterWorkspaceToolbar()
         {
-            if (!ConfirmDiscardParameterTableChanges())
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
+            {
+                GUILayout.Label(
+                    $"參數表 Folder（{ParameterWorkspace.Sessions.Count}／" +
+                    $"{ParameterWorkspace.Sessions.Sum(item => item.Editor.ParameterCount)} 個參數）",
+                    EditorStyles.miniLabel,
+                    GUILayout.MinWidth(220f));
+
+                Rect createRect = GUILayoutUtility.GetRect(
+                    new GUIContent("＋ 新增參數"),
+                    EditorStyles.toolbarButton,
+                    GUILayout.Width(100f));
+                if (GUI.Button(createRect, "＋ 新增參數", EditorStyles.toolbarButton))
+                {
+                    ShowCreateParameterPopup(
+                        createRect,
+                        AllParameterTypes,
+                        key => SetStatus($"已新增參數「{key}」（尚未儲存）。", MessageType.Info));
+                }
+
+                GUILayout.FlexibleSpace();
+                using (new EditorGUI.DisabledScope(ParameterWorkspace.Sessions.Count == 0))
+                {
+                    if (GUILayout.Button("全部重新載入", EditorStyles.toolbarButton) &&
+                        (!ParameterWorkspace.HasUnsavedChanges ||
+                        EditorUtility.DisplayDialog(
+                            "要捨棄所有參數表變更嗎？",
+                            "尚未儲存的參數表變更會全部遺失。",
+                            "捨棄並重新載入",
+                            "取消")))
+                    {
+                        ParameterWorkspace.ReloadAll();
+                        RefreshCatalog(false);
+                    }
+                }
+            }
+        }
+
+        private void DrawDirtyParameterSaveBanner()
+        {
+            if (!ParameterWorkspace.HasUnsavedChanges)
             {
                 return;
             }
 
+            Color previousBackgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = new Color(1f, 0.38f, 0.08f);
+            bool saveClicked = GUILayout.Button(
+                new GUIContent(
+                    $"全部儲存（{ParameterWorkspace.DirtyCount} 張參數表尚未儲存）",
+                    "儲存所有尚未儲存的參數表，並重新整理事件選項。"),
+                ProminentSaveButtonStyle,
+                GUILayout.ExpandWidth(true));
+            GUI.backgroundColor = previousBackgroundColor;
+
+            if (saveClicked)
+            {
+                SaveAllParameterTables();
+            }
+        }
+
+        private void DrawParameterFolders()
+        {
+            DrawSectionHeader(
+                "參數表",
+                "展開 Folder 可查看參數在目前事件目錄中的引用，" +
+                "也能同時展開多張表編輯。");
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
+            {
+                ParameterWorkspace.OverviewSearchText =
+                    GUILayout.TextField(
+                        ParameterWorkspace.OverviewSearchText,
+                        GUI.skin.FindStyle("ToolbarSearchTextField") ??
+                        EditorStyles.toolbarTextField);
+                if (!string.IsNullOrEmpty(ParameterWorkspace.OverviewSearchText) &&
+                    GUILayout.Button("清除", EditorStyles.toolbarButton, GUILayout.Width(44f)))
+                {
+                    ParameterWorkspace.OverviewSearchText = string.Empty;
+                    GUI.FocusControl(null);
+                }
+            }
+
+            IReadOnlyList<ParameterAuthoringEntry> entries =
+                ParameterWorkspace.BuildEntries(out IReadOnlyList<string> errors);
+            foreach (string workspaceError in errors)
+            {
+                EditorGUILayout.HelpBox(workspaceError, MessageType.Error);
+            }
+
+            EnsureParameterUsageIndex();
+            foreach (string warning in parameterUsageIndex.Warnings)
+            {
+                EditorGUILayout.HelpBox(warning, MessageType.Warning);
+            }
+
+            string[] terms = ParameterWorkspace.OverviewSearchText
+                .Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            int visibleTableCount = 0;
+            foreach (ParameterTableWorkspace.Session tableSession in
+                     ParameterWorkspace.Sessions)
+            {
+                ParameterAuthoringEntry[] tableEntries = entries
+                    .Where(entry => string.Equals(
+                        entry.AssetPath,
+                        tableSession.AssetPath,
+                        StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
+                bool tableMatches = terms.Length == 0 || terms.All(term =>
+                    ContainsSearchTerm(tableSession.Editor.TableDisplayName, term) ||
+                    ContainsSearchTerm(tableSession.AssetPath, term));
+                ParameterAuthoringEntry[] visibleEntries = tableMatches
+                    ? tableEntries
+                    : tableEntries.Where(entry =>
+                        MatchesParameterSearch(entry, terms)).ToArray();
+                if (!tableMatches && visibleEntries.Length == 0)
+                {
+                    continue;
+                }
+
+                visibleTableCount++;
+                if (terms.Length > 0)
+                {
+                    tableSession.Expanded = true;
+                }
+
+                string folderLabel =
+                    (tableSession.Editor.IsDirty ? "* " : string.Empty) +
+                    tableSession.Editor.TableDisplayName +
+                    $"（{tableSession.Editor.ParameterCount}）";
+                tableSession.Expanded = EditorGUILayout.BeginFoldoutHeaderGroup(
+                    tableSession.Expanded,
+                    folderLabel);
+                if (tableSession.Expanded)
+                {
+                    using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                    {
+                        EditorGUILayout.LabelField(
+                            tableSession.AssetPath,
+                            EditorStyles.miniLabel);
+                        HashSet<string> visibleKeys = new HashSet<string>(
+                            visibleEntries.Select(entry => entry.Definition.Key),
+                            StringComparer.Ordinal);
+                        tableSession.PruneReferenceExpansion(
+                            tableEntries.Select(entry => entry.Definition.Key));
+                        tableSession.Editor.Draw(
+                            key => tableMatches || visibleKeys.Contains(key),
+                            key => DrawParameterReferenceCell(tableSession, key),
+                            key => DrawParameterReferenceDetails(tableSession, key));
+                    }
+                }
+
+                EditorGUILayout.EndFoldoutHeaderGroup();
+                EditorGUILayout.Space(2f);
+            }
+
+            if (visibleTableCount == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    entries.Count == 0
+                        ? "目前沒有參數。"
+                        : "找不到符合搜尋條件的參數。",
+                    MessageType.Info);
+            }
+        }
+
+        private void DrawParameterReferenceCell(
+            ParameterTableWorkspace.Session tableSession,
+            string parameterKey)
+        {
+            IReadOnlyList<GameEventParameterReference> references =
+                parameterUsageIndex.Find(parameterKey);
+            bool expanded = tableSession.IsReferenceExpanded(parameterKey);
+            GUIContent content = new GUIContent(
+                (expanded ? "▼ " : "▶ ") + references.Count,
+                references.Count == 0
+                    ? "沒有事件引用此參數。"
+                    : $"有 {references.Count} 個事件引用此參數。");
+            if (GUILayout.Button(content, EditorStyles.miniButton))
+            {
+                tableSession.SetReferenceExpanded(parameterKey, !expanded);
+            }
+        }
+
+        private void DrawParameterReferenceDetails(
+            ParameterTableWorkspace.Session tableSession,
+            string parameterKey)
+        {
+            if (!tableSession.IsReferenceExpanded(parameterKey))
+            {
+                return;
+            }
+
+            IReadOnlyList<GameEventParameterReference> references =
+                parameterUsageIndex.Find(parameterKey);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.Space(32f);
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                {
+                    if (references.Count == 0)
+                    {
+                        EditorGUILayout.LabelField(
+                            "未被目前事件目錄中的事件引用。",
+                            EditorStyles.miniLabel);
+                        return;
+                    }
+
+                    foreach (GameEventParameterReference reference in references)
+                    {
+                        GUIContent label = new GUIContent(
+                            $"{reference.EventDisplayName}  【{reference.FormatUsage()}】",
+                            reference.AssetPath);
+                        if (GUILayout.Button(label, EditorStyles.miniButton))
+                        {
+                            OpenParameterReference(reference);
+                            GUIUtility.ExitGUI();
+                        }
+                    }
+                }
+            }
+        }
+
+        private void CreateParameterTableFromDialog()
+        {
             string selectedPath = EditorUtility.SaveFilePanelInProject(
                 "建立參數表",
                 "NewParameterTable.parameters",
@@ -1178,21 +1444,22 @@ namespace KahaGameCore.GameEvents.Editor
                     LoadParameterTableSettings();
                 }
 
-                ParameterEditor.NewTable();
-                ParameterEditor.SaveTable(assetPath);
+                ParameterTableEditorPanel newEditor = new ParameterTableEditorPanel();
+                newEditor.NewTable();
+                newEditor.SaveTable(assetPath);
 
                 TextAsset created = AssetDatabase.LoadAssetAtPath<TextAsset>(
-                    ParameterEditor.AssetPath);
+                    assetPath);
                 if (created == null)
                 {
                     throw new InvalidOperationException(
-                        $"無法載入剛建立的參數表：{ParameterEditor.AssetPath}");
+                        $"無法載入剛建立的參數表：{assetPath}");
                 }
 
                 bool alreadySelected = selectedParameterTables.Any(
                     table => table != null && string.Equals(
                         AssetDatabase.GetAssetPath(table),
-                        ParameterEditor.AssetPath,
+                        assetPath,
                         StringComparison.OrdinalIgnoreCase));
                 int emptyIndex = selectedParameterTables.FindIndex(table => table == null);
                 if (alreadySelected)
@@ -1212,16 +1479,16 @@ namespace KahaGameCore.GameEvents.Editor
                 }
 
                 SaveParameterTableSettings();
-                parameterEditorFoldout = true;
+                ParameterWorkspace.Bind(selectedParameterTables);
+                ParameterWorkspace.Expand(assetPath);
                 SetStatus(
-                    $"已建立並開啟參數表：{ParameterEditor.AssetPath}",
+                    $"已建立並開啟參數表：{assetPath}",
                     MessageType.Info);
                 SyncUnsavedState();
                 return true;
             }
             catch (Exception exception)
             {
-                ParameterEditor.SetStatus(exception.Message, MessageType.Error);
                 SetStatus(exception.Message, MessageType.Error);
                 SyncUnsavedState();
                 return false;
@@ -1270,14 +1537,11 @@ namespace KahaGameCore.GameEvents.Editor
             }
 
             TextAsset current = selectedParameterTables[index];
-            if (IsEditingParameterTable(current) && !ConfirmDiscardParameterTableChanges())
+            string currentPath = current == null ? null : AssetDatabase.GetAssetPath(current);
+            if (ParameterWorkspace.IsDirty(currentPath) &&
+                !ConfirmDiscardParameterTable(currentPath))
             {
                 return;
-            }
-
-            if (IsEditingParameterTable(current))
-            {
-                ParameterEditor.Clear();
             }
 
             selectedParameterTables[index] = selected;
@@ -1287,184 +1551,53 @@ namespace KahaGameCore.GameEvents.Editor
         private void RemoveParameterTableAt(int index)
         {
             TextAsset current = selectedParameterTables[index];
-            if (IsEditingParameterTable(current) && !ConfirmDiscardParameterTableChanges())
+            string currentPath = current == null ? null : AssetDatabase.GetAssetPath(current);
+            if (ParameterWorkspace.IsDirty(currentPath) &&
+                !ConfirmDiscardParameterTable(currentPath))
             {
                 return;
-            }
-
-            if (IsEditingParameterTable(current))
-            {
-                ParameterEditor.Clear();
             }
 
             selectedParameterTables.RemoveAt(index);
             SaveParameterTableSettings();
         }
 
-        private void OpenEmbeddedParameterTable(TextAsset tableAsset)
+        private bool ConfirmDiscardParameterTable(string assetPath)
         {
-            if (tableAsset == null)
-            {
-                return;
-            }
-
-            string path = AssetDatabase.GetAssetPath(tableAsset);
-            if (string.Equals(
-                path,
-                ParameterEditor.AssetPath,
-                StringComparison.OrdinalIgnoreCase))
-            {
-                parameterEditorFoldout = true;
-                return;
-            }
-
-            if (!ConfirmDiscardParameterTableChanges())
-            {
-                return;
-            }
-
-            try
-            {
-                ParameterEditor.LoadTable(path);
-                parameterEditorFoldout = true;
-                SetStatus($"正在編輯參數表：{path}", MessageType.Info);
-            }
-            catch (Exception exception)
-            {
-                SetStatus(exception.Message, MessageType.Error);
-            }
-        }
-
-        private void DrawEmbeddedParameterEditor()
-        {
-            if (string.IsNullOrEmpty(ParameterEditor.AssetPath))
-            {
-                return;
-            }
-
-            EditorGUILayout.Space();
-            string title = string.IsNullOrWhiteSpace(ParameterEditor.TableDisplayName)
-                ? "參數表編輯器"
-                : "參數表編輯器 — " + ParameterEditor.TableDisplayName;
-            parameterEditorFoldout = EditorGUILayout.Foldout(
-                parameterEditorFoldout,
-                title,
-                true);
-            if (!parameterEditorFoldout)
-            {
-                return;
-            }
-
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-            {
-                using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
-                {
-                    bool isDirty = ParameterEditor.IsDirty;
-                    Color previousBackgroundColor = GUI.backgroundColor;
-                    Color previousContentColor = GUI.contentColor;
-                    if (isDirty)
-                    {
-                        GUI.backgroundColor = new Color(1f, 0.58f, 0.16f);
-                        GUI.contentColor = Color.white;
-                    }
-
-                    GUIContent saveLabel = new GUIContent(
-                        isDirty ? "儲存參數表 *" : "儲存參數表",
-                        isDirty
-                            ? "此參數表有尚未儲存的變更。"
-                            : "儲存此參數表。");
-                    bool saveClicked = GUILayout.Button(
-                        saveLabel,
-                        EditorStyles.toolbarButton,
-                        GUILayout.Width(104f));
-                    GUI.backgroundColor = previousBackgroundColor;
-                    GUI.contentColor = previousContentColor;
-                    if (saveClicked)
-                    {
-                        SaveEmbeddedParameterTable();
-                    }
-
-                    if (GUILayout.Button("重新載入", EditorStyles.toolbarButton) &&
-                        ConfirmDiscardParameterTableChanges())
-                    {
-                        ReloadEmbeddedParameterTable();
-                    }
-
-                    GUILayout.FlexibleSpace();
-                    if (GUILayout.Button("關閉", EditorStyles.toolbarButton) &&
-                        ConfirmDiscardParameterTableChanges())
-                    {
-                        ParameterEditor.Clear();
-                        SyncUnsavedState();
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(ParameterEditor.AssetPath))
-                {
-                    ParameterEditor.Draw();
-                }
-            }
-        }
-
-        private bool SaveEmbeddedParameterTable()
-        {
-            if (string.IsNullOrEmpty(ParameterEditor.AssetPath))
+            if (!ParameterWorkspace.TryGetSession(
+                    assetPath,
+                    out ParameterTableWorkspace.Session session) ||
+                !session.Editor.IsDirty)
             {
                 return true;
             }
 
+            return EditorUtility.DisplayDialog(
+                "參數表尚未儲存",
+                $"要捨棄「{session.Editor.TableDisplayName}」尚未儲存的變更嗎？",
+                "捨棄變更",
+                "取消");
+        }
+
+        private bool SaveAllParameterTables()
+        {
             try
             {
-                string path = ParameterEditor.AssetPath;
-                ParameterEditor.SaveTable(path);
+                int dirtyCount = ParameterWorkspace.DirtyCount;
+                ParameterWorkspace.SaveAll();
                 RefreshCatalog(false);
                 SetStatus(
-                    $"已儲存參數表並重新整理事件選項：{path}",
+                    $"已儲存 {dirtyCount} 張參數表並重新整理事件選項。",
                     MessageType.Info);
                 SyncUnsavedState();
                 return true;
             }
             catch (Exception exception)
             {
-                ParameterEditor.SetStatus(exception.Message, MessageType.Error);
                 SetStatus(exception.Message, MessageType.Error);
                 SyncUnsavedState();
                 return false;
             }
-        }
-
-        private void ReloadEmbeddedParameterTable()
-        {
-            try
-            {
-                ParameterEditor.Reload();
-                RefreshCatalog(false);
-                SetStatus("已從磁碟重新載入參數表。", MessageType.Info);
-                SyncUnsavedState();
-            }
-            catch (Exception exception)
-            {
-                ParameterEditor.SetStatus(exception.Message, MessageType.Error);
-                SetStatus(exception.Message, MessageType.Error);
-            }
-        }
-
-        private bool ConfirmDiscardParameterTableChanges()
-        {
-            return !ParameterEditor.IsDirty || EditorUtility.DisplayDialog(
-                "參數表尚未儲存",
-                $"要捨棄「{ParameterEditor.TableDisplayName}」尚未儲存的變更嗎？",
-                "捨棄變更",
-                "取消");
-        }
-
-        private bool IsEditingParameterTable(TextAsset tableAsset)
-        {
-            return tableAsset != null &&
-                string.Equals(
-                    AssetDatabase.GetAssetPath(tableAsset),
-                    ParameterEditor.AssetPath,
-                    StringComparison.OrdinalIgnoreCase);
         }
 
         private void LoadEventCatalogSettings()
@@ -1495,6 +1628,7 @@ namespace KahaGameCore.GameEvents.Editor
                 selectedEventCatalog.SetParameterTables(
                     selectedParameterTables.Where(table => table != null));
                 EditorUtility.SetDirty(selectedEventCatalog);
+                ParameterWorkspace.Bind(selectedParameterTables);
                 RefreshCatalog(true);
             }
             catch (Exception exception)
@@ -1618,8 +1752,8 @@ namespace KahaGameCore.GameEvents.Editor
                 return;
             }
 
-            ParameterDefinition[] conditionParameters = catalog.Parameters
-                .Where(parameter => parameter.Type != ParameterType.String)
+            ParameterAuthoringEntry[] conditionParameters = catalog.ParameterEntries
+                .Where(entry => entry.Definition.Type != ParameterType.String)
                 .ToArray();
             ConditionSetupState setupState = GetConditionSetupState(
                 selectedParameterTables != null &&
@@ -1681,7 +1815,7 @@ namespace KahaGameCore.GameEvents.Editor
 
         private bool DrawConditionGroup(
             GameEventConditionGroupDraft group,
-            IReadOnlyList<ParameterDefinition> parameters,
+            IReadOnlyList<ParameterAuthoringEntry> parameters,
             bool isRoot,
             out bool removeRequested)
         {
@@ -1765,7 +1899,7 @@ namespace KahaGameCore.GameEvents.Editor
                 {
                     if (GUILayout.Button("＋ 新增條件", GUILayout.Width(110f)))
                     {
-                        group.Children.Add(CreateDefaultCondition(parameters[0]));
+                        group.Children.Add(CreateDefaultCondition(parameters[0].Definition));
                         changed = true;
                     }
 
@@ -1773,7 +1907,7 @@ namespace KahaGameCore.GameEvents.Editor
                     {
                         GameEventConditionGroupDraft childGroup =
                             new GameEventConditionGroupDraft();
-                        childGroup.Children.Add(CreateDefaultCondition(parameters[0]));
+                        childGroup.Children.Add(CreateDefaultCondition(parameters[0].Definition));
                         group.Children.Add(childGroup);
                         changed = true;
                     }
@@ -1785,7 +1919,7 @@ namespace KahaGameCore.GameEvents.Editor
 
         private bool DrawConditionClause(
             GameEventConditionClauseDraft draft,
-            IReadOnlyList<ParameterDefinition> parameters,
+            IReadOnlyList<ParameterAuthoringEntry> parameters,
             int index,
             out bool removeRequested)
         {
@@ -1796,17 +1930,27 @@ namespace KahaGameCore.GameEvents.Editor
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     EditorGUILayout.LabelField($"#{index + 1}", GUILayout.Width(28f));
-                    string previousKey = draft.ParameterKey;
-                    draft.ParameterKey = DrawConditionParameterPopup(
+                    DrawParameterKeyDropdown(
+                        null,
                         draft.ParameterKey,
-                        parameters);
-                    if (!string.Equals(
-                        previousKey,
-                        draft.ParameterKey,
-                        StringComparison.Ordinal))
-                    {
-                        ResetConditionForParameter(draft, parameters);
-                    }
+                        parameters,
+                        ConditionParameterTypes,
+                        selectedKey =>
+                        {
+                            if (string.Equals(
+                                    draft.ParameterKey,
+                                    selectedKey,
+                                    StringComparison.Ordinal))
+                            {
+                                return;
+                            }
+
+                            draft.ParameterKey = selectedKey;
+                            ResetConditionForParameter(draft, catalog.ParameterEntries);
+                            session.Condition =
+                                GameEventConditionDraftCodec.Serialize(conditionRoot);
+                            Repaint();
+                        });
 
                     if (GUILayout.Button("×", GUILayout.Width(28f)))
                     {
@@ -1829,37 +1973,6 @@ namespace KahaGameCore.GameEvents.Editor
             }
 
             return EditorGUI.EndChangeCheck() || removeRequested;
-        }
-
-        private string DrawConditionParameterPopup(
-            string currentValue,
-            IReadOnlyList<ParameterDefinition> parameters)
-        {
-            int selectedIndex = parameters
-                .Select(parameter => parameter.Key)
-                .ToList()
-                .IndexOf(currentValue ?? string.Empty);
-            bool isKnown = selectedIndex >= 0;
-            string[] labels;
-            if (isKnown)
-            {
-                labels = parameters.Select(FormatParameterLabel).ToArray();
-            }
-            else
-            {
-                labels = new[] { $"遺失／{currentValue}" }
-                    .Concat(parameters.Select(FormatParameterLabel))
-                    .ToArray();
-                selectedIndex = 0;
-            }
-
-            int newIndex = EditorGUILayout.Popup(selectedIndex, labels);
-            if (!isKnown && newIndex == 0)
-            {
-                return currentValue;
-            }
-
-            return parameters[isKnown ? newIndex : newIndex - 1].Key;
         }
 
         private static void DrawConditionComparison(
@@ -1921,10 +2034,11 @@ namespace KahaGameCore.GameEvents.Editor
 
         private static void ResetConditionForParameter(
             GameEventConditionClauseDraft draft,
-            IReadOnlyList<ParameterDefinition> parameters)
+            IReadOnlyList<ParameterAuthoringEntry> parameters)
         {
-            ParameterDefinition parameter = parameters.First(
-                candidate => candidate.Key == draft.ParameterKey);
+            ParameterDefinition parameter = parameters
+                .First(candidate => candidate.Definition.Key == draft.ParameterKey)
+                .Definition;
             draft.Operator = "==";
             draft.Value = parameter.Type == ParameterType.Bool ? "true" : "0";
         }
@@ -2117,9 +2231,20 @@ namespace KahaGameCore.GameEvents.Editor
             string label = FormatCommandParameterLabel(parameter);
             if (parameter.Kind == EffectCommandParameterKind.ParameterKey)
             {
-                draft.Arguments[argumentIndex] = DrawParameterKeyPopup(
+                DrawParameterKeyDropdown(
                     label,
-                    draft.Arguments[argumentIndex]);
+                    draft.Arguments[argumentIndex],
+                    catalog.ParameterEntries,
+                    AllParameterTypes,
+                    selectedKey =>
+                    {
+                        draft.Arguments[argumentIndex] = selectedKey;
+                        session.Commands = GameEventCommandDraftCodec.Serialize(
+                            commandDrafts
+                                .Where(item => !string.IsNullOrWhiteSpace(item.Name))
+                                .ToList());
+                        Repaint();
+                    });
                 return;
             }
 
@@ -2128,39 +2253,82 @@ namespace KahaGameCore.GameEvents.Editor
                 draft.Arguments[argumentIndex] ?? string.Empty);
         }
 
-        private string DrawParameterKeyPopup(string label, string currentValue)
+        private void DrawParameterKeyDropdown(
+            string label,
+            string currentValue,
+            IReadOnlyList<ParameterAuthoringEntry> entries,
+            IReadOnlyList<ParameterType> creatableTypes,
+            Action<string> onSelected)
         {
-            if (catalog.Parameters.Count == 0)
+            if (entries.Count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "選取的參數表中找不到任何參數鍵。",
-                    MessageType.Error);
-                return currentValue;
+                    "目前沒有可選參數，可從下方選單直接新增。",
+                    MessageType.Info);
             }
 
-            List<ParameterDefinition> options = catalog.Parameters.ToList();
-            int selectedIndex = options.FindIndex(item => item.Key == currentValue);
-            bool isKnown = selectedIndex >= 0;
-            string[] labels;
-            if (isKnown)
+            Rect controlRect = EditorGUILayout.GetControlRect();
+            Rect buttonRect = string.IsNullOrWhiteSpace(label)
+                ? controlRect
+                : EditorGUI.PrefixLabel(controlRect, new GUIContent(label));
+            GUIContent content;
+            if (catalog.TryGetParameterEntry(
+                    currentValue,
+                    out ParameterAuthoringEntry currentEntry))
             {
-                labels = options.Select(FormatParameterLabel).ToArray();
+                content = new GUIContent(
+                    currentEntry.TableDisplayName + " / " +
+                    ParameterKeyAdvancedDropdown.FormatEntryLabel(currentEntry),
+                    currentEntry.AssetPath);
             }
             else
             {
-                labels = new[] { $"遺失／{currentValue}" }
-                    .Concat(options.Select(FormatParameterLabel))
-                    .ToArray();
-                selectedIndex = 0;
+                content = string.IsNullOrWhiteSpace(currentValue)
+                    ? new GUIContent("選擇或新增參數…")
+                    : new GUIContent($"遺失／{currentValue}");
             }
 
-            int newIndex = EditorGUILayout.Popup(label, selectedIndex, labels);
-            if (!isKnown && newIndex == 0)
+            if (!EditorGUI.DropdownButton(
+                    buttonRect,
+                    content,
+                    FocusType.Keyboard))
             {
-                return currentValue;
+                return;
             }
 
-            return options[isKnown ? newIndex : newIndex - 1].Key;
+            ParameterKeyAdvancedDropdown dropdown =
+                new ParameterKeyAdvancedDropdown(
+                    new AdvancedDropdownState(),
+                    entries,
+                    onSelected,
+                    () => ShowCreateParameterPopup(
+                        buttonRect,
+                        creatableTypes,
+                        onSelected));
+            dropdown.Show(buttonRect);
+        }
+
+        private void ShowCreateParameterPopup(
+            Rect anchorRect,
+            IReadOnlyList<ParameterType> creatableTypes,
+            Action<string> onSelected)
+        {
+            PopupWindow.Show(
+                anchorRect,
+                new CreateParameterPopupContent(
+                    ParameterWorkspace,
+                    creatableTypes,
+                    key =>
+                    {
+                        RefreshCatalog(false);
+                        onSelected(key);
+                        SyncUnsavedState();
+                        SetStatus(
+                            $"已新增並選取參數「{key}」；" +
+                            "參數表尚未儲存。",
+                            MessageType.Info);
+                        Repaint();
+                    }));
         }
 
         private void DrawAddCommand()
@@ -2182,9 +2350,10 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 EffectCommandParameterDefinition parameter = descriptor.Parameters[index];
                 if (parameter.Kind == EffectCommandParameterKind.ParameterKey &&
-                    catalog.Parameters.Count > 0)
+                    catalog.ParameterEntries.Count > 0)
                 {
-                    draft.Arguments.Add(catalog.Parameters[0].Key);
+                    draft.Arguments.Add(
+                        catalog.ParameterEntries[0].Definition.Key);
                     continue;
                 }
 
@@ -2243,6 +2412,11 @@ namespace KahaGameCore.GameEvents.Editor
                 return false;
             }
 
+            if (ParameterWorkspace.HasUnsavedChanges && !SaveAllParameterTables())
+            {
+                return false;
+            }
+
             bool saved = RunCommand(
                 () =>
                 {
@@ -2272,6 +2446,11 @@ namespace KahaGameCore.GameEvents.Editor
             }
 
             selectedPath = EnsureGameEventExtension(selectedPath);
+
+            if (ParameterWorkspace.HasUnsavedChanges && !SaveAllParameterTables())
+            {
+                return false;
+            }
 
             bool saved = RunCommand(
                 () =>
@@ -2345,6 +2524,12 @@ namespace KahaGameCore.GameEvents.Editor
         private GameEventDocument ValidateEditorDocument()
         {
             EnsureCatalog();
+            if (catalog.Errors.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "參數表設定無效：\n" + string.Join("\n", catalog.Errors));
+            }
+
             for (int index = 0; index < commandDrafts.Count; index++)
             {
                 GameEventCommandDraft draft = commandDrafts[index];
@@ -2410,10 +2595,18 @@ namespace KahaGameCore.GameEvents.Editor
             if (selectedParameterTables == null)
             {
                 LoadParameterTableSettings();
+                ParameterWorkspace.Bind(selectedParameterTables);
             }
 
+            IReadOnlyList<ParameterAuthoringEntry> workspaceEntries =
+                ParameterWorkspace.BuildEntries(
+                    out IReadOnlyList<string> workspaceErrors);
             catalog = GameEventProjectAuthoringCatalog.Load(
-                GetSelectedEventCatalog());
+                GetSelectedEventCatalog(),
+                workspaceEntries,
+                workspaceErrors);
+            parameterUsageIndex = null;
+            parameterUsageSignature = null;
             if (!showStatus)
             {
                 return;
@@ -2426,10 +2619,18 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 message += "\n" + string.Join("\n", catalog.Warnings);
             }
+            if (catalog.Errors.Count > 0)
+            {
+                message += "\n" + string.Join("\n", catalog.Errors);
+            }
 
             SetStatus(
                 message,
-                catalog.Warnings.Count == 0 ? MessageType.Info : MessageType.Warning);
+                catalog.Errors.Count > 0
+                    ? MessageType.Error
+                    : catalog.Warnings.Count == 0
+                        ? MessageType.Info
+                        : MessageType.Warning);
         }
 
         private void RefreshCommandDrafts()
@@ -2470,6 +2671,98 @@ namespace KahaGameCore.GameEvents.Editor
             }
         }
 
+        private void EnsureParameterUsageIndex()
+        {
+            EnsureCatalog();
+            string signature = string.Join(
+                "\u001f",
+                selectedEventCatalog == null
+                    ? string.Empty
+                    : selectedEventCatalog.GetInstanceID().ToString(
+                        CultureInfo.InvariantCulture),
+                session?.AssetPath ?? string.Empty,
+                session?.DisplayName ?? string.Empty,
+                session?.Condition ?? string.Empty,
+                session?.Commands ?? string.Empty,
+                selectedEventCatalog == null
+                    ? string.Empty
+                    : string.Join(
+                        ",",
+                        selectedEventCatalog.Files.Select(asset =>
+                            asset == null
+                                ? "missing"
+                                : asset.GetInstanceID().ToString(
+                                    CultureInfo.InvariantCulture))));
+            if (parameterUsageIndex != null &&
+                string.Equals(
+                    parameterUsageSignature,
+                    signature,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            OpenGameEventUsageDocument openDocument = null;
+            if (session != null && (session.HasOpenFile || session.IsDirty))
+            {
+                openDocument = new OpenGameEventUsageDocument(
+                    AssetDatabase.LoadAssetAtPath<TextAsset>(session.AssetPath),
+                    session.AssetPath,
+                    session.DisplayName,
+                    session.Condition,
+                    session.Commands);
+            }
+
+            parameterUsageIndex = GameEventParameterUsageIndex.Build(
+                selectedEventCatalog,
+                catalog.Commands,
+                openDocument);
+            parameterUsageSignature = signature;
+        }
+
+        private bool MatchesParameterSearch(
+            ParameterAuthoringEntry entry,
+            IReadOnlyList<string> terms)
+        {
+            IReadOnlyList<GameEventParameterReference> references =
+                parameterUsageIndex.Find(entry.Definition.Key);
+            return terms.All(term =>
+                ContainsSearchTerm(entry.Definition.Key, term) ||
+                ContainsSearchTerm(entry.Definition.DisplayName, term) ||
+                ContainsSearchTerm(entry.Definition.Type.ToString(), term) ||
+                references.Any(reference =>
+                    ContainsSearchTerm(reference.EventDisplayName, term) ||
+                    ContainsSearchTerm(reference.AssetPath, term) ||
+                    ContainsSearchTerm(reference.FormatUsage(), term)));
+        }
+
+        private static bool ContainsSearchTerm(string value, string term)
+        {
+            return (value ?? string.Empty).IndexOf(
+                term,
+                StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private void OpenParameterReference(GameEventParameterReference reference)
+        {
+            if (SameAssetPath(session?.AssetPath, reference.AssetPath) ||
+                reference.EventAsset == null)
+            {
+                selectedTab = EditorTab.GameEvent;
+                return;
+            }
+
+            OpenCatalogEvent(reference.EventAsset);
+        }
+
+        private static bool SameAssetPath(string left, string right)
+        {
+            return string.Equals(
+                (left ?? string.Empty).Replace('\\', '/'),
+                (right ?? string.Empty).Replace('\\', '/'),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
         private void SetStatus(string message, MessageType messageType)
         {
             statusMessage = message;
@@ -2480,15 +2773,8 @@ namespace KahaGameCore.GameEvents.Editor
         private void SyncUnsavedState()
         {
             hasUnsavedChanges =
-                (session != null && session.IsDirty) || ParameterEditor.IsDirty;
-        }
-
-        private static string FormatParameterLabel(ParameterDefinition parameter)
-        {
-            string displayName = string.IsNullOrWhiteSpace(parameter.DisplayName)
-                ? parameter.Key
-                : parameter.DisplayName;
-            return $"{displayName}　（${parameter.Key}，{FormatParameterType(parameter.Type)}）";
+                (session != null && session.IsDirty) ||
+                ParameterWorkspace.HasUnsavedChanges;
         }
 
         private static string FormatCommandLabel(EffectCommandDescriptor descriptor)
@@ -2516,16 +2802,5 @@ namespace KahaGameCore.GameEvents.Editor
             return $"{parameter.Name}　·　{kind}";
         }
 
-        private static string FormatParameterType(ParameterType type)
-        {
-            switch (type)
-            {
-                case ParameterType.Int: return "整數";
-                case ParameterType.Float: return "小數";
-                case ParameterType.Bool: return "布林";
-                case ParameterType.String: return "文字";
-                default: return type.ToString();
-            }
-        }
     }
 }

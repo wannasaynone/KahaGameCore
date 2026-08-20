@@ -8,57 +8,114 @@ using UnityEngine;
 
 namespace KahaGameCore.GameEvents.Editor
 {
+    internal sealed class ParameterAuthoringEntry
+    {
+        public ParameterAuthoringEntry(
+            string tableGuid,
+            string tableDisplayName,
+            string assetPath,
+            ParameterDefinition definition)
+        {
+            TableGuid = tableGuid ?? throw new ArgumentNullException(nameof(tableGuid));
+            TableDisplayName = tableDisplayName ??
+                throw new ArgumentNullException(nameof(tableDisplayName));
+            AssetPath = assetPath ?? throw new ArgumentNullException(nameof(assetPath));
+            Definition = definition ?? throw new ArgumentNullException(nameof(definition));
+        }
+
+        public string TableGuid { get; }
+        public string TableDisplayName { get; }
+        public string AssetPath { get; }
+        public ParameterDefinition Definition { get; }
+    }
+
     internal sealed class GameEventProjectAuthoringCatalog
     {
         private readonly Dictionary<string, ParameterDefinition> parametersByKey;
+        private readonly Dictionary<string, ParameterAuthoringEntry> parameterEntriesByKey;
         private readonly Dictionary<string, EffectCommandDescriptor> commandsByName;
 
         private GameEventProjectAuthoringCatalog(
-            IReadOnlyList<ParameterDefinition> parameters,
+            IReadOnlyList<ParameterAuthoringEntry> parameterEntries,
             IReadOnlyList<EffectCommandDescriptor> commands,
             IReadOnlyList<string> triggerTimings,
-            IReadOnlyList<string> warnings)
+            IReadOnlyList<string> warnings,
+            IReadOnlyList<string> errors)
         {
-            Parameters = parameters;
+            ParameterEntries = parameterEntries;
+            Parameters = parameterEntries
+                .Select(entry => entry.Definition)
+                .ToArray();
             Commands = commands;
             TriggerTimings = triggerTimings;
             Warnings = warnings;
-            parametersByKey = parameters.ToDictionary(item => item.Key, StringComparer.Ordinal);
+            Errors = errors;
+            parametersByKey = Parameters.ToDictionary(item => item.Key, StringComparer.Ordinal);
+            parameterEntriesByKey = parameterEntries.ToDictionary(
+                item => item.Definition.Key,
+                StringComparer.Ordinal);
             commandsByName = commands.ToDictionary(item => item.Name, StringComparer.Ordinal);
         }
 
+        public IReadOnlyList<ParameterAuthoringEntry> ParameterEntries { get; }
         public IReadOnlyList<ParameterDefinition> Parameters { get; }
         public IReadOnlyList<EffectCommandDescriptor> Commands { get; }
         public IReadOnlyList<string> TriggerTimings { get; }
         public IReadOnlyList<string> Warnings { get; }
+        public IReadOnlyList<string> Errors { get; }
 
         public static GameEventProjectAuthoringCatalog Load(GameEventCatalogAsset eventCatalog)
+        {
+            return Load(eventCatalog, null, null);
+        }
+
+        internal static GameEventProjectAuthoringCatalog Load(
+            GameEventCatalogAsset eventCatalog,
+            IReadOnlyList<ParameterAuthoringEntry> parameterEntryOverride,
+            IReadOnlyList<string> parameterErrors)
         {
             ParameterTableJsonCodec parameterCodec = new ParameterTableJsonCodec();
             GameEventDocumentJsonCodec eventCodec = new GameEventDocumentJsonCodec();
             EffectRuntime effectRuntime = new EffectRuntime(new EffectCommandRegistry());
-            Dictionary<string, ParameterDefinition> parameterMap =
-                new Dictionary<string, ParameterDefinition>(StringComparer.Ordinal);
+            Dictionary<string, ParameterAuthoringEntry> parameterMap =
+                new Dictionary<string, ParameterAuthoringEntry>(StringComparer.Ordinal);
             List<string> warnings = new List<string>();
+            List<string> errors = new List<string>();
 
-            IReadOnlyList<TextAsset> selectedParameterTables =
-                eventCatalog?.ParameterTables ?? Array.Empty<TextAsset>();
-            for (int index = 0; index < selectedParameterTables.Count; index++)
+            if (parameterEntryOverride == null)
             {
-                TextAsset selectedTable = selectedParameterTables[index];
-                if (selectedTable == null)
+                IReadOnlyList<TextAsset> selectedParameterTables =
+                    eventCatalog?.ParameterTables ?? Array.Empty<TextAsset>();
+                for (int index = 0; index < selectedParameterTables.Count; index++)
                 {
-                    warnings.Add($"選取的第 {index + 1} 筆參數表已遺失。");
-                    continue;
+                    TextAsset selectedTable = selectedParameterTables[index];
+                    if (selectedTable == null)
+                    {
+                        warnings.Add($"選取的第 {index + 1} 筆參數表已遺失。");
+                        continue;
+                    }
+
+                    string selectedPath = AssetDatabase.GetAssetPath(selectedTable);
+                    TryCollectParameters(
+                        selectedPath,
+                        selectedTable.text,
+                        parameterCodec,
+                        parameterMap,
+                        warnings,
+                        errors);
+                }
+            }
+            else
+            {
+                foreach (ParameterAuthoringEntry entry in parameterEntryOverride)
+                {
+                    parameterMap[entry.Definition.Key] = entry;
                 }
 
-                string selectedPath = AssetDatabase.GetAssetPath(selectedTable);
-                TryCollectParameters(
-                    selectedPath,
-                    selectedTable.text,
-                    parameterCodec,
-                    parameterMap,
-                    warnings);
+                if (parameterErrors != null)
+                {
+                    errors.AddRange(parameterErrors);
+                }
             }
 
             if (eventCatalog != null)
@@ -81,8 +138,9 @@ namespace KahaGameCore.GameEvents.Editor
                 }
             }
 
-            IReadOnlyList<ParameterDefinition> parameters = parameterMap.Values
-                .OrderBy(item => item.Key, StringComparer.Ordinal)
+            IReadOnlyList<ParameterAuthoringEntry> parameterEntries = parameterMap.Values
+                .OrderBy(item => item.TableDisplayName, StringComparer.Ordinal)
+                .ThenBy(item => item.Definition.Key, StringComparer.Ordinal)
                 .ToArray();
             IReadOnlyList<EffectCommandDescriptor> commands = eventCatalog == null
                 ? Array.Empty<EffectCommandDescriptor>()
@@ -93,10 +151,11 @@ namespace KahaGameCore.GameEvents.Editor
                     eventCatalog.EnabledCommandNames,
                     warnings);
             return new GameEventProjectAuthoringCatalog(
-                parameters,
+                parameterEntries,
                 commands,
                 eventCatalog?.TriggerTimings ?? Array.Empty<string>(),
-                warnings);
+                warnings,
+                errors);
         }
 
         internal static IReadOnlyList<EffectCommandDescriptor> SelectCommands(
@@ -145,6 +204,13 @@ namespace KahaGameCore.GameEvents.Editor
             return parametersByKey.TryGetValue(key ?? string.Empty, out definition);
         }
 
+        public bool TryGetParameterEntry(
+            string key,
+            out ParameterAuthoringEntry entry)
+        {
+            return parameterEntriesByKey.TryGetValue(key ?? string.Empty, out entry);
+        }
+
         public bool TryGetCommand(string name, out EffectCommandDescriptor descriptor)
         {
             return commandsByName.TryGetValue(name ?? string.Empty, out descriptor);
@@ -154,23 +220,32 @@ namespace KahaGameCore.GameEvents.Editor
             string path,
             string json,
             ParameterTableJsonCodec codec,
-            Dictionary<string, ParameterDefinition> parameters,
-            List<string> warnings)
+            Dictionary<string, ParameterAuthoringEntry> parameters,
+            List<string> warnings,
+            List<string> errors)
         {
             try
             {
                 ParameterTable table = codec.Read(json);
                 foreach (ParameterDefinition definition in table.Definitions)
                 {
-                    if (parameters.TryGetValue(definition.Key, out ParameterDefinition existing) &&
-                        existing.Type != definition.Type)
+                    if (parameters.TryGetValue(
+                            definition.Key,
+                            out ParameterAuthoringEntry existing))
                     {
-                        warnings.Add(
-                            $"參數「{definition.Key}」在「{path}」中存在類型衝突。");
+                        errors.Add(
+                            $"參數鍵「{definition.Key}」同時存在於「" +
+                            $"{existing.AssetPath}」與「{path}」。參數鍵必須跨表唯一。");
                         continue;
                     }
 
-                    parameters[definition.Key] = definition;
+                    parameters.Add(
+                        definition.Key,
+                        new ParameterAuthoringEntry(
+                            table.TableGuid,
+                            table.DisplayName,
+                            path,
+                            definition));
                 }
             }
             catch (Exception exception)

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using KahaGameCore.Effects;
 using KahaGameCore.GameEvents.Editor;
+using KahaGameCore.Parameters;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -366,10 +367,270 @@ namespace KahaGameCore.GameEvents.Tests
                 Assert.That(
                     catalog.Parameters.Select(parameter => parameter.Key),
                     Does.Contain("Supplies"));
+                ParameterAuthoringEntry supplies = catalog.ParameterEntries
+                    .Single(entry => entry.Definition.Key == "Supplies");
+                Assert.That(supplies.TableDisplayName, Is.EqualTo("Core Gameplay"));
+                Assert.That(
+                    supplies.TableGuid,
+                    Is.EqualTo("9d02b7c1-1e01-4e00-8000-000000000001"));
+                Assert.That(supplies.AssetPath, Is.EqualTo(selectedPath));
             }
             finally
             {
                 UnityEngine.Object.DestroyImmediate(asset);
+            }
+        }
+
+        [Test]
+        public void ProjectCatalog_DuplicateParameterKeyAcrossTablesIsAnError()
+        {
+            TextAsset world = CreateParameterTable(
+                "World.parameters.json",
+                "World",
+                ParameterDefinition.Bool(
+                    "World.Temp1.DoorOpened",
+                    "地下室門已開啟",
+                    false));
+            TextAsset story = CreateParameterTable(
+                "Story.parameters.json",
+                "Story",
+                ParameterDefinition.Bool(
+                    "World.Temp1.DoorOpened",
+                    "劇情中的門狀態",
+                    true));
+            GameEventCatalogAsset asset =
+                ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+
+            try
+            {
+                asset.SetParameterTables(new[] { world, story });
+                GameEventProjectAuthoringCatalog catalog =
+                    GameEventProjectAuthoringCatalog.Load(asset);
+
+                Assert.That(catalog.Errors, Has.Count.EqualTo(1));
+                StringAssert.Contains("World.Temp1.DoorOpened", catalog.Errors[0]);
+                StringAssert.Contains("World.parameters.json", catalog.Errors[0]);
+                StringAssert.Contains("Story.parameters.json", catalog.Errors[0]);
+                Assert.That(
+                    catalog.ParameterEntries.Count(
+                        entry => entry.Definition.Key == "World.Temp1.DoorOpened"),
+                    Is.EqualTo(1));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(asset);
+            }
+        }
+
+        [Test]
+        public void ParameterWorkspace_SwitchingTablesPreservesEachDirtySession()
+        {
+            TextAsset world = CreateParameterTable(
+                "WorkspaceWorld.parameters.json",
+                "World",
+                ParameterDefinition.Bool("World.DoorOpen", "門已開啟", false));
+            TextAsset story = CreateParameterTable(
+                "WorkspaceStory.parameters.json",
+                "Story",
+                ParameterDefinition.Int("Story.Chapter", "章節", 1, 1, 10));
+            ParameterTableWorkspace workspace = new ParameterTableWorkspace();
+            workspace.Bind(new[] { world, story });
+
+            workspace.Expand(AssetDatabase.GetAssetPath(world));
+            workspace.AddParameter(
+                AssetDatabase.GetAssetPath(world),
+                ParameterDefinition.Bool("World.LampOn", "燈已開啟", false));
+            workspace.Expand(AssetDatabase.GetAssetPath(story));
+            workspace.AddParameter(
+                AssetDatabase.GetAssetPath(story),
+                ParameterDefinition.Int("Story.Score", "分數", 0, 0, 999));
+
+            Assert.That(workspace.DirtyCount, Is.EqualTo(2));
+            Assert.That(workspace.HasUnsavedChanges, Is.True);
+            Assert.That(workspace.Sessions.All(item => item.Expanded), Is.True);
+            IReadOnlyList<ParameterAuthoringEntry> entries =
+                workspace.BuildEntries(out IReadOnlyList<string> errors);
+            Assert.That(errors, Is.Empty);
+            Assert.That(
+                entries.Select(entry => entry.Definition.Key),
+                Does.Contain("World.LampOn"));
+            Assert.That(
+                entries.Select(entry => entry.Definition.Key),
+                Does.Contain("Story.Score"));
+
+            workspace.SaveAll();
+
+            Assert.That(workspace.DirtyCount, Is.Zero);
+            ParameterTable savedWorld = new ParameterTableJsonCodec().Read(
+                AssetDatabase.LoadAssetAtPath<TextAsset>(
+                    AssetDatabase.GetAssetPath(world)).text);
+            ParameterTable savedStory = new ParameterTableJsonCodec().Read(
+                AssetDatabase.LoadAssetAtPath<TextAsset>(
+                    AssetDatabase.GetAssetPath(story)).text);
+            Assert.That(
+                savedWorld.Definitions.Select(definition => definition.Key),
+                Does.Contain("World.LampOn"));
+            Assert.That(
+                savedStory.Definitions.Select(definition => definition.Key),
+                Does.Contain("Story.Score"));
+        }
+
+        [Test]
+        public void ParameterWorkspace_AddParameterIsImmediatelyAvailableBeforeSave()
+        {
+            TextAsset table = CreateParameterTable(
+                "WorkspaceDirectAdd.parameters.json",
+                "World",
+                ParameterDefinition.Bool("World.DoorOpen", "門已開啟", false));
+            ParameterTableWorkspace workspace = new ParameterTableWorkspace();
+            workspace.Bind(new[] { table });
+
+            workspace.AddParameter(
+                AssetDatabase.GetAssetPath(table),
+                ParameterDefinition.Int("World.Alert", "警戒值", 0, 0, 100));
+            IReadOnlyList<ParameterAuthoringEntry> entries =
+                workspace.BuildEntries(out IReadOnlyList<string> errors);
+
+            Assert.That(errors, Is.Empty);
+            Assert.That(workspace.HasUnsavedChanges, Is.True);
+            Assert.That(
+                entries.Single(entry => entry.Definition.Key == "World.Alert")
+                    .TableDisplayName,
+                Is.EqualTo("World"));
+        }
+
+        [Test]
+        public void ParameterWorkspace_AddParameterRejectsCrossTableDuplicateKey()
+        {
+            TextAsset world = CreateParameterTable(
+                "WorkspaceDuplicateWorld.parameters.json",
+                "World",
+                ParameterDefinition.Bool("Shared.Flag", "共用旗標", false));
+            TextAsset story = CreateParameterTable(
+                "WorkspaceDuplicateStory.parameters.json",
+                "Story",
+                ParameterDefinition.Int("Story.Chapter", "章節", 1, 1, 10));
+            ParameterTableWorkspace workspace = new ParameterTableWorkspace();
+            workspace.Bind(new[] { world, story });
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+                () => workspace.AddParameter(
+                    AssetDatabase.GetAssetPath(story),
+                    ParameterDefinition.Bool("Shared.Flag", "重複旗標", true)));
+
+            StringAssert.Contains("Shared.Flag", exception.Message);
+            Assert.That(workspace.DirtyCount, Is.Zero);
+        }
+
+        [Test]
+        public void ParameterUsageIndex_FindsConditionAndTypedCommandReferences()
+        {
+            string eventPath = TestFolder + "/Usage.gameevent.json";
+            GameEventEditorSession eventSession = new GameEventEditorSession();
+            eventSession.NewDocument();
+            eventSession.DisplayName = "Usage Event";
+            eventSession.Condition = "$World.DoorOpen && $Story.Score > 0";
+            eventSession.Commands =
+                "SetParameter(World.DoorOpen,true);AddScore($Story.Score+1);";
+            eventSession.SaveDocument(eventPath);
+            TextAsset eventAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(eventPath);
+            GameEventCatalogAsset eventCatalog =
+                ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+            SerializedObject serializedCatalog = new SerializedObject(eventCatalog);
+            SerializedProperty files = serializedCatalog.FindProperty("files");
+            files.arraySize = 1;
+            files.GetArrayElementAtIndex(0).objectReferenceValue = eventAsset;
+            serializedCatalog.ApplyModifiedPropertiesWithoutUndo();
+            EffectCommandDescriptor[] commands =
+            {
+                new EffectCommandDescriptor(
+                    "SetParameter",
+                    "Set Parameter",
+                    "Parameters",
+                    new[]
+                    {
+                        new EffectCommandParameterDefinition(
+                            "key",
+                            EffectCommandParameterKind.ParameterKey),
+                        new EffectCommandParameterDefinition(
+                            "value",
+                            EffectCommandParameterKind.Literal)
+                    }),
+                new EffectCommandDescriptor(
+                    "AddScore",
+                    "Add Score",
+                    "Parameters",
+                    new[]
+                    {
+                        new EffectCommandParameterDefinition(
+                            "amount",
+                            EffectCommandParameterKind.NumberExpression)
+                    })
+            };
+
+            try
+            {
+                GameEventParameterUsageIndex index =
+                    GameEventParameterUsageIndex.Build(eventCatalog, commands);
+
+                GameEventParameterReference door =
+                    index.Find("World.DoorOpen").Single();
+                Assert.That(door.EventDisplayName, Is.EqualTo("Usage Event"));
+                Assert.That(door.UsedInCondition, Is.True);
+                Assert.That(door.CommandNames, Is.EqualTo(new[] { "SetParameter" }));
+                GameEventParameterReference score =
+                    index.Find("Story.Score").Single();
+                Assert.That(score.UsedInCondition, Is.True);
+                Assert.That(score.CommandNames, Is.EqualTo(new[] { "AddScore" }));
+                Assert.That(index.Warnings, Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(eventCatalog);
+            }
+        }
+
+        [Test]
+        public void ParameterUsageIndex_OpenDocumentOverridesSavedEventReferences()
+        {
+            string eventPath = TestFolder + "/UsageOverride.gameevent.json";
+            GameEventEditorSession eventSession = new GameEventEditorSession();
+            eventSession.NewDocument();
+            eventSession.DisplayName = "Saved Event";
+            eventSession.Condition = "$Saved.Flag";
+            eventSession.SaveDocument(eventPath);
+            TextAsset eventAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(eventPath);
+            GameEventCatalogAsset eventCatalog =
+                ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+            SerializedObject serializedCatalog = new SerializedObject(eventCatalog);
+            SerializedProperty files = serializedCatalog.FindProperty("files");
+            files.arraySize = 1;
+            files.GetArrayElementAtIndex(0).objectReferenceValue = eventAsset;
+            serializedCatalog.ApplyModifiedPropertiesWithoutUndo();
+
+            try
+            {
+                OpenGameEventUsageDocument openDocument =
+                    new OpenGameEventUsageDocument(
+                        eventAsset,
+                        eventPath,
+                        "Unsaved Event",
+                        "$Unsaved.Flag",
+                        string.Empty);
+                GameEventParameterUsageIndex index =
+                    GameEventParameterUsageIndex.Build(
+                        eventCatalog,
+                        Array.Empty<EffectCommandDescriptor>(),
+                        openDocument);
+
+                Assert.That(index.Find("Saved.Flag"), Is.Empty);
+                Assert.That(
+                    index.Find("Unsaved.Flag").Single().EventDisplayName,
+                    Is.EqualTo("Unsaved Event"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(eventCatalog);
             }
         }
 
@@ -479,6 +740,28 @@ namespace KahaGameCore.GameEvents.Tests
             session.Condition = "$DoorOpen == false";
             session.Commands = "OpenDoor();";
             return session;
+        }
+
+        private static TextAsset CreateParameterTable(
+            string fileName,
+            string displayName,
+            ParameterDefinition definition)
+        {
+            string assetPath = TestFolder + "/" + fileName;
+            ParameterTable table = new ParameterTable(
+                Guid.NewGuid().ToString(),
+                displayName,
+                new[] { definition });
+            string fullPath = Path.Combine(
+                Application.dataPath,
+                assetPath.Substring("Assets/".Length));
+            File.WriteAllText(
+                fullPath,
+                new ParameterTableJsonCodec().Write(table));
+            AssetDatabase.ImportAsset(
+                assetPath,
+                ImportAssetOptions.ForceSynchronousImport);
+            return AssetDatabase.LoadAssetAtPath<TextAsset>(assetPath);
         }
 
         private static void EnsureTestFolder()
