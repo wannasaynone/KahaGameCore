@@ -31,12 +31,22 @@ namespace KahaGameCore.GameEvents.Editor
             Ready
         }
 
+        internal enum CommandArgumentEditorKind
+        {
+            Text,
+            Options,
+            ParameterKey,
+            Boolean
+        }
+
         private static readonly ParameterType[] AllParameterTypes =
             { ParameterType.Int, ParameterType.Float, ParameterType.Bool, ParameterType.String };
+        private static readonly string[] BoolValueLabels = { "真", "假" };
 
         private static GUIStyle cardStyle;
         private static GUIStyle sectionTitleStyle;
         private static GUIStyle commandTitleStyle;
+        private static GUIStyle eventToolbarButtonStyle;
         private static GUIStyle prominentSaveButtonStyle;
 
         [SerializeField] private GameEventEditorSession session;
@@ -138,6 +148,26 @@ namespace KahaGameCore.GameEvents.Editor
                 }
 
                 return commandTitleStyle;
+            }
+        }
+
+        private static GUIStyle EventToolbarButtonStyle
+        {
+            get
+            {
+                if (eventToolbarButtonStyle == null)
+                {
+                    eventToolbarButtonStyle = new GUIStyle(GUI.skin.button)
+                    {
+                        fontSize = 12,
+                        fontStyle = FontStyle.Bold,
+                        fixedHeight = 34f,
+                        margin = new RectOffset(2, 2, 2, 2),
+                        padding = new RectOffset(12, 12, 4, 4)
+                    };
+                }
+
+                return eventToolbarButtonStyle;
             }
         }
 
@@ -277,12 +307,15 @@ namespace KahaGameCore.GameEvents.Editor
                 return;
             }
 
-            DrawTabs();
             DrawEventCatalogSelector();
+            DrawTabs();
+            if (selectedTab == EditorTab.GameEvent)
+            {
+                DrawToolbar();
+            }
             switch (selectedTab)
             {
                 case EditorTab.GameEvent:
-                    DrawToolbar();
                     gameEventScrollPosition = EditorGUILayout.BeginScrollView(
                         gameEventScrollPosition);
                     EditorGUILayout.Space();
@@ -384,36 +417,72 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void DrawToolbar()
         {
-            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
+            using (new EditorGUILayout.VerticalScope(CardStyle))
             {
-                if (GUILayout.Button("新增", EditorStyles.toolbarButton) && ConfirmDiscardChanges())
-                {
-                    CreateNewDocumentFile();
-                }
+                DrawSectionHeader(
+                    "事件操作",
+                    "新增或開啟事件請從這裡開始；下方「建立新的」會建立事件目錄。");
 
-                if (GUILayout.Button("開啟", EditorStyles.toolbarButton) && ConfirmDiscardChanges())
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    LoadFromDialog();
-                }
+                    if (GUILayout.Button(
+                            new GUIContent(
+                                "＋ 新增事件",
+                                "建立新的 .gameevent.json 檔案並開始編輯。"),
+                            EventToolbarButtonStyle,
+                            GUILayout.MinWidth(124f)) &&
+                        ConfirmDiscardChanges())
+                    {
+                        CreateNewDocumentFile();
+                    }
 
-                if (GUILayout.Button("重新整理選項", EditorStyles.toolbarButton))
-                {
-                    RefreshCatalog(true);
-                }
+                    if (GUILayout.Button(
+                            new GUIContent(
+                                "開啟事件…",
+                                "選擇既有的 .gameevent.json 檔案。"),
+                            EventToolbarButtonStyle,
+                            GUILayout.MinWidth(124f)) &&
+                        ConfirmDiscardChanges())
+                    {
+                        LoadFromDialog();
+                    }
 
-                if (GUILayout.Button("驗證", EditorStyles.toolbarButton))
-                {
-                    RunCommand(
-                        ValidateEditorDocument,
-                        document =>
-                            $"結構、指令語法與 GUID 均正確：" +
-                            $"{document.DisplayName}（{document.DocumentGuid:D}）。");
-                }
+                    GUILayout.Space(12f);
 
-                GUILayout.FlexibleSpace();
-                if (GUILayout.Button("另存新檔", EditorStyles.toolbarButton))
-                {
-                    SaveAsFromDialog();
+                    if (GUILayout.Button(
+                            new GUIContent(
+                                "重新整理選項",
+                                "重新讀取事件目錄、參數與可用指令。"),
+                            EventToolbarButtonStyle,
+                            GUILayout.MinWidth(132f)))
+                    {
+                        RefreshCatalog(true);
+                    }
+
+                    if (GUILayout.Button(
+                            new GUIContent(
+                                "驗證事件",
+                                "檢查目前事件的結構、指令語法與 GUID。"),
+                            EventToolbarButtonStyle,
+                            GUILayout.MinWidth(108f)))
+                    {
+                        RunCommand(
+                            ValidateEditorDocument,
+                            document =>
+                                $"結構、指令語法與 GUID 均正確：" +
+                                $"{document.DisplayName}（{document.DocumentGuid:D}）。");
+                    }
+
+                    GUILayout.FlexibleSpace();
+                    if (GUILayout.Button(
+                            new GUIContent(
+                                "另存新檔…",
+                                "將目前事件另存為新的事件檔案。"),
+                            EventToolbarButtonStyle,
+                            GUILayout.MinWidth(112f)))
+                    {
+                        SaveAsFromDialog();
+                    }
                 }
             }
         }
@@ -2022,7 +2091,12 @@ namespace KahaGameCore.GameEvents.Editor
         {
             EffectCommandParameterDefinition parameter = descriptor.Parameters[argumentIndex];
             string label = FormatCommandParameterLabel(parameter);
-            if (!string.IsNullOrWhiteSpace(parameter.OptionSourceKey))
+            CommandArgumentEditorKind editorKind = GetCommandArgumentEditorKind(
+                draft,
+                descriptor,
+                argumentIndex,
+                catalog);
+            if (editorKind == CommandArgumentEditorKind.Options)
             {
                 DrawCommandArgumentOptions(
                     draft,
@@ -2032,7 +2106,7 @@ namespace KahaGameCore.GameEvents.Editor
                 return;
             }
 
-            if (parameter.Kind == EffectCommandParameterKind.ParameterKey)
+            if (editorKind == CommandArgumentEditorKind.ParameterKey)
             {
                 DrawParameterKeyDropdown(
                     label,
@@ -2042,6 +2116,11 @@ namespace KahaGameCore.GameEvents.Editor
                     selectedKey =>
                     {
                         draft.Arguments[argumentIndex] = selectedKey;
+                        ResetParameterValueArguments(
+                            draft,
+                            descriptor,
+                            argumentIndex,
+                            catalog);
                         session.Commands = GameEventCommandDraftCodec.Serialize(
                             commandDrafts
                                 .Where(item => !string.IsNullOrWhiteSpace(item.Name))
@@ -2051,9 +2130,87 @@ namespace KahaGameCore.GameEvents.Editor
                 return;
             }
 
+            if (editorKind == CommandArgumentEditorKind.Boolean)
+            {
+                bool value = string.Equals(
+                    draft.Arguments[argumentIndex],
+                    "true",
+                    StringComparison.OrdinalIgnoreCase);
+                int selectedIndex = EditorGUILayout.Popup(
+                    label,
+                    value ? 0 : 1,
+                    BoolValueLabels);
+                draft.Arguments[argumentIndex] =
+                    selectedIndex == 0 ? "true" : "false";
+                return;
+            }
+
             draft.Arguments[argumentIndex] = EditorGUILayout.TextField(
                 label,
                 draft.Arguments[argumentIndex] ?? string.Empty);
+        }
+
+        internal static CommandArgumentEditorKind GetCommandArgumentEditorKind(
+            GameEventCommandDraft draft,
+            EffectCommandDescriptor descriptor,
+            int argumentIndex,
+            GameEventProjectAuthoringCatalog authoringCatalog)
+        {
+            if (draft == null) throw new ArgumentNullException(nameof(draft));
+            if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
+            if (authoringCatalog == null)
+                throw new ArgumentNullException(nameof(authoringCatalog));
+
+            EffectCommandParameterDefinition parameter =
+                descriptor.Parameters[argumentIndex];
+            if (!string.IsNullOrWhiteSpace(parameter.OptionSourceKey))
+            {
+                return CommandArgumentEditorKind.Options;
+            }
+
+            if (parameter.Kind == EffectCommandParameterKind.ParameterValue &&
+                parameter.ParameterKeySourceIndex < draft.Arguments.Count &&
+                authoringCatalog.TryGetParameter(
+                    draft.Arguments[parameter.ParameterKeySourceIndex],
+                    out ParameterDefinition sourceParameter) &&
+                sourceParameter.Type == ParameterType.Bool)
+            {
+                return CommandArgumentEditorKind.Boolean;
+            }
+
+            return parameter.Kind == EffectCommandParameterKind.ParameterKey
+                ? CommandArgumentEditorKind.ParameterKey
+                : CommandArgumentEditorKind.Text;
+        }
+
+        private static void ResetParameterValueArguments(
+            GameEventCommandDraft draft,
+            EffectCommandDescriptor descriptor,
+            int parameterKeyArgumentIndex,
+            GameEventProjectAuthoringCatalog authoringCatalog)
+        {
+            if (!authoringCatalog.TryGetParameter(
+                    draft.Arguments[parameterKeyArgumentIndex],
+                    out ParameterDefinition sourceParameter))
+            {
+                return;
+            }
+
+            for (int index = 0; index < descriptor.Parameters.Count; index++)
+            {
+                EffectCommandParameterDefinition parameter = descriptor.Parameters[index];
+                if (parameter.Kind != EffectCommandParameterKind.ParameterValue ||
+                    parameter.ParameterKeySourceIndex != parameterKeyArgumentIndex)
+                {
+                    continue;
+                }
+
+                draft.Arguments[index] = sourceParameter.Type == ParameterType.Bool
+                    ? "false"
+                    : sourceParameter.Type == ParameterType.String
+                        ? string.Empty
+                        : "0";
+            }
         }
 
         private void DrawCommandArgumentOptions(
@@ -2329,6 +2486,15 @@ namespace KahaGameCore.GameEvents.Editor
                 }
 
                 draft.Arguments.Add(string.Empty);
+            }
+
+            for (int index = 0; index < descriptor.Parameters.Count; index++)
+            {
+                if (descriptor.Parameters[index].Kind ==
+                    EffectCommandParameterKind.ParameterKey)
+                {
+                    ResetParameterValueArguments(draft, descriptor, index, catalog);
+                }
             }
         }
 
@@ -2765,6 +2931,7 @@ namespace KahaGameCore.GameEvents.Editor
                 case EffectCommandParameterKind.NumberExpression: kind = "數值／公式"; break;
                 case EffectCommandParameterKind.ConditionExpression: kind = "條件公式"; break;
                 case EffectCommandParameterKind.ParameterKey: kind = "參數鍵"; break;
+                case EffectCommandParameterKind.ParameterValue: kind = "參數值"; break;
                 case EffectCommandParameterKind.TextKey: kind = "文字鍵"; break;
                 case EffectCommandParameterKind.AssetKey: kind = "資源鍵"; break;
                 default: kind = parameter.Kind.ToString(); break;

@@ -5,6 +5,7 @@ using System.Linq;
 using KahaGameCore.Effects;
 using KahaGameCore.GameEvents.Editor;
 using KahaGameCore.Parameters;
+using KahaGameCore.Parameters.EffectsIntegration;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -43,6 +44,40 @@ namespace KahaGameCore.GameEvents.Tests
             Assert.That(document.DisplayName, Is.EqualTo("新遊戲事件"));
             Assert.That(session.IsDirty, Is.True);
             Assert.That(session.AssetPath, Is.Null);
+        }
+
+        [Test]
+        public void CommandArgumentEditor_SetParameterBoolValue_UsesBooleanChoice()
+        {
+            EffectCommandDescriptor descriptor = ParameterEffectCommandRegistrar
+                .Descriptors
+                .Single(command => command.Name == "SetParameter");
+            GameEventProjectAuthoringCatalog authoringCatalog =
+                GameEventProjectAuthoringCatalog.Load(
+                    null,
+                    new[]
+                    {
+                        new ParameterAuthoringEntry(
+                            "table-guid",
+                            "測試參數表",
+                            "Assets/Test.parameters.json",
+                            ParameterDefinition.Bool("IsUnlocked", "已解鎖", false))
+                    },
+                    Array.Empty<string>());
+            GameEventCommandDraft draft = new GameEventCommandDraft
+            {
+                Name = "SetParameter",
+                Arguments = new List<string> { "IsUnlocked", string.Empty }
+            };
+
+            Assert.That(
+                GameEventDocumentEditorWindow.GetCommandArgumentEditorKind(
+                    draft,
+                    descriptor,
+                    1,
+                    authoringCatalog),
+                Is.EqualTo(
+                    GameEventDocumentEditorWindow.CommandArgumentEditorKind.Boolean));
         }
 
         [Test]

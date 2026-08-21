@@ -12,7 +12,7 @@ namespace KahaGameCore.Parameters.EffectsIntegration
         private static readonly EffectCommandDescriptor AddDescriptor = Describe(
             "AddParameter", EffectCommandParameterKind.NumberExpression);
         private static readonly EffectCommandDescriptor SetDescriptor = Describe(
-            "SetParameter", EffectCommandParameterKind.Literal);
+            "SetParameter", EffectCommandParameterKind.ParameterValue);
         private static readonly IReadOnlyList<EffectCommandDescriptor> descriptors =
             Array.AsReadOnly(new[] { AddDescriptor, SetDescriptor });
 
@@ -38,7 +38,13 @@ namespace KahaGameCore.Parameters.EffectsIntegration
                 {
                     new EffectCommandParameterDefinition(
                         "key", EffectCommandParameterKind.ParameterKey),
-                    new EffectCommandParameterDefinition("value", valueKind)
+                    new EffectCommandParameterDefinition(
+                        "value",
+                        valueKind,
+                        parameterKeySourceIndex:
+                            valueKind == EffectCommandParameterKind.ParameterValue
+                                ? 0
+                                : -1)
                 });
         }
 
