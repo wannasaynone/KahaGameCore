@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using KahaGameCore.Effects;
 
-namespace KahaGameCore.GameFlowSystem.DefaultImplements.Commands
+namespace KahaGameCore.Effects.StandardCommands
 {
-    /// <summary>Wait(秒數)：暫停指令串指定秒數（演出節奏調整用）。</summary>
-    public class WaitCommand : IEffectCommand
+    /// <summary>Wait(seconds): pauses an effect command sequence.</summary>
+    public sealed class WaitCommand : IEffectCommand
     {
         public async UniTask ExecuteAsync(
             EffectExecutionContext context,

@@ -7,7 +7,6 @@
         "KahaGameCore.Modules.Serialization",
         "KahaGameCore.Modules.Expressions",
         "KahaGameCore.Modules.Parameters",
-        "KahaGameCore.Modules.Parameters.EffectsIntegration",
         "KahaGameCore.Modules.Persistence",
         "KahaGameCore.Modules.ValueContainer",
         "KahaGameCore.Foundation.Messaging",

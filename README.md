@@ -97,11 +97,12 @@ Builder 會生成：
 ```text
 DefaultGameLauncher.EnsureServicesBuilt()
 → new GameFlowSystemBuilder(staticDataManager, parameters)
-→ 設定 Dialogue、Presenters、EventTriggerFactory
+→ 設定 Catalog CommandConfiguration、Dialogue、Presenters、EventTriggerFactory
 → GameFlowSystemBuilder.Build()
    → new EffectCommandRegistry()
    → new EffectRuntime(commandRegistry)
-   → 註冊 GameFlow 內建 Effects commands
+   → 組合 Parameter、Standard、GameFlow 與專案 command modules
+   → EffectCommandBootstrapper 只建立 Catalog 啟用的 factories 與 commands
    → 呼叫 EventTriggerFactory(effectRuntime)
       → DefaultGameLauncher 建立 GameEventRunner
       → 回傳 GameFlowGameEventAdapter

@@ -49,8 +49,9 @@ namespace KahaGameCore.GameEvents.Tests
         [Test]
         public void CommandArgumentEditor_SetParameterBoolValue_UsesBooleanChoice()
         {
-            EffectCommandDescriptor descriptor = ParameterEffectCommandRegistrar
-                .Descriptors
+            EffectCommandDescriptor descriptor =
+                new ParameterEffectCommandModuleFactory()
+                .GetDescriptors()
                 .Single(command => command.Name == "SetParameter");
             GameEventProjectAuthoringCatalog authoringCatalog =
                 GameEventProjectAuthoringCatalog.Load(
@@ -401,7 +402,15 @@ namespace KahaGameCore.GameEvents.Tests
             try
             {
                 catalog.SetTriggerTimings(new[] { " GameStart ", "GameStart", "" });
-                catalog.SetCommandAssemblyNames(new[] { "Project.Game", "Project.Game" });
+                catalog.SetCommandModules(new[]
+                {
+                    new EffectCommandModuleReference(
+                        "Project.Game",
+                        "Project.Game.Commands, Project.Game"),
+                    new EffectCommandModuleReference(
+                        "Project.Game",
+                        "Project.Game.Commands, Project.Game")
+                });
                 catalog.SetEnabledCommandNames(new[] { "AddParameter", "AddParameter" });
 
                 Assert.That(catalog.TriggerTimings, Is.EqualTo(new[] { "GameStart" }));

@@ -1,3 +1,7 @@
+using System.Threading;
+using System.Threading.Tasks;
+using KahaGameCore.Effects;
+using KahaGameCore.Parameters.EffectsIntegration;
 using KahaGameCore.Presentation;
 using NUnit.Framework;
 using UnityEditor;
@@ -30,6 +34,14 @@ namespace KahaGameCore.GameEvents.Tests
             try
             {
                 catalog.SetParameterTables(new[] { parameters });
+                Type parameterFactory = typeof(ParameterEffectCommandModuleFactory);
+                catalog.SetCommandModules(new[]
+                {
+                    new EffectCommandModuleReference(
+                        parameterFactory.Assembly.GetName().Name,
+                        $"{parameterFactory.FullName}, {parameterFactory.Assembly.GetName().Name}")
+                });
+                catalog.SetEnabledCommandNames(new[] { "SetParameter" });
                 TestSimpleGameLauncher launcher =
                     host.AddComponent<TestSimpleGameLauncher>();
                 SerializedObject serializedLauncher =
@@ -53,6 +65,54 @@ namespace KahaGameCore.GameEvents.Tests
                 Assert.That(target.enabled, Is.False);
                 launcher.Parameters.Set("EnemiesEnabled", true);
                 Assert.That(target.enabled, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+                Object.DestroyImmediate(parameters);
+                Object.DestroyImmediate(catalog);
+            }
+        }
+
+        [Test]
+        public async Task Awake_RegistersStandardWaitCommand()
+        {
+            GameObject host = new GameObject("Simple Launcher");
+            GameEventCatalogAsset catalog =
+                ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+            TextAsset parameters = new TextAsset(@"{
+  ""SchemaVersion"": 1,
+  ""TableGuid"": ""8843c536-3ca0-4f05-80a0-73de24bb0404"",
+  ""DisplayName"": ""Empty Parameters"",
+  ""Parameters"": []
+}");
+
+            try
+            {
+                catalog.SetParameterTables(new[] { parameters });
+                catalog.SetCommandModules(new[]
+                {
+                    new EffectCommandModuleReference(
+                        "KahaGameCore.Modules.Effects.StandardCommands",
+                        "KahaGameCore.Effects.StandardCommands.StandardEffectCommandModuleFactory, KahaGameCore.Modules.Effects.StandardCommands")
+                });
+                catalog.SetEnabledCommandNames(new[] { "Wait" });
+                TestSimpleGameLauncher launcher =
+                    host.AddComponent<TestSimpleGameLauncher>();
+                SerializedObject serializedLauncher =
+                    new SerializedObject(launcher);
+                serializedLauncher.FindProperty("catalog")
+                    .objectReferenceValue = catalog;
+                serializedLauncher.ApplyModifiedPropertiesWithoutUndo();
+
+                launcher.InitializeForTest();
+
+                EffectExecutionResult result = await launcher.Effects.ExecuteAsync(
+                    "Wait(0);",
+                    new EffectExecutionContext(),
+                    CancellationToken.None);
+
+                Assert.That(result.IsSuccess, Is.True, result.FormatDiagnostic());
             }
             finally
             {

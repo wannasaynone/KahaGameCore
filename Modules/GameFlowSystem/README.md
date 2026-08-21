@@ -43,12 +43,8 @@ GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
 staticDataManager.Add<DialogueData>(handler); // 對話表另外加
 
 // 可載入多張 .parameters.json 大表；每張表含多列 Parameter。
-var parameterCodec = new ParameterTableJsonCodec();
-ParameterDefinition[] parameterDefinitions = gameEventCatalogAsset.ParameterTables
-    .Select(tableAsset => parameterCodec.Read(tableAsset.text))
-    .SelectMany(table => table.Definitions)
-    .ToArray();
-var parameters = new ParameterStore(parameterDefinitions);
+var parameters = ParameterRuntimeLoader.Load(
+    gameEventCatalogAsset.ParameterTables);
 var eventCodec = new GameEventDocumentJsonCodec();
 var eventCatalog = new GameEventCatalog(gameEventCatalogAsset, eventCodec);
 GameEventRunner eventRunner = null;
@@ -57,6 +53,7 @@ GameEventRunner eventRunner = null;
 //    對話播放器由工廠提供（本套件不相依具體對話系統）；DialoguePlayer 是各專案自備的橋接，
 //    可從 DefaultViews 的範例橋接複製一份到自己的組件再修改。
 GameFlowServices services = new GameFlowSystemBuilder(staticDataManager, parameters)
+    .WithEffectCommandConfiguration(gameEventCatalogAsset.CommandConfiguration)
     .WithDialoguePlayerFactory(cmdExec =>               // 必要（或 OverrideDialoguePlayer）
         new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
     .WithActionMenuPresenter(actionMenuPresenter)       // 必要
@@ -78,18 +75,12 @@ services.FlowController.RunNewGameAsync(flowCts.Token).Forget();
 
 ```csharp
 var services = new GameFlowSystemBuilder(staticDataManager, parameters)
+    .WithEffectCommandConfiguration(gameEventCatalog.CommandConfiguration)
     .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
     .WithActionMenuPresenter(actionMenuPresenter)
     .WithEventTriggerFactory(CreateEventAdapter)         // 同上：用 Builder 的 EffectRuntime 建 runner
     .OverrideTimeService(new MyRealTimeService())        // 例：改用真實時間制
     .OverrideConditionEvaluator(new MyLuaEvaluator())    // 例：改用 Lua 條件式
-    .AddCommandRegistration(registry => registry.Register( // 例：追加專案自訂效果指令
-        new EffectCommandDefinition(
-            name: "MyCommand",
-            displayName: "My Command",
-            category: "Project",
-            parameters: System.Array.Empty<EffectCommandParameterDefinition>(),
-            command: new MyCommand())))
     .Build();
 ```
 
@@ -101,10 +92,12 @@ var services = new GameFlowSystemBuilder(staticDataManager, parameters)
 |---|---|
 | `Data/` | 四張表的資料類別：TimePhaseData、PlayerActionData、LocationData、GameTextData（JSON 陣列）；Parameters 使用可多份的 `.parameters.json` 大表。 |
 | `DataAccess/` | `ResourcesJsonStaticDataHandler`（Resources/GameData/{類別名}.txt）與 `TextAssetJsonStaticDataHandler`（Inspector 手動指定，檔名=型別名） |
-| `Domain/` | GameFlowExpressions、TimeService、LocationService、PlayerActionProvider、EffectCommandExecutor、GameTextProvider、`IDialoguePlayer`、PerformanceRegistry、EffectCommandRegistrar |
-| `Domain/Commands/` | 內建效果指令：AddParameter、SetParameter、AdvancePhase、SetPhase、MoveToLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle、Wait |
+| `Domain/` | GameFlowExpressions、TimeService、LocationService、PlayerActionProvider、EffectCommandExecutor、GameTextProvider、`IDialoguePlayer`、PerformanceRegistry、GameFlowEffectCommandModule |
+| `Domain/Commands/` | GameFlow 效果指令：AdvancePhase、SetPhase、MoveToLocation、StartDialogue、ShowHint、Monologue、PlayPerformance、OpenLocationMenu、ReturnToTitle |
 | `Domain/Events/` | MessageBus 訊息：GameValueChanged、TimePhaseChanged、LocationChanged、MonologueRequested、ReturnToTitleRequested |
 | `GameFlowSystemBuilder.cs` | 組裝器與 `GameFlowServices`；對話播放器以 `WithDialoguePlayerFactory(Func<ICommandExecutor, IDialoguePlayer>)` 注入 |
+
+`AddParameter`／`SetParameter` 由 `KahaGameCore.Modules.Parameters.EffectsIntegration` 擁有；通用 `Wait` 由 `KahaGameCore.Modules.Effects.StandardCommands` 擁有。GameFlow builder 只在整合初始化時把這些模組組進同一個 Effects runtime。
 
 ## 對話橋接（範例／各專案自備）
 

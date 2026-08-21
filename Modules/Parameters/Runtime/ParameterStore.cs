@@ -13,6 +13,9 @@ namespace KahaGameCore.Parameters
 
         public event Action<ParameterChanged> Changed;
 
+        public IReadOnlyCollection<ParameterDefinition> Definitions =>
+            definitions.Values;
+
         public ParameterStore(IEnumerable<ParameterDefinition> definitions)
         {
             expressionContext = new ParameterExpressionContext(this);

@@ -8,7 +8,7 @@ Game Events 把 JSON 事件文件連到 Effects runtime。它依 `TriggerTiming`
 
 呼叫端 asmdef 引用 `KahaGameCore.Modules.GameEvents`、`KahaGameCore.Modules.Effects`、`KahaGameCore.Modules.Parameters` 與 `UniTask`。完整可掛載範例位於下一節；這裡先看事件文件如何對應 runtime 物件。
 
-若不需要 Dialogue／GameFlow，最短的可運行組裝是讓 asmdef 引用 `KahaGameCore.Modules.GameEvents.SimpleLauncher`，場景掛 `DefaultSimpleGameLauncher`，Inspector 指定 `GameEventCatalogAsset`。Launcher 會在 `Awake` 完成 Parameters → Parameter Effects Commands → Effects → Game Events，並自動初始化 child `SceneGameEventTrigger`／`SceneGameEventTrigger2D`。自己的流程可在另一個 component 的 `Start` 取得 Launcher 的 `Parameters`、`Effects`、`Events` 與 `Context` 後開始；需要專案 Command 時才繼承 Launcher 並 override `RegisterProjectCommands`。
+若不需要 Dialogue／GameFlow，場景掛 `DefaultSimpleGameLauncher`並指定 `GameEventCatalogAsset` 即可。Launcher 只呼叫 `GameEventRuntimeBootstrapper.Create(catalog)`；Parameter Tables、Effects factories、Game Event Runner 都由 bootstrapper 組裝，並自動初始化 child triggers。
 
 準備 `.gameevent.json`：
 
@@ -43,9 +43,9 @@ Condition 用到的 Parameter 由 `.parameters.json` 宣告；不要在 composit
 
 建立 `Kaha Game Core/Game Events/Catalog`，把 `.gameevent.json` 與事件使用的 `.parameters.json` 放入 Catalog。`GameEventCatalogAsset` 是 Game Events 專用的 authoring/runtime manifest：它保存事件集合與權威順序、Parameter Tables、可用 Trigger Timings、Command descriptor 所屬 asmdef，以及實際啟用的 Command 名稱。它不保存 TimePhase、Location、Dialogue 或 UI 資料；未來的 Flow Editor 只負責在更上層整合，不反向擁有這個 Catalog。
 
-不需要手寫 JSON 時，可開啟 Unity 選單 `KahaGameCore/Game Events/Game Event Editor`。視窗分成 `Game Event`、`Event Catalog`、`Parameter Tables`、`Trigger Timings` 與 `Commands` 五個 TAB，上方直接選 `GameEventCatalogAsset`。`Parameter Tables` 是多表 workspace：每張表是可獨立展開的 Folder，可同時展開多張表查看、編輯與保留各自的未儲存變更，並可一次儲存全部。Folder 內每個 Parameter 會列出目前 Event Catalog 中引用它的事件，區分 Condition 與具體 Command；點選事件名稱可直接回到該事件編輯。Condition 與 Command 的 Parameter Key 選擇器會依 Parameter Table 分組，並可搜尋 Key 或 Display Name；選單中也可直接選目標表新增 Parameter，新參數在尚未寫回磁碟前就會立即回填並參與事件驗證。跨表重複 Key 會阻止事件驗證與儲存。Timing 清單可自行新增、改名與刪除；既有事件文件不會偷偷變成設定來源。`Commands` 先選允許掃描的 asmdef，再從該 assembly 內 `IEffectCommandDescriptorProvider` 提供的 descriptors 勾選 Command；不再使用全專案靜態註冊。`Event Catalog` 同 timing 事件的排列就是 runtime 順序。ProjectSettings 只保存目前 Game Event Catalog 的 GUID。
+不需要手寫 JSON 時，可開啟 Unity 選單 `KahaGameCore/Game Events/Game Event Editor`。視窗分成 `Game Event`、`Event Catalog`、`Parameter Tables`、`Trigger Timings` 與 `Commands` 五個 TAB，上方直接選 `GameEventCatalogAsset`。`Parameter Tables` 是多表 workspace，可查看引用、編輯並一次儲存全部變更。`Commands` 先選允許掃描的 asmdef，再從該 assembly 的 `IEffectCommandModuleFactory` 勾選 Command；Catalog 會保存 factory type 與啟用清單。`Event Catalog` 同 timing 事件的排列就是 runtime 順序。
 
-Command assembly 只需在自己的 runtime asmdef 實作一個 public、可無參數建立的 `IEffectCommandDescriptorProvider`。Catalog 儲存的是 asmdef 內部 assembly name，不是任意 namespace 或全域 class 搜尋。Runtime 的 handler 仍由 composition root 註冊；descriptor provider 只提供 Editor metadata，不能替代 `EffectCommandRegistry`。
+Command assembly 在自己的 runtime asmdef 實作 public、可無參數建立的 `IEffectCommandModuleFactory`。Editor 把 factory type 寫入 Catalog；runtime 以 `EffectCommandServiceRegistry` 提供依賴，並只建立 Catalog 啟用的 module。
 
 需要讓固定值參數使用可搜尋選單時，在 `EffectCommandParameterDefinition`
 設定 `optionSourceKey`，並由任一 Editor assembly 提供 public、可無參數建立的

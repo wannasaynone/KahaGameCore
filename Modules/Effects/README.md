@@ -112,7 +112,8 @@ public sealed class EffectTextFileExample : MonoBehaviour
 - `EffectCommandRegistry`：保存可用的 `EffectCommandDefinition`；`TryGetDefinition` 提供 metadata 查詢，重複名稱會在 composition 時立即拋出 `InvalidOperationException`。
 - `EffectCommandDefinition`：名稱、顯示名稱、分類與參數 metadata；handler 只由 Effects Runtime 讀取。
 - `IEffectCommand`：非同步 handler，接收 `EffectExecutionContext`、參數與 `CancellationToken`。
-- `IEffectCommandDescriptorProvider`：由某個 runtime asmdef 公開其 Editor authoring metadata。Game Event Catalog 只掃描明確選取的 assembly。
+- `IEffectCommandModuleFactory`：同時公開 Editor descriptors，並以 composition root 已有的 services 建立 runtime module。
+- `EffectCommandBootstrapper`：讀取 Catalog configuration，只建立被啟用的 modules 與 commands。
 - `EffectExecutionResult`：區分 `Succeeded`、`Failed`、`Cancelled`；非成功結果必須附 `EffectDiagnostic`。
 - `EffectExecutionContext`：Caster、Targets 與每次執行的 CustomData，不保存全域遊戲狀態。
 
@@ -162,39 +163,33 @@ Runtime 嚴格依 source order 等待每個 handler。未知 command、參數數
 
 ## GameFlow 整合
 
-`GameFlowSystemBuilder` 會建立一份 registry 與 runtime，GameFlow 和 Game Events 共用同一組 command definitions。專案指令透過 `AddCommandRegistration` 追加：
+`GameFlowSystemBuilder` 會建立一份 registry 與 runtime，Phase control、Action menu 與 Game Events 共用同一組 command definitions。Catalog configuration 是 module factory 與 command 的啟用清單：
 
 ```csharp
-builder.AddCommandRegistration(registry =>
-    registry.Register(new EffectCommandDefinition(
-        name: "DebugLog",
-        displayName: "Debug Log",
-        category: "Debug",
-        parameters: new[]
-        {
-            new EffectCommandParameterDefinition(
-                "message",
-                EffectCommandParameterKind.Literal)
-        },
-        command: new DebugLogCommand())));
+builder
+    .WithEffectCommandConfiguration(gameEventCatalog.CommandConfiguration);
 ```
 
-不要另建第二套 parser、factory 或 callback processor；擴充點就是 `EffectCommandDefinition` 與 `IEffectCommand`。
+不要直接修改 registry，也不要另建第二套 parser 或 callback processor；擴充點是 `IEffectCommandModuleFactory`、`EffectCommandDescriptor` 與 `IEffectCommand`。
 
 ## 讓 Game Event Editor 看見專案 Command
 
-在擁有 Command 的 runtime asmdef 實作 provider；不要建立全域 editor initializer：
+在擁有 Command 的 runtime asmdef 實作 factory；不要建立全域 editor initializer：
 
 ```csharp
-public sealed class ProjectCommandDescriptorProvider :
-    IEffectCommandDescriptorProvider
+public sealed class ProjectEffectCommandModuleFactory :
+    IEffectCommandModuleFactory
 {
     public IReadOnlyList<EffectCommandDescriptor> GetDescriptors()
-        => ProjectCommandRegistrar.Descriptors;
+        => ProjectEffectCommandManifest.Descriptors;
+
+    public IEffectCommandModule Create(EffectCommandServiceRegistry services)
+        => new ProjectEffectCommandModule(
+            services.GetRequired<ProjectCommandServices>());
 }
 ```
 
-回到 Game Event Editor 的 `Commands` TAB，勾選這個 asmdef 的 assembly name，再勾選需要的 Commands。這只控制 authoring 選單；遊戲啟動時仍須呼叫 `ProjectCommandRegistrar.RegisterAll(registry, services...)`，確保 metadata 與真正 handler 由同一個 registrar 定義。
+回到 Game Event Editor 的 `Commands` TAB 勾選 asmdef 與需要的 Commands。Catalog 會保存 factory type；啟動時 `EffectCommandBootstrapper` 只建立被啟用的 modules 與 commands，缺 factory、service 或 metadata 不一致會直接讓初始化失敗。
 
 ## 測試
 

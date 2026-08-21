@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
 using KahaGameCore.GameEvents;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
@@ -105,7 +106,18 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 ParameterDefinition.Int("Supplies", "物資", initialValue: 12, minValue: 0, maxValue: 9999)
             });
 
+            Type gameFlowFactory = typeof(GameFlowEffectCommandModuleFactory);
+            EffectCommandConfiguration commandConfiguration =
+                new EffectCommandConfiguration(
+                    new[]
+                    {
+                        new EffectCommandModuleReference(
+                            gameFlowFactory.Assembly.GetName().Name,
+                            $"{gameFlowFactory.FullName}, {gameFlowFactory.Assembly.GetName().Name}")
+                    },
+                    new[] { "AdvancePhase" });
             GameFlowServices services = new GameFlowSystemBuilder(staticData, parameters)
+                .WithEffectCommandConfiguration(commandConfiguration)
                 .WithActionMenuPresenter(new NoOpActionMenuPresenter())
                 .OverrideDialoguePlayer(new NoOpDialoguePlayer())
                 .WithEventTriggerFactory(_ => new NoOpTriggerService())
@@ -114,6 +126,9 @@ namespace KahaGameCore.GameFlowSystem.Tests
             Assert.That(services.Parameters, Is.SameAs(parameters));
             Assert.That(services.ConditionEvaluator.Evaluate("$Supplies == 12"), Is.True);
             Assert.That(services.TimeService.CurrentDay, Is.EqualTo(1));
+            Assert.That(
+                services.CommandRegistry.TryGetDefinition("AdvancePhase", out _),
+                Is.True);
 
             services.Parameters.Set("Supplies", 99);
             services.LocationService.MoveTo(2);

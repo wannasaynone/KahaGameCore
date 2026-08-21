@@ -1,12 +1,8 @@
 {
-    "name": "KahaGameCore.Modules.GameEvents.SimpleLauncher",
-    "rootNamespace": "KahaGameCore.GameEvents",
+    "name": "KahaGameCore.Modules.Effects.StandardCommands",
+    "rootNamespace": "KahaGameCore.Effects.StandardCommands",
     "references": [
-        "KahaGameCore.Modules.GameEvents",
         "KahaGameCore.Modules.Effects",
-        "KahaGameCore.Modules.Parameters",
-        "KahaGameCore.Modules.Parameters.Unity",
-        "KahaGameCore.Modules.Presentation",
         "UniTask"
     ],
     "includePlatforms": [],

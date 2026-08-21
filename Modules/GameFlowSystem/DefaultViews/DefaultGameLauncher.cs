@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using KahaGameCore.Effects;
 using KahaGameCore.StaticData;
 using KahaGameCore.Foundation.Messaging;
 using KahaGameCore.GameFlowSystem.DefaultImplements;
@@ -104,12 +105,9 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             GameFlowSystemBuilder.LoadDefaultTables(staticDataManager, handler);
             staticDataManager.Add<DialogueData>(handler);
 
-            ParameterTableJsonCodec codec = new ParameterTableJsonCodec();
-            parameterDefinitions = gameEventCatalog.ParameterTables
-                .Select(tableAsset => codec.Read(tableAsset.text))
-                .SelectMany(table => table.Definitions)
-                .ToList();
-            parameters = new ParameterStore(parameterDefinitions);
+            parameters = ParameterRuntimeLoader.Load(
+                gameEventCatalog.ParameterTables);
+            parameterDefinitions = parameters.Definitions.ToList();
             Initialize(parameters);
         }
 
@@ -168,6 +166,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
 
             // 全部採用預設實作；Game Events 由可選 integration assembly 接入。
             services = new GameFlowSystemBuilder(staticDataManager, parameters)
+                .WithEffectCommandConfiguration(
+                    gameEventCatalog.CommandConfiguration)
                 .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
                 .WithActionMenuPresenter(actionMenuPresenter)
                 .WithHintPresenter(hintPresenter)

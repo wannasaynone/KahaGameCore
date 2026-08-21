@@ -742,7 +742,7 @@ namespace KahaGameCore.GameEvents.Editor
                 "只會掃描下列 asmdef 中提供的指令描述；這些技術名稱需保留原文。");
 
             IReadOnlyList<string> availableAssemblies =
-                EffectCommandAssemblyCatalog.GetProviderAssemblyNames();
+                EffectCommandAssemblyCatalog.GetFactoryAssemblyNames();
             List<string> selectedAssemblies = selectedEventCatalog.CommandAssemblyNames.ToList();
             bool changed = false;
             foreach (string assemblyName in availableAssemblies)
@@ -758,14 +758,18 @@ namespace KahaGameCore.GameEvents.Editor
             if (availableAssemblies.Count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "找不到包含 IEffectCommandDescriptorProvider 實作的 asmdef。",
+                    "找不到包含 IEffectCommandModuleFactory 實作的 asmdef。",
                     MessageType.Warning);
             }
 
             if (changed)
             {
                 Undo.RecordObject(selectedEventCatalog, "Change Game Event Command Assemblies");
-                selectedEventCatalog.SetCommandAssemblyNames(selectedAssemblies);
+                List<string> warnings = new List<string>();
+                selectedEventCatalog.SetCommandModules(
+                    EffectCommandAssemblyCatalog.GetModuleReferences(
+                        selectedAssemblies,
+                        warnings));
                 EditorUtility.SetDirty(selectedEventCatalog);
                 RefreshCatalog(false);
             }

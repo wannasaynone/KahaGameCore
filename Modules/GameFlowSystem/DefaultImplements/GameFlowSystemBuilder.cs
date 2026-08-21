@@ -60,7 +60,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         private IDialoguePlayer dialoguePlayer;
         private Func<EffectRuntime, IGameFlowEventTriggerService> eventTriggerFactory;
 
-        private Action<EffectCommandRegistry> extraCommandRegistration;
+        private EffectCommandConfiguration commandConfiguration;
         private Func<ICommandExecutor, IDialoguePlayer> dialoguePlayerFactory;
 
         /// <param name="staticDataManager">已載入所有表格的資料管理器（可用 LoadDefaultTables 載入預設表）。</param>
@@ -117,6 +117,15 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             return this;
         }
 
+        /// <summary>指定由編輯器 Catalog 儲存的效果指令選擇。</summary>
+        public GameFlowSystemBuilder WithEffectCommandConfiguration(
+            EffectCommandConfiguration configuration)
+        {
+            commandConfiguration = configuration ??
+                throw new ArgumentNullException(nameof(configuration));
+            return this;
+        }
+
         // ───────── 覆寫預設實作（有新需求再傳入）─────────
 
         public GameFlowSystemBuilder OverrideConditionEvaluator(IConditionEvaluator custom) { conditionEvaluator = custom; return this; }
@@ -127,13 +136,6 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         public GameFlowSystemBuilder OverridePerformancePlayer(IPerformancePlayer custom) { performancePlayer = custom; return this; }
         public GameFlowSystemBuilder OverrideCommandExecutor(ICommandExecutor custom) { commandExecutor = custom; return this; }
         public GameFlowSystemBuilder OverrideDialoguePlayer(IDialoguePlayer custom) { dialoguePlayer = custom; return this; }
-
-        /// <summary>在內建指令之外追加專案自訂的效果指令。</summary>
-        public GameFlowSystemBuilder AddCommandRegistration(Action<EffectCommandRegistry> register)
-        {
-            extraCommandRegistration += register;
-            return this;
-        }
 
         public GameFlowServices Build()
         {
@@ -149,6 +151,11 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             {
                 throw new InvalidOperationException(
                     "[GameFlowSystemBuilder] 必須以 WithEventTriggerFactory 提供 Game Event timing adapter。");
+            }
+            if (commandConfiguration == null)
+            {
+                throw new InvalidOperationException(
+                    "[GameFlowSystemBuilder] 必須以 WithEffectCommandConfiguration 提供效果指令設定。");
             }
             if (hintPresenter == null)
             {
@@ -174,18 +181,22 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             services.CommandExecutor = commandExecutor ?? new EffectCommandExecutor(services.EffectRuntime);
             services.DialoguePlayer = dialoguePlayer ?? dialoguePlayerFactory(services.CommandExecutor);
 
-            EffectCommandRegistrar.RegisterAll(
+            EffectCommandServiceRegistry commandServices =
+                new EffectCommandServiceRegistry()
+                    .Add(services.Parameters)
+                    .Add(new GameFlowEffectCommandServices(
+                        gameFlowExpressions,
+                        services.TimeService,
+                        services.LocationService,
+                        services.DialoguePlayer,
+                        services.PerformancePlayer,
+                        services.TextProvider,
+                        hintPresenter,
+                        locationMenuPresenter));
+            EffectCommandBootstrapper.Populate(
                 services.CommandRegistry,
-                services.Parameters,
-                gameFlowExpressions,
-                services.TimeService,
-                services.LocationService,
-                services.DialoguePlayer,
-                services.PerformancePlayer,
-                services.TextProvider,
-                hintPresenter,
-                locationMenuPresenter);
-            extraCommandRegistration?.Invoke(services.CommandRegistry);
+                commandConfiguration,
+                commandServices);
 
             services.TriggerService = eventTriggerFactory(services.EffectRuntime)
                 ?? throw new InvalidOperationException(

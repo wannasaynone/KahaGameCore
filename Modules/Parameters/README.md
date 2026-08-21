@@ -70,7 +70,7 @@ public sealed class ParametersOnlyLauncher : ParameterRuntimeSource
 
 上面是完全不使用 Game Events 時的最小手動版本。一般專案把 `DefaultSimpleGameLauncher` 掛到場景 GameObject、指定 Game Event Catalog 即可；進入 Play Mode 後它本身也是 Runtime Parameter Monitor 可讀取的 `ParameterRuntimeSource`。若專案載入多張表，composition root 應先展平 definitions 建立同一份 Store，不要為每張表各建 Store。
 
-`KahaGameCore.Modules.Parameters.EffectsIntegration` 提供 `AddParameter`、`SetParameter`、`ParameterEffectCommandRegistrar.RegisterAll(...)` 與對應 descriptor provider。這是 Parameters 與 Effects 的明確整合模組；專案不需要再複製自己的 `AddParameter`。
+`KahaGameCore.Modules.Parameters.EffectsIntegration` 提供 `AddParameter`、`SetParameter` 與 `ParameterEffectCommandModuleFactory`。`ParameterRuntimeLoader` 負責將 Catalog 的多張 Parameter Tables 建成同一份 `ParameterStore`；Launcher 不再直接使用 codec。
 
 ## 查看 Runtime Parameter
 
