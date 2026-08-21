@@ -85,21 +85,37 @@ namespace KahaGameCore.GameEvents.Editor
 
             bool previousShowMixedValue = EditorGUI.showMixedValue;
             EditorGUI.showMixedValue = gameEventFile.hasMultipleDifferentValues;
-            EditorGUI.BeginChangeCheck();
-            int selectedIndex = EditorGUILayout.Popup(
-                new GUIContent(
-                    "Game Event File",
-                    "Select from the event list in Game Event Editor."),
-                currentIndex,
-                labels);
-            bool changed = EditorGUI.EndChangeCheck();
-            EditorGUI.showMixedValue = previousShowMixedValue;
-
-            if (changed && selectedIndex >= 0 && selectedIndex < options.Count)
+            using (new EditorGUILayout.HorizontalScope())
             {
-                current = options[selectedIndex].Asset;
-                gameEventFile.objectReferenceValue = current;
+                EditorGUI.BeginChangeCheck();
+                int selectedIndex = EditorGUILayout.Popup(
+                    new GUIContent(
+                        "Game Event File",
+                        "Select from the event list in Game Event Editor."),
+                    currentIndex,
+                    labels);
+                bool changed = EditorGUI.EndChangeCheck();
+
+                if (changed && selectedIndex >= 0 && selectedIndex < options.Count)
+                {
+                    current = options[selectedIndex].Asset;
+                    gameEventFile.objectReferenceValue = current;
+                }
+
+                using (new EditorGUI.DisabledScope(
+                           gameEventFile.hasMultipleDifferentValues || current == null))
+                {
+                    if (GUILayout.Button(
+                            new GUIContent(
+                                "前往",
+                                "在遊戲事件編輯器中開啟此事件。"),
+                            GUILayout.Width(48f)))
+                    {
+                        GameEventDocumentEditorWindow.OpenWindow(current);
+                    }
+                }
             }
+            EditorGUI.showMixedValue = previousShowMixedValue;
 
             if (ShouldShowEmptyGameEventError(gameEventFile))
             {

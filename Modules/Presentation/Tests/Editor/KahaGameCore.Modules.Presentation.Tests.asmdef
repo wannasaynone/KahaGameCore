@@ -6,7 +6,9 @@
         "UnityEditor.TestRunner",
         "KahaGameCore.Modules.Presentation",
         "KahaGameCore.Modules.Presentation.Editor",
-        "KahaGameCore.Modules.Parameters"
+        "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.Parameters",
+        "KahaGameCore.Modules.Parameters.Editor"
     ],
     "includePlatforms": [
         "Editor"

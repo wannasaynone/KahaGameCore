@@ -197,11 +197,21 @@ namespace KahaGameCore.GameEvents.Editor
         [MenuItem("KahaGameCore/遊戲事件/遊戲事件編輯器")]
         public static void OpenWindow()
         {
+            OpenWindow(null);
+        }
+
+        internal static void OpenWindow(TextAsset eventAsset)
+        {
             GameEventDocumentEditorWindow window =
                 GetWindow<GameEventDocumentEditorWindow>();
             window.titleContent = new GUIContent("遊戲事件");
             window.minSize = new Vector2(980f, 680f);
             window.Show();
+
+            if (eventAsset != null)
+            {
+                window.OpenCatalogEvent(eventAsset);
+            }
         }
 
         internal static bool HasUnsavedParameterChangesInOpenWindows()

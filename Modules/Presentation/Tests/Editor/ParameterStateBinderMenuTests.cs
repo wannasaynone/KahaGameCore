@@ -8,6 +8,15 @@ namespace KahaGameCore.Presentation.Tests
     public sealed class ParameterStateBinderMenuTests
     {
         [Test]
+        public void Menu_LivesUnderAddGameEventParts()
+        {
+            Assert.That(
+                ParameterStateBinderMenu.MenuPath,
+                Is.EqualTo(
+                    "GameObject/Add Game Event Parts/Add Parameter State Binder"));
+        }
+
+        [Test]
         public void CreateParameterStateBinder_CreatesBinderChildAndSelectsIt()
         {
             GameObject parent = new GameObject("Parent") { layer = 8 };

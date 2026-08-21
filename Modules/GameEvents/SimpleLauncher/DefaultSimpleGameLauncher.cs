@@ -4,6 +4,7 @@ using System.Threading;
 using KahaGameCore.Effects;
 using KahaGameCore.Parameters;
 using KahaGameCore.Parameters.EffectsIntegration;
+using KahaGameCore.Presentation;
 using UnityEngine;
 
 namespace KahaGameCore.GameEvents
@@ -46,6 +47,7 @@ namespace KahaGameCore.GameEvents
                         "[DefaultSimpleGameLauncher] The Catalog contains a missing Parameter Table."))
                 .SelectMany(table => table.Definitions));
             Initialize(Parameters);
+            InitializeParameterStateBinders();
 
             EffectCommandRegistry commands = new EffectCommandRegistry();
             ParameterEffectCommandRegistrar.RegisterAll(commands, Parameters);
@@ -87,6 +89,15 @@ namespace KahaGameCore.GameEvents
             foreach (SceneGameEventTrigger2D trigger in
                      GetComponentsInChildren<SceneGameEventTrigger2D>(true))
                 trigger.Initialize(Events, Context);
+        }
+
+        private void InitializeParameterStateBinders()
+        {
+            foreach (ParameterStateBinder binder in
+                     GetComponentsInChildren<ParameterStateBinder>(true))
+            {
+                binder.Initialize(Parameters);
+            }
         }
     }
 }

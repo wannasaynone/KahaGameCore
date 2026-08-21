@@ -20,17 +20,22 @@ namespace KahaGameCore.Presentation.Editor
         }
 
         private SerializedProperty bindings;
+        private SerializedProperty behaviourTargets;
+        private SerializedProperty behaviourCondition;
         private GameEventCatalogAsset eventCatalog;
         private GameEventProjectAuthoringCatalog catalog;
         private ParameterAuthoringEntry[] conditionParameters =
             Array.Empty<ParameterAuthoringEntry>();
         private readonly ParameterTableWorkspace parameterWorkspace =
             new ParameterTableWorkspace();
+        private string parameterTablesRevision = string.Empty;
         private bool catalogLoaded;
 
         private void OnEnable()
         {
             bindings = serializedObject.FindProperty("bindings");
+            behaviourTargets = serializedObject.FindProperty("behaviourTargets");
+            behaviourCondition = serializedObject.FindProperty("behaviourCondition");
             EditorApplication.projectChanged += OnProjectChanged;
             RefreshCatalog();
         }
@@ -58,6 +63,7 @@ namespace KahaGameCore.Presentation.Editor
                 return;
             }
 
+            DrawBehaviourBinding();
             DrawBindings();
             serializedObject.ApplyModifiedProperties();
         }
@@ -151,7 +157,7 @@ namespace KahaGameCore.Presentation.Editor
         {
             EditorGUILayout.Space(4f);
             EditorGUILayout.LabelField(
-                $"狀態綁定（{bindings.arraySize}）",
+                $"子物件狀態綁定（{bindings.arraySize}）",
                 EditorStyles.boldLabel);
 
             int removeIndex = -1;
@@ -187,6 +193,77 @@ namespace KahaGameCore.Presentation.Editor
             if (GUILayout.Button("＋ 新增狀態綁定", GUILayout.Height(30f)))
             {
                 AddBinding();
+            }
+        }
+
+        private void DrawBehaviourBinding()
+        {
+            EditorGUILayout.Space(4f);
+            EditorGUILayout.LabelField(
+                $"行為啟用綁定（{behaviourTargets.arraySize}）",
+                EditorStyles.boldLabel);
+
+            if (behaviourTargets.arraySize == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "尚未綁定 Behaviour。Actor Inspector 的 Add Param Binder " +
+                    "會自動抓取所有 Child Actions。",
+                    MessageType.Info);
+                return;
+            }
+
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                EditorGUILayout.PropertyField(
+                    behaviourTargets,
+                    new GUIContent(
+                        "控制元件",
+                        "條件成立時啟用；不成立時停用。"),
+                    true);
+                DrawBehaviourTargetValidation();
+                DrawCondition(behaviourCondition);
+            }
+        }
+
+        private void DrawBehaviourTargetValidation()
+        {
+            ParameterStateBinder binder = (ParameterStateBinder)target;
+            HashSet<UnityEngine.Object> targets =
+                new HashSet<UnityEngine.Object>();
+            for (int index = 0; index < behaviourTargets.arraySize; index++)
+            {
+                Behaviour targetBehaviour = behaviourTargets
+                    .GetArrayElementAtIndex(index)
+                    .objectReferenceValue as Behaviour;
+                if (targetBehaviour == null)
+                {
+                    EditorGUILayout.HelpBox(
+                        $"控制元件 #{index + 1} 尚未指定。",
+                        MessageType.Error);
+                    continue;
+                }
+
+                if (targetBehaviour == binder)
+                {
+                    EditorGUILayout.HelpBox(
+                        "Parameter State Binder 不能控制自己。",
+                        MessageType.Error);
+                }
+                else if (targetBehaviour.transform != binder.transform &&
+                         !targetBehaviour.transform.IsChildOf(binder.transform))
+                {
+                    EditorGUILayout.HelpBox(
+                        $"控制元件「{targetBehaviour.name}」必須位於 Binder " +
+                        "物件本身或其子物件。",
+                        MessageType.Error);
+                }
+
+                if (!targets.Add(targetBehaviour))
+                {
+                    EditorGUILayout.HelpBox(
+                        $"控制元件「{targetBehaviour.name}」重複綁定。",
+                        MessageType.Error);
+                }
             }
         }
 
@@ -337,7 +414,13 @@ namespace KahaGameCore.Presentation.Editor
         {
             GameEventCatalogAsset selected =
                 GameEventEditorProjectSettings.instance.LoadEventCatalog();
-            if (!catalogLoaded || selected != eventCatalog)
+            string currentRevision = GetParameterTablesRevision(selected);
+            if (!catalogLoaded ||
+                selected != eventCatalog ||
+                !string.Equals(
+                    currentRevision,
+                    parameterTablesRevision,
+                    StringComparison.Ordinal))
             {
                 RefreshCatalog(selected);
             }
@@ -359,7 +442,26 @@ namespace KahaGameCore.Presentation.Editor
                 .Where(entry => GameEventConditionGui.IsSupportedParameterType(
                     entry.Definition.Type))
                 .ToArray();
+            parameterTablesRevision = GetParameterTablesRevision(selected);
             catalogLoaded = true;
+        }
+
+        private static string GetParameterTablesRevision(
+            GameEventCatalogAsset selected)
+        {
+            if (selected == null)
+            {
+                return string.Empty;
+            }
+
+            return string.Join(
+                "|",
+                selected.ParameterTables
+                    .Where(asset => asset != null)
+                    .Select(AssetDatabase.GetAssetPath)
+                    .Where(path => !string.IsNullOrEmpty(path))
+                    .Select(path =>
+                        path + ":" + AssetDatabase.GetAssetDependencyHash(path)));
         }
 
         private void OnProjectChanged()

@@ -7,6 +7,7 @@
         "KahaGameCore.Modules.Parameters",
         "KahaGameCore.Modules.Parameters.Unity",
         "KahaGameCore.Modules.Parameters.EffectsIntegration",
+        "KahaGameCore.Modules.Presentation",
         "UniTask"
     ],
     "includePlatforms": [],

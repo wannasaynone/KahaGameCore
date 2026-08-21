@@ -32,7 +32,16 @@ namespace KahaGameCore.Presentation
         private List<ParameterChildConditionBinding> bindings =
             new List<ParameterChildConditionBinding>();
 
+        [SerializeField]
+        private List<Behaviour> behaviourTargets = new List<Behaviour>();
+
+        [SerializeField]
+        private string behaviourCondition;
+
         private ParameterStore parameters;
+
+        public IReadOnlyList<Behaviour> BehaviourTargets => behaviourTargets;
+        public string BehaviourCondition => behaviourCondition;
 
         public void Configure(
             IEnumerable<ParameterChildConditionBinding> conditionBindings)
@@ -48,6 +57,21 @@ namespace KahaGameCore.Presentation
             bindings = configuredBindings;
         }
 
+        public void ConfigureBehaviourBinding(
+            IEnumerable<Behaviour> targets,
+            string condition)
+        {
+            if (parameters != null)
+                throw new InvalidOperationException(
+                    "ParameterStateBinder cannot be configured after initialization.");
+
+            List<Behaviour> configuredTargets = new List<Behaviour>(targets ??
+                throw new ArgumentNullException(nameof(targets)));
+            ValidateBehaviourTargets(configuredTargets);
+            behaviourTargets = configuredTargets;
+            behaviourCondition = condition ?? string.Empty;
+        }
+
         public void Initialize(ParameterStore parameterStore)
         {
             if (parameterStore == null)
@@ -56,10 +80,11 @@ namespace KahaGameCore.Presentation
             Unsubscribe();
             parameters = null;
 
-            ValidateBindings(bindings);
-            bool[] activeStates = EvaluateBindings(parameterStore);
+            ValidateConfiguration();
+            bool[] childActiveStates = EvaluateBindings(parameterStore);
+            bool behaviourIsEnabled = EvaluateBehaviourCondition(parameterStore);
 
-            Apply(activeStates);
+            Apply(childActiveStates, behaviourIsEnabled);
             parameters = parameterStore;
             parameters.Changed += OnParameterChanged;
         }
@@ -70,9 +95,10 @@ namespace KahaGameCore.Presentation
                 throw new InvalidOperationException(
                     "ParameterStateBinder is not initialized.");
 
-            ValidateBindings(bindings);
-            bool[] activeStates = EvaluateBindings(parameters);
-            Apply(activeStates);
+            ValidateConfiguration();
+            bool[] childActiveStates = EvaluateBindings(parameters);
+            bool behaviourIsEnabled = EvaluateBehaviourCondition(parameters);
+            Apply(childActiveStates, behaviourIsEnabled);
         }
 
         private void OnDestroy()
@@ -106,20 +132,61 @@ namespace KahaGameCore.Presentation
             return activeStates;
         }
 
-        private void Apply(bool[] activeStates)
+        private bool EvaluateBehaviourCondition(ParameterStore parameterStore)
+        {
+            if (behaviourTargets.Count == 0)
+            {
+                return false;
+            }
+
+            ExpressionResult<bool> result =
+                parameterStore.EvaluateCondition(behaviourCondition);
+            if (!result.IsSuccess)
+            {
+                throw new InvalidOperationException(
+                    "ParameterStateBinder behaviour condition failed: " +
+                    result.Error);
+            }
+
+            return result.Value;
+        }
+
+        private void Apply(bool[] childActiveStates, bool behaviourIsEnabled)
         {
             for (int index = 0; index < bindings.Count; index++)
             {
-                bindings[index].Target.SetActive(activeStates[index]);
+                bindings[index].Target.SetActive(childActiveStates[index]);
+            }
+
+            for (int index = 0; index < behaviourTargets.Count; index++)
+            {
+                behaviourTargets[index].enabled = behaviourIsEnabled;
+            }
+        }
+
+        private void ValidateConfiguration()
+        {
+            if (bindings.Count == 0 && behaviourTargets.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "ParameterStateBinder requires at least one binding.");
+            }
+
+            ValidateBindings(bindings);
+            ValidateBehaviourTargets(behaviourTargets);
+            if (behaviourTargets.Count > 0 &&
+                string.IsNullOrWhiteSpace(behaviourCondition))
+            {
+                throw new InvalidOperationException(
+                    "ParameterStateBinder behaviour binding requires a condition.");
             }
         }
 
         private void ValidateBindings(
             IReadOnlyList<ParameterChildConditionBinding> candidateBindings)
         {
-            if (candidateBindings == null || candidateBindings.Count == 0)
-                throw new InvalidOperationException(
-                    "ParameterStateBinder requires at least one child binding.");
+            if (candidateBindings == null)
+                throw new ArgumentNullException(nameof(candidateBindings));
 
             HashSet<GameObject> targets = new HashSet<GameObject>();
             for (int index = 0; index < candidateBindings.Count; index++)
@@ -144,6 +211,35 @@ namespace KahaGameCore.Presentation
                 if (!targets.Add(binding.Target))
                     throw new InvalidOperationException(
                         $"Parameter state target '{binding.Target.name}' is bound more than once.");
+            }
+        }
+
+        private void ValidateBehaviourTargets(
+            IReadOnlyList<Behaviour> candidateTargets)
+        {
+            if (candidateTargets == null)
+                throw new ArgumentNullException(nameof(candidateTargets));
+
+            HashSet<Behaviour> targets = new HashSet<Behaviour>();
+            for (int index = 0; index < candidateTargets.Count; index++)
+            {
+                Behaviour target = candidateTargets[index];
+                if (target == null)
+                    throw new InvalidOperationException(
+                        "Parameter behaviour target cannot be null.");
+                if (ReferenceEquals(target, this))
+                    throw new InvalidOperationException(
+                        "ParameterStateBinder cannot control itself.");
+                if (target.transform != transform &&
+                    !target.transform.IsChildOf(transform))
+                {
+                    throw new InvalidOperationException(
+                        $"Parameter behaviour target '{target.name}' must be on " +
+                        $"'{name}' or one of its children.");
+                }
+                if (!targets.Add(target))
+                    throw new InvalidOperationException(
+                        $"Parameter behaviour target '{target.name}' is bound more than once.");
             }
         }
 

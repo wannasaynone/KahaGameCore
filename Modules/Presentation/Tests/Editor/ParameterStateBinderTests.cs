@@ -50,6 +50,75 @@ namespace KahaGameCore.Presentation.Tests
         }
 
         [Test]
+        public void BehaviourBinding_InitializeAndChangesToggleAllTargets()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Bool(
+                    "EnemiesEnabled",
+                    "Enemies Enabled",
+                    false)
+            });
+            GameObject host = new GameObject("Binder Host");
+            GameObject child = CreateChild("Action", host);
+
+            try
+            {
+                ParameterStateBinderTestBehaviour first =
+                    host.AddComponent<ParameterStateBinderTestBehaviour>();
+                ParameterStateBinderTestBehaviour second =
+                    child.AddComponent<ParameterStateBinderTestBehaviour>();
+                ParameterStateBinder binder =
+                    host.AddComponent<ParameterStateBinder>();
+                binder.ConfigureBehaviourBinding(
+                    new Behaviour[] { first, second },
+                    "$EnemiesEnabled");
+
+                binder.Initialize(parameters);
+
+                Assert.That(first.enabled, Is.False);
+                Assert.That(second.enabled, Is.False);
+
+                parameters.Set("EnemiesEnabled", true);
+                Assert.That(first.enabled, Is.True);
+                Assert.That(second.enabled, Is.True);
+
+                parameters.Set("EnemiesEnabled", false);
+                Assert.That(first.enabled, Is.False);
+                Assert.That(second.enabled, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void BehaviourBinding_TargetOutsideBinderHierarchyFails()
+        {
+            GameObject host = new GameObject("Binder Host");
+            GameObject external = new GameObject("External");
+
+            try
+            {
+                ParameterStateBinder binder =
+                    host.AddComponent<ParameterStateBinder>();
+                ParameterStateBinderTestBehaviour target =
+                    external.AddComponent<ParameterStateBinderTestBehaviour>();
+
+                Assert.Throws<System.InvalidOperationException>(() =>
+                    binder.ConfigureBehaviourBinding(
+                        new Behaviour[] { target },
+                        "$EnemiesEnabled"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+                Object.DestroyImmediate(external);
+            }
+        }
+
+        [Test]
         public void InitializeFailure_DoesNotSubscribeOrPartiallyApply()
         {
             ParameterStore parameters = new ParameterStore(new[]
@@ -180,5 +249,9 @@ namespace KahaGameCore.Presentation.Tests
             Assert.That(stateB.activeSelf, Is.EqualTo(bIsActive));
             Assert.That(warning.activeSelf, Is.EqualTo(warningIsActive));
         }
+    }
+
+    public sealed class ParameterStateBinderTestBehaviour : MonoBehaviour
+    {
     }
 }

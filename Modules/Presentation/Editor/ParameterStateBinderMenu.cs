@@ -6,8 +6,8 @@ namespace KahaGameCore.Presentation.Editor
 {
     internal static class ParameterStateBinderMenu
     {
-        private const string MenuPath =
-            "GameObject/Kaha Game Core/Add Parameter State Binder";
+        internal const string MenuPath =
+            "GameObject/Add Game Event Parts/Add Parameter State Binder";
         private const int MenuPriority = 22;
 
         [MenuItem(MenuPath, false, MenuPriority)]
