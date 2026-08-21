@@ -6,10 +6,10 @@ namespace KahaGameCore.GameEvents.Editor
 {
     internal static class SceneGameEventTriggerMenu
     {
-        private const string SceneTriggerMenuPath =
-            "GameObject/Kaha Game Core/Add Scene Trigger";
-        private const string SceneTrigger2DMenuPath =
-            "GameObject/Kaha Game Core/Add Scene Trigger 2D";
+        internal const string SceneTriggerMenuPath =
+            "GameObject/Add Game Event Parts/Add Scene Trigger";
+        internal const string SceneTrigger2DMenuPath =
+            "GameObject/Add Game Event Parts/Add Scene Trigger 2D";
         private const int MenuPriority = 20;
 
         [MenuItem(SceneTriggerMenuPath, false, MenuPriority)]

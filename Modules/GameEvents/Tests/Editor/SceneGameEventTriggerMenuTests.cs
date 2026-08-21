@@ -8,6 +8,17 @@ namespace KahaGameCore.GameEvents.Tests
     public sealed class SceneGameEventTriggerMenuTests
     {
         [Test]
+        public void TriggerMenus_AreGroupedUnderGameEventParts()
+        {
+            Assert.That(
+                SceneGameEventTriggerMenu.SceneTriggerMenuPath,
+                Is.EqualTo("GameObject/Add Game Event Parts/Add Scene Trigger"));
+            Assert.That(
+                SceneGameEventTriggerMenu.SceneTrigger2DMenuPath,
+                Is.EqualTo("GameObject/Add Game Event Parts/Add Scene Trigger 2D"));
+        }
+
+        [Test]
         public void AddSceneTrigger_CreatesReady3DTriggerChild()
         {
             GameObject parent = new GameObject("Parent") { layer = 8 };

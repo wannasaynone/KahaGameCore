@@ -47,6 +47,12 @@ Condition 用到的 Parameter 由 `.parameters.json` 宣告；不要在 composit
 
 Command assembly 只需在自己的 runtime asmdef 實作一個 public、可無參數建立的 `IEffectCommandDescriptorProvider`。Catalog 儲存的是 asmdef 內部 assembly name，不是任意 namespace 或全域 class 搜尋。Runtime 的 handler 仍由 composition root 註冊；descriptor provider 只提供 Editor metadata，不能替代 `EffectCommandRegistry`。
 
+需要讓固定值參數使用可搜尋選單時，在 `EffectCommandParameterDefinition`
+設定 `optionSourceKey`，並由任一 Editor assembly 提供 public、可無參數建立的
+`IEffectCommandArgumentOptionProvider`。Game Event Editor 只保存選項的 `Value`；
+`Label`、分組、說明、定位物件與預覽行為都只影響作者介面。每個
+`SourceKey` 必須只有一個 provider，重複或找不到 provider 會在事件編輯頁直接報錯。
+
 事件文件不會自行執行。專案啟動／場景組裝程式建立以下四個物件後才能觸發：
 
 ```csharp

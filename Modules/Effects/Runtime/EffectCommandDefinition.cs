@@ -15,7 +15,10 @@ namespace KahaGameCore.Effects
 
     public sealed class EffectCommandParameterDefinition
     {
-        public EffectCommandParameterDefinition(string name, EffectCommandParameterKind kind)
+        public EffectCommandParameterDefinition(
+            string name,
+            EffectCommandParameterKind kind,
+            string optionSourceKey = null)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -24,10 +27,12 @@ namespace KahaGameCore.Effects
 
             Name = name;
             Kind = kind;
+            OptionSourceKey = optionSourceKey?.Trim() ?? string.Empty;
         }
 
         public string Name { get; }
         public EffectCommandParameterKind Kind { get; }
+        public string OptionSourceKey { get; }
     }
 
     public sealed class EffectCommandDescriptor

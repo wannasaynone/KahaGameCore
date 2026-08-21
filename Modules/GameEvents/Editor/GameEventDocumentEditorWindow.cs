@@ -226,6 +226,7 @@ namespace KahaGameCore.GameEvents.Editor
         private void OnDisable()
         {
             EditorApplication.hierarchyChanged -= Repaint;
+            EffectCommandArgumentOptionCatalog.StopAllPreviews();
         }
 
         private void OnFocus()
@@ -2021,6 +2022,16 @@ namespace KahaGameCore.GameEvents.Editor
         {
             EffectCommandParameterDefinition parameter = descriptor.Parameters[argumentIndex];
             string label = FormatCommandParameterLabel(parameter);
+            if (!string.IsNullOrWhiteSpace(parameter.OptionSourceKey))
+            {
+                DrawCommandArgumentOptions(
+                    draft,
+                    argumentIndex,
+                    parameter,
+                    label);
+                return;
+            }
+
             if (parameter.Kind == EffectCommandParameterKind.ParameterKey)
             {
                 DrawParameterKeyDropdown(
@@ -2043,6 +2054,174 @@ namespace KahaGameCore.GameEvents.Editor
             draft.Arguments[argumentIndex] = EditorGUILayout.TextField(
                 label,
                 draft.Arguments[argumentIndex] ?? string.Empty);
+        }
+
+        private void DrawCommandArgumentOptions(
+            GameEventCommandDraft draft,
+            int argumentIndex,
+            EffectCommandParameterDefinition parameter,
+            string label)
+        {
+            if (!EffectCommandArgumentOptionCatalog.TryGetProvider(
+                    parameter.OptionSourceKey,
+                    out IEffectCommandArgumentOptionProvider provider,
+                    out string providerError))
+            {
+                EditorGUILayout.LabelField(label, "無法選擇");
+                EditorGUILayout.HelpBox(providerError, MessageType.Error);
+                return;
+            }
+
+            IReadOnlyList<EffectCommandArgumentOption> options;
+            try
+            {
+                options = provider.GetOptions() ??
+                    Array.Empty<EffectCommandArgumentOption>();
+            }
+            catch (Exception exception)
+            {
+                EditorGUILayout.LabelField(label, "無法選擇");
+                EditorGUILayout.HelpBox(
+                    $"無法載入「{parameter.OptionSourceKey}」選項：{exception.Message}",
+                    MessageType.Error);
+                return;
+            }
+
+            string currentValue = draft.Arguments[argumentIndex] ?? string.Empty;
+            EffectCommandArgumentOption[] currentMatches = options
+                .Where(option => option != null && string.Equals(
+                    option.Value,
+                    currentValue,
+                    StringComparison.Ordinal))
+                .ToArray();
+
+            Rect controlRect = EditorGUILayout.GetControlRect();
+            Rect buttonRect = EditorGUI.PrefixLabel(
+                controlRect,
+                new GUIContent(label));
+            GUIContent content;
+            if (currentMatches.Length == 1)
+            {
+                EffectCommandArgumentOption current = currentMatches[0];
+                content = new GUIContent(
+                    current.Label,
+                    BuildArgumentOptionTooltip(current));
+            }
+            else if (currentMatches.Length > 1)
+            {
+                content = new GUIContent(
+                    "目標重複",
+                    $"有 {currentMatches.Length} 個選項使用相同識別值。");
+            }
+            else
+            {
+                content = string.IsNullOrWhiteSpace(currentValue)
+                    ? new GUIContent("選擇項目…")
+                    : new GUIContent("目標遺失");
+            }
+
+            using (new EditorGUI.DisabledScope(options.Count == 0))
+            {
+                if (EditorGUI.DropdownButton(
+                        buttonRect,
+                        content,
+                        FocusType.Keyboard))
+                {
+                    var dropdown = new EffectCommandArgumentAdvancedDropdown(
+                        new AdvancedDropdownState(),
+                        $"選擇 {parameter.Name}",
+                        options,
+                        selectedValue =>
+                        {
+                            draft.Arguments[argumentIndex] = selectedValue;
+                            session.Commands = GameEventCommandDraftCodec.Serialize(
+                                commandDrafts
+                                    .Where(item => !string.IsNullOrWhiteSpace(item.Name))
+                                    .ToList());
+                            Repaint();
+                        });
+                    dropdown.Show(buttonRect);
+                }
+            }
+
+            if (options.Count == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    $"「{parameter.OptionSourceKey}」目前沒有可選項目。",
+                    MessageType.Warning);
+                return;
+            }
+
+            if (currentMatches.Length > 1)
+            {
+                string duplicateDetails = string.Join(
+                    "\n",
+                    currentMatches.Select(BuildArgumentOptionTooltip));
+                EditorGUILayout.HelpBox(
+                    $"多個選項指向同一目標，runtime 無法判斷。\n{duplicateDetails}",
+                    MessageType.Error);
+                return;
+            }
+
+            if (currentMatches.Length == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(currentValue))
+                {
+                    EditorGUILayout.HelpBox(
+                        "目前找不到原先選取的目標，請重新選擇。",
+                        MessageType.Warning);
+                }
+
+                return;
+            }
+
+            DrawCommandArgumentOptionDetails(currentMatches[0]);
+        }
+
+        private static void DrawCommandArgumentOptionDetails(
+            EffectCommandArgumentOption option)
+        {
+            if (!string.IsNullOrWhiteSpace(option.Description))
+            {
+                EditorGUILayout.HelpBox(option.Description, MessageType.None);
+            }
+
+            if (option.Target == null && option.Preview == null)
+            {
+                return;
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                GUILayout.FlexibleSpace();
+                using (new EditorGUI.DisabledScope(option.Target == null))
+                {
+                    if (GUILayout.Button("定位物件", GUILayout.Width(82f)))
+                    {
+                        Selection.activeObject = option.Target;
+                        EditorGUIUtility.PingObject(option.Target);
+                    }
+                }
+
+                using (new EditorGUI.DisabledScope(option.Preview == null))
+                {
+                    if (GUILayout.Button("Solo 預覽", GUILayout.Width(82f)))
+                    {
+                        option.Preview?.Invoke();
+                    }
+                }
+            }
+        }
+
+        private static string BuildArgumentOptionTooltip(
+            EffectCommandArgumentOption option)
+        {
+            string location = string.IsNullOrWhiteSpace(option.Group)
+                ? option.Value
+                : option.Group + " / " + option.Value;
+            return string.IsNullOrWhiteSpace(option.Description)
+                ? location
+                : location + "\n" + option.Description;
         }
 
         private void DrawParameterKeyDropdown(
