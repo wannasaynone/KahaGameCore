@@ -1947,6 +1947,8 @@ namespace KahaGameCore.GameEvents.Editor
             int removeIndex = -1;
             int moveFrom = -1;
             int moveTo = -1;
+            int insertIndex = -1;
+            int duplicateIndex = -1;
             for (int index = 0; index < commandDrafts.Count; index++)
             {
                 GameEventCommandDraft draft = commandDrafts[index];
@@ -1981,6 +1983,22 @@ namespace KahaGameCore.GameEvents.Editor
                                 moveFrom = index;
                                 moveTo = index + 1;
                             }
+                        }
+
+                        if (GUILayout.Button(
+                                new GUIContent("插入", "在此指令前插入一個空白指令"),
+                                GUILayout.Width(52f),
+                                GUILayout.Height(22f)))
+                        {
+                            insertIndex = index;
+                        }
+
+                        if (GUILayout.Button(
+                                new GUIContent("複製", "複製此指令並插入在下一列"),
+                                GUILayout.Width(52f),
+                                GUILayout.Height(22f)))
+                        {
+                            duplicateIndex = index;
                         }
 
                         if (GUILayout.Button(
@@ -2034,6 +2052,20 @@ namespace KahaGameCore.GameEvents.Editor
                 GameEventCommandDraft moving = commandDrafts[moveFrom];
                 commandDrafts.RemoveAt(moveFrom);
                 commandDrafts.Insert(moveTo, moving);
+            }
+            else if (insertIndex >= 0)
+            {
+                GameEventCommandDraftOperations.InsertBlank(
+                    commandDrafts,
+                    insertIndex);
+                GUI.FocusControl(null);
+            }
+            else if (duplicateIndex >= 0)
+            {
+                GameEventCommandDraftOperations.Duplicate(
+                    commandDrafts,
+                    duplicateIndex);
+                GUI.FocusControl(null);
             }
 
             DrawAddCommand();

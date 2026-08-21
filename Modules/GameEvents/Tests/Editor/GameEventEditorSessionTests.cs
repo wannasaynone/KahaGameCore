@@ -239,6 +239,38 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
+        public void CommandDraftOperations_InsertBlank_InsertsAtRequestedPosition()
+        {
+            List<GameEventCommandDraft> drafts = GameEventCommandDraftCodec.Parse(
+                "OpenDoor();CloseDoor();");
+
+            GameEventCommandDraftOperations.InsertBlank(drafts, 1);
+
+            Assert.That(drafts, Has.Count.EqualTo(3));
+            Assert.That(drafts[0].Name, Is.EqualTo("OpenDoor"));
+            Assert.That(drafts[1].Name, Is.Null);
+            Assert.That(drafts[1].Arguments, Is.Empty);
+            Assert.That(drafts[2].Name, Is.EqualTo("CloseDoor"));
+        }
+
+        [Test]
+        public void CommandDraftOperations_Duplicate_InsertsIndependentCopyAfterSource()
+        {
+            List<GameEventCommandDraft> drafts = GameEventCommandDraftCodec.Parse(
+                "Monologue(Opening);OpenDoor();");
+
+            GameEventCommandDraftOperations.Duplicate(drafts, 0);
+            drafts[1].Arguments[0] = "Copied";
+
+            Assert.That(drafts, Has.Count.EqualTo(3));
+            Assert.That(drafts[0].Name, Is.EqualTo("Monologue"));
+            Assert.That(drafts[0].Arguments[0], Is.EqualTo("Opening"));
+            Assert.That(drafts[1].Name, Is.EqualTo("Monologue"));
+            Assert.That(drafts[1].Arguments[0], Is.EqualTo("Copied"));
+            Assert.That(drafts[2].Name, Is.EqualTo("OpenDoor"));
+        }
+
+        [Test]
         public void ConditionDraftCodec_RoundTripsStructuredRows()
         {
             GameEventConditionGroupDraft root = GameEventConditionDraftCodec.Parse(

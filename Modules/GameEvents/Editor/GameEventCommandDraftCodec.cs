@@ -12,6 +12,44 @@ namespace KahaGameCore.GameEvents.Editor
         public List<string> Arguments = new List<string>();
     }
 
+    internal static class GameEventCommandDraftOperations
+    {
+        public static void InsertBlank(
+            List<GameEventCommandDraft> drafts,
+            int index)
+        {
+            if (drafts == null) throw new ArgumentNullException(nameof(drafts));
+            if (index < 0 || index > drafts.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            drafts.Insert(index, new GameEventCommandDraft());
+        }
+
+        public static void Duplicate(
+            List<GameEventCommandDraft> drafts,
+            int sourceIndex)
+        {
+            if (drafts == null) throw new ArgumentNullException(nameof(drafts));
+            if (sourceIndex < 0 || sourceIndex >= drafts.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sourceIndex));
+            }
+
+            GameEventCommandDraft source = drafts[sourceIndex] ??
+                throw new InvalidOperationException(
+                    $"Command row {sourceIndex + 1} is missing.");
+            drafts.Insert(
+                sourceIndex + 1,
+                new GameEventCommandDraft
+                {
+                    Name = source.Name,
+                    Arguments = new List<string>(source.Arguments)
+                });
+        }
+    }
+
     internal static class GameEventCommandDraftCodec
     {
         public static List<GameEventCommandDraft> Parse(string source)
