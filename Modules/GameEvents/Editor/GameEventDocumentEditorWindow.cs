@@ -31,15 +31,8 @@ namespace KahaGameCore.GameEvents.Editor
             Ready
         }
 
-        private static readonly string[] NumericOperatorLabels =
-            { "等於", "不等於", "大於", "大於或等於", "小於", "小於或等於" };
-        private static readonly string[] NumericOperatorSymbols =
-            { "==", "!=", ">", ">=", "<", "<=" };
-        private static readonly string[] BoolOperatorLabels = { "為真", "為假" };
         private static readonly ParameterType[] AllParameterTypes =
             { ParameterType.Int, ParameterType.Float, ParameterType.Bool, ParameterType.String };
-        private static readonly ParameterType[] ConditionParameterTypes =
-            { ParameterType.Int, ParameterType.Float, ParameterType.Bool };
 
         private static GUIStyle cardStyle;
         private static GUIStyle sectionTitleStyle;
@@ -179,6 +172,35 @@ namespace KahaGameCore.GameEvents.Editor
             window.titleContent = new GUIContent("遊戲事件");
             window.minSize = new Vector2(980f, 680f);
             window.Show();
+        }
+
+        internal static bool HasUnsavedParameterChangesInOpenWindows()
+        {
+            return Resources
+                .FindObjectsOfTypeAll<GameEventDocumentEditorWindow>()
+                .Any(window => window.ParameterWorkspace.HasUnsavedChanges);
+        }
+
+        internal static void ReloadParameterWorkspacesAfterExternalSave()
+        {
+            foreach (GameEventDocumentEditorWindow window in
+                     Resources.FindObjectsOfTypeAll<GameEventDocumentEditorWindow>())
+            {
+                try
+                {
+                    window.ParameterWorkspace.ReloadAll();
+                    window.RefreshCatalog(false);
+                    window.SyncUnsavedState();
+                    window.Repaint();
+                }
+                catch (Exception exception)
+                {
+                    window.SetStatus(
+                        "外部參數變更已儲存，但 Game Event Editor 無法重新載入：" +
+                        exception.Message,
+                        MessageType.Warning);
+                }
+            }
         }
 
         private void OnEnable()
@@ -1753,7 +1775,8 @@ namespace KahaGameCore.GameEvents.Editor
             }
 
             ParameterAuthoringEntry[] conditionParameters = catalog.ParameterEntries
-                .Where(entry => entry.Definition.Type != ParameterType.String)
+                .Where(entry => GameEventConditionGui.IsSupportedParameterType(
+                    entry.Definition.Type))
                 .ToArray();
             ConditionSetupState setupState = GetConditionSetupState(
                 selectedParameterTables != null &&
@@ -1791,10 +1814,14 @@ namespace KahaGameCore.GameEvents.Editor
                 return;
             }
 
-            bool changed = DrawConditionGroup(
+            bool changed = GameEventConditionGui.DrawGroup(
                 conditionRoot,
                 conditionParameters,
+                () => catalog,
                 true,
+                "沒有條件，事件會永遠執行。",
+                ShowCreateParameterPopup,
+                OnConditionEditorChanged,
                 out bool _);
             if (changed)
             {
@@ -1813,245 +1840,10 @@ namespace KahaGameCore.GameEvents.Editor
                     : ConditionSetupState.SelectParameterTable;
         }
 
-        private bool DrawConditionGroup(
-            GameEventConditionGroupDraft group,
-            IReadOnlyList<ParameterAuthoringEntry> parameters,
-            bool isRoot,
-            out bool removeRequested)
+        private void OnConditionEditorChanged()
         {
-            bool changed = false;
-            removeRequested = false;
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-            {
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    EditorGUILayout.LabelField(
-                        isRoot ? "主要條件群組" : "條件群組",
-                        EditorStyles.boldLabel,
-                        GUILayout.Width(110f));
-                    EditorGUI.BeginChangeCheck();
-                    group.Mode = (GameEventConditionGroupMode)EditorGUILayout.Popup(
-                        (int)group.Mode,
-                        new[] { "全部成立（AND）", "任一成立（OR）" });
-                    changed |= EditorGUI.EndChangeCheck();
-
-                    if (!isRoot && GUILayout.Button("×", GUILayout.Width(28f)))
-                    {
-                        removeRequested = true;
-                        return true;
-                    }
-                }
-
-                int removeIndex = -1;
-                for (int index = 0; index < group.Children.Count; index++)
-                {
-                    GameEventConditionDraft child = group.Children[index];
-                    if (child is GameEventConditionClauseDraft clause)
-                    {
-                        changed |= DrawConditionClause(
-                            clause,
-                            parameters,
-                            index,
-                            out bool removeClause);
-                        if (removeClause)
-                        {
-                            removeIndex = index;
-                        }
-                    }
-                    else if (child is GameEventConditionGroupDraft childGroup)
-                    {
-                        using (new EditorGUILayout.HorizontalScope())
-                        {
-                            GUILayout.Space(18f);
-                            changed |= DrawConditionGroup(
-                                childGroup,
-                                parameters,
-                                false,
-                                out bool removeGroup);
-                            if (removeGroup)
-                            {
-                                removeIndex = index;
-                            }
-                        }
-                    }
-                }
-
-                if (removeIndex >= 0)
-                {
-                    group.Children.RemoveAt(removeIndex);
-                    changed = true;
-                }
-
-                if (group.Children.Count == 0)
-                {
-                    if (isRoot)
-                    {
-                        EditorGUILayout.HelpBox("沒有條件，事件會永遠執行。", MessageType.Info);
-                    }
-                    else
-                    {
-                        removeRequested = true;
-                        return true;
-                    }
-                }
-
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    if (GUILayout.Button("＋ 新增條件", GUILayout.Width(110f)))
-                    {
-                        group.Children.Add(CreateDefaultCondition(parameters[0].Definition));
-                        changed = true;
-                    }
-
-                    if (GUILayout.Button("＋ 新增群組", GUILayout.Width(100f)))
-                    {
-                        GameEventConditionGroupDraft childGroup =
-                            new GameEventConditionGroupDraft();
-                        childGroup.Children.Add(CreateDefaultCondition(parameters[0].Definition));
-                        group.Children.Add(childGroup);
-                        changed = true;
-                    }
-                }
-            }
-
-            return changed;
-        }
-
-        private bool DrawConditionClause(
-            GameEventConditionClauseDraft draft,
-            IReadOnlyList<ParameterAuthoringEntry> parameters,
-            int index,
-            out bool removeRequested)
-        {
-            removeRequested = false;
-            EditorGUI.BeginChangeCheck();
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-            {
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    EditorGUILayout.LabelField($"#{index + 1}", GUILayout.Width(28f));
-                    DrawParameterKeyDropdown(
-                        null,
-                        draft.ParameterKey,
-                        parameters,
-                        ConditionParameterTypes,
-                        selectedKey =>
-                        {
-                            if (string.Equals(
-                                    draft.ParameterKey,
-                                    selectedKey,
-                                    StringComparison.Ordinal))
-                            {
-                                return;
-                            }
-
-                            draft.ParameterKey = selectedKey;
-                            ResetConditionForParameter(draft, catalog.ParameterEntries);
-                            session.Condition =
-                                GameEventConditionDraftCodec.Serialize(conditionRoot);
-                            Repaint();
-                        });
-
-                    if (GUILayout.Button("×", GUILayout.Width(28f)))
-                    {
-                        removeRequested = true;
-                    }
-                }
-
-                if (catalog.TryGetParameter(
-                    draft.ParameterKey,
-                    out ParameterDefinition selectedParameter))
-                {
-                    DrawConditionComparison(draft, selectedParameter);
-                }
-                else
-                {
-                    EditorGUILayout.HelpBox(
-                        $"找不到參數「{draft.ParameterKey}」。",
-                        MessageType.Error);
-                }
-            }
-
-            return EditorGUI.EndChangeCheck() || removeRequested;
-        }
-
-        private static void DrawConditionComparison(
-            GameEventConditionClauseDraft draft,
-            ParameterDefinition parameter)
-        {
-            if (parameter.Type == ParameterType.Bool)
-            {
-                bool expected = GetExpectedBoolean(draft);
-                int selectedIndex = expected ? 0 : 1;
-                selectedIndex = EditorGUILayout.Popup(
-                    "狀態",
-                    selectedIndex,
-                    BoolOperatorLabels);
-                draft.Operator = "==";
-                draft.Value = selectedIndex == 0 ? "true" : "false";
-                return;
-            }
-
-            int operatorIndex = Array.IndexOf(
-                NumericOperatorSymbols,
-                draft.Operator ?? string.Empty);
-            operatorIndex = Mathf.Max(0, operatorIndex);
-            operatorIndex = EditorGUILayout.Popup(
-                "比較方式",
-                operatorIndex,
-                NumericOperatorLabels);
-            draft.Operator = NumericOperatorSymbols[operatorIndex];
-
-            if (parameter.Type == ParameterType.Int)
-            {
-                int.TryParse(
-                    draft.Value,
-                    NumberStyles.Integer,
-                    CultureInfo.InvariantCulture,
-                    out int value);
-                value = EditorGUILayout.IntField("比較值", value);
-                draft.Value = value.ToString(CultureInfo.InvariantCulture);
-                return;
-            }
-
-            float.TryParse(
-                draft.Value,
-                NumberStyles.Float,
-                CultureInfo.InvariantCulture,
-                out float floatValue);
-            floatValue = EditorGUILayout.FloatField("比較值", floatValue);
-            draft.Value = floatValue.ToString("R", CultureInfo.InvariantCulture);
-        }
-
-        private static bool GetExpectedBoolean(GameEventConditionClauseDraft draft)
-        {
-            bool value = string.Equals(
-                draft.Value,
-                "true",
-                StringComparison.OrdinalIgnoreCase);
-            return draft.Operator == "!=" ? !value : value;
-        }
-
-        private static void ResetConditionForParameter(
-            GameEventConditionClauseDraft draft,
-            IReadOnlyList<ParameterAuthoringEntry> parameters)
-        {
-            ParameterDefinition parameter = parameters
-                .First(candidate => candidate.Definition.Key == draft.ParameterKey)
-                .Definition;
-            draft.Operator = "==";
-            draft.Value = parameter.Type == ParameterType.Bool ? "true" : "0";
-        }
-
-        private static GameEventConditionClauseDraft CreateDefaultCondition(
-            ParameterDefinition parameter)
-        {
-            return new GameEventConditionClauseDraft
-            {
-                ParameterKey = parameter.Key,
-                Operator = "==",
-                Value = parameter.Type == ParameterType.Bool ? "true" : "0"
-            };
+            session.Condition = GameEventConditionDraftCodec.Serialize(conditionRoot);
+            Repaint();
         }
 
         private void DrawCommandsEditor()

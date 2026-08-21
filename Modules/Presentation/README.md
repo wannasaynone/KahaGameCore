@@ -8,7 +8,9 @@ Presentation 提供 `ParameterStateBinder`：以 Expressions condition 監聽 `P
 
 呼叫端 asmdef 引用 `KahaGameCore.Modules.Presentation`、`KahaGameCore.Modules.Parameters` 與 `KahaGameCore.Modules.Expressions`。開始前，`ParameterStore` 必須包含 Key 為 `MachineStage` 的 Int definition。
 
-1. 在共同父物件加入 `ParameterStateBinder`。
+1. 在 Hierarchy 對共同父物件按右鍵，選擇
+   `Kaha Game Core > Add Parameter State Binder`，建立掛有
+   `ParameterStateBinder` 的 `Parameter State Binder` 子物件。
 2. 在 Inspector 的 bindings 為每個子物件指定 condition，例如 `$MachineStage == 0`、`$MachineStage >= 1`。
 3. 建立 `ParameterStore` 後，由場景 composition root 初始化：
 
@@ -18,6 +20,12 @@ foreach (ParameterStateBinder binder in parameterStateBinders)
     binder.Initialize(parameters);
 }
 ```
+
+Inspector 的條件編輯器與 Game Event Editor 共用目前事件目錄的參數索引與
+AND／OR 結構化填寫介面。若事件目錄或可用條件參數尚未設定，Inspector 會提供
+按鈕開啟 Game Event Editor，完成初始化後才能新增綁定。
+條件下拉中的「新增參數」會直接開啟小面板；新增後立即儲存參數表、刷新索引並
+選取新參數。
 
 也可以在初始化前以程式設定：
 

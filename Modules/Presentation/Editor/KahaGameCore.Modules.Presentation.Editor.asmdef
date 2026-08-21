@@ -1,0 +1,21 @@
+{
+    "name": "KahaGameCore.Modules.Presentation.Editor",
+    "rootNamespace": "KahaGameCore.Presentation.Editor",
+    "references": [
+        "KahaGameCore.Modules.Presentation",
+        "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.GameEvents.Editor",
+        "KahaGameCore.Modules.Parameters"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

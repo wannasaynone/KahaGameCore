@@ -12,7 +12,7 @@ namespace KahaGameCore.GameEvents
 
         [Tooltip("Only Collider2D objects on these layers can trigger this Game Event.")]
         [SerializeField]
-        private LayerMask triggeringLayers = ~0;
+        private LayerMask triggeringLayers;
 
         private GameEventRunner runner;
         private EventContext context;

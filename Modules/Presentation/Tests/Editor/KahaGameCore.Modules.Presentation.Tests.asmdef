@@ -5,6 +5,7 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "KahaGameCore.Modules.Presentation",
+        "KahaGameCore.Modules.Presentation.Editor",
         "KahaGameCore.Modules.Parameters"
     ],
     "includePlatforms": [
