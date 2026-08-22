@@ -245,6 +245,15 @@ namespace KahaGameCore.GameEvents.Editor
             }
         }
 
+        internal static void RepaintOpenWindows()
+        {
+            foreach (GameEventDocumentEditorWindow window in
+                     Resources.FindObjectsOfTypeAll<GameEventDocumentEditorWindow>())
+            {
+                window.Repaint();
+            }
+        }
+
         private void OnEnable()
         {
             EditorApplication.hierarchyChanged -= Repaint;
@@ -960,11 +969,20 @@ namespace KahaGameCore.GameEvents.Editor
                      registeredCommands.GroupBy(command => command.Category ?? string.Empty))
             {
                 EditorGUILayout.Space();
-                EditorGUILayout.LabelField(
-                    string.IsNullOrWhiteSpace(group.Key)
-                        ? "未分類"
-                        : group.Key,
-                    EditorStyles.miniBoldLabel);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GameEventEditorProjectSettings.instance
+                        .TryGetCommandCategoryColor(group.Key, out Color categoryColor))
+                    {
+                        DrawCategoryColorSwatch(categoryColor);
+                    }
+
+                    EditorGUILayout.LabelField(
+                        string.IsNullOrWhiteSpace(group.Key)
+                            ? "未分類"
+                            : group.Key,
+                        EditorStyles.miniBoldLabel);
+                }
                 foreach (EffectCommandDescriptor descriptor in group)
                 {
                     bool wasSelected = selected.Contains(descriptor.Name);
@@ -1224,6 +1242,12 @@ namespace KahaGameCore.GameEvents.Editor
                     {
                         EditorGUIUtility.PingObject(selectedEventCatalog);
                     }
+                }
+
+                if (GUILayout.Button("偏好設定…", GUILayout.Width(88f)))
+                {
+                    SettingsService.OpenProjectSettings(
+                        GameEventEditorPreferencesProvider.SettingsPath);
                 }
             }
         }
@@ -2089,7 +2113,16 @@ namespace KahaGameCore.GameEvents.Editor
             for (int index = 0; index < commandDrafts.Count; index++)
             {
                 GameEventCommandDraft draft = commandDrafts[index];
-                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                bool isKnownCommand = catalog.TryGetCommand(
+                    draft.Name,
+                    out EffectCommandDescriptor descriptor);
+                Color categoryColor = default;
+                bool hasCategoryColor = isKnownCommand &&
+                    GameEventEditorProjectSettings.instance
+                        .TryGetCommandCategoryColor(
+                            descriptor.Category,
+                            out categoryColor);
+                using (BeginCommandCard(hasCategoryColor, categoryColor))
                 {
                     using (new EditorGUILayout.HorizontalScope())
                     {
@@ -2097,6 +2130,18 @@ namespace KahaGameCore.GameEvents.Editor
                             $"指令 {index + 1:00}",
                             CommandTitleStyle,
                             GUILayout.Width(80f));
+                        if (hasCategoryColor)
+                        {
+                            EditorGUILayout.LabelField(
+                                descriptor.Category,
+                                EditorStyles.miniBoldLabel,
+                                GUILayout.Width(
+                                    Mathf.Min(
+                                        160f,
+                                        EditorStyles.miniBoldLabel.CalcSize(
+                                            new GUIContent(descriptor.Category)).x + 8f)));
+                        }
+
                         GUILayout.FlexibleSpace();
                         using (new EditorGUI.DisabledScope(index == 0))
                         {
@@ -2150,7 +2195,7 @@ namespace KahaGameCore.GameEvents.Editor
                     EditorGUILayout.Space(5f);
                     DrawCommandSelector(draft);
 
-                    if (catalog.TryGetCommand(draft.Name, out EffectCommandDescriptor descriptor))
+                    if (isKnownCommand)
                     {
                         EnsureArgumentCount(draft, descriptor);
                         EditorGUILayout.Space(4f);
@@ -3107,6 +3152,41 @@ namespace KahaGameCore.GameEvents.Editor
             return string.IsNullOrWhiteSpace(descriptor.Category)
                 ? descriptor.DisplayName
                 : descriptor.Category + " / " + descriptor.DisplayName;
+        }
+
+        private static void DrawCategoryColorSwatch(Color color)
+        {
+            Rect swatchRect = GUILayoutUtility.GetRect(
+                5f,
+                16f,
+                GUILayout.Width(5f),
+                GUILayout.Height(16f));
+            swatchRect.y += 1f;
+            swatchRect.height -= 2f;
+            EditorGUI.DrawRect(swatchRect, color);
+        }
+
+        private static EditorGUILayout.VerticalScope BeginCommandCard(
+            bool hasCategoryColor,
+            Color categoryColor)
+        {
+            Color previousBackgroundColor = GUI.backgroundColor;
+            if (hasCategoryColor)
+            {
+                Color opaqueCategoryColor = new Color(
+                    categoryColor.r,
+                    categoryColor.g,
+                    categoryColor.b,
+                    1f);
+                GUI.backgroundColor = Color.Lerp(
+                    Color.white,
+                    opaqueCategoryColor,
+                    Mathf.Clamp01(categoryColor.a));
+            }
+
+            var scope = new EditorGUILayout.VerticalScope(EditorStyles.helpBox);
+            GUI.backgroundColor = previousBackgroundColor;
+            return scope;
         }
 
         private static string FormatCommandParameterLabel(
