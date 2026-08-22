@@ -34,7 +34,8 @@ namespace KahaGameCore.GameEvents.Tests
             try
             {
                 catalog.SetParameterTables(new[] { parameters });
-                Type parameterFactory = typeof(ParameterEffectCommandModuleFactory);
+                System.Type parameterFactory =
+                    typeof(ParameterEffectCommandModuleFactory);
                 catalog.SetCommandModules(new[]
                 {
                     new EffectCommandModuleReference(

@@ -15,7 +15,7 @@ namespace KahaGameCore.GameEvents.Editor
             { "等於", "不等於", "大於", "大於或等於", "小於", "小於或等於" };
         private static readonly string[] NumericOperatorSymbols =
             { "==", "!=", ">", ">=", "<", "<=" };
-        private static readonly string[] BoolOperatorLabels = { "為真", "為假" };
+        private static readonly string[] BoolOperatorLabels = { "TRUE", "FALSE" };
         private static readonly ParameterType[] ConditionParameterTypes =
             { ParameterType.Int, ParameterType.Float, ParameterType.Bool };
 

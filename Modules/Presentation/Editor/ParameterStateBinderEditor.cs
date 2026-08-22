@@ -214,12 +214,25 @@ namespace KahaGameCore.Presentation.Editor
 
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                EditorGUILayout.PropertyField(
-                    behaviourTargets,
-                    new GUIContent(
-                        "控制元件",
-                        "條件成立時啟用；不成立時停用。"),
-                    true);
+                ParameterStateBinder binder =
+                    (ParameterStateBinder)target;
+                if (binder.BehaviourTargetsManaged)
+                {
+                    EditorGUILayout.HelpBox(
+                        "控制元件由外部 authoring 自動維護。請在來源設定參與規則。",
+                        MessageType.Info);
+                }
+
+                using (new EditorGUI.DisabledScope(
+                           binder.BehaviourTargetsManaged))
+                {
+                    EditorGUILayout.PropertyField(
+                        behaviourTargets,
+                        new GUIContent(
+                            "控制元件",
+                            "條件成立時啟用；不成立時停用。"),
+                        true);
+                }
                 DrawBehaviourTargetValidation();
                 DrawCondition(behaviourCondition);
             }

@@ -1,4 +1,5 @@
 using System;
+using Cysharp.Threading.Tasks;
 using KahaGameCore.Effects;
 using KahaGameCore.Parameters;
 using KahaGameCore.Presentation;
@@ -16,10 +17,12 @@ namespace KahaGameCore.GameEvents
     public class DefaultSimpleGameLauncher : ParameterRuntimeSource
     {
         [SerializeField] private GameEventCatalogAsset catalog;
-        [Tooltip("Automatically initialize all child 3D and 2D Game Event triggers.")]
+        [Tooltip("Automatically initialize all child Game Event triggers.")]
         [SerializeField] private bool initializeChildTriggers = true;
 
         private GameEventRuntime runtime;
+        private StartGameEventTrigger[] startEventTriggers =
+            Array.Empty<StartGameEventTrigger>();
 
         public ParameterStore Parameters => runtime?.Parameters;
         public EffectRuntime Effects => runtime?.Effects;
@@ -39,6 +42,11 @@ namespace KahaGameCore.GameEvents
                 InitializeTriggers();
         }
 
+        protected virtual void Start()
+        {
+            TriggerActiveStartEventsAsync().Forget();
+        }
+
         protected virtual void OnDestroy()
         {
             runtime?.Dispose();
@@ -53,6 +61,27 @@ namespace KahaGameCore.GameEvents
             foreach (SceneGameEventTrigger2D trigger in
                      GetComponentsInChildren<SceneGameEventTrigger2D>(true))
                 trigger.Initialize(Events, Context);
+
+            startEventTriggers =
+                GetComponentsInChildren<StartGameEventTrigger>(true);
+            for (int index = 0; index < startEventTriggers.Length; index++)
+            {
+                startEventTriggers[index].Initialize(Events, Context);
+            }
+        }
+
+        protected async UniTask TriggerActiveStartEventsAsync()
+        {
+            for (int index = 0; index < startEventTriggers.Length; index++)
+            {
+                StartGameEventTrigger trigger = startEventTriggers[index];
+                if (trigger == null || !trigger.isActiveAndEnabled)
+                {
+                    continue;
+                }
+
+                await trigger.TriggerAsync();
+            }
         }
 
         private void InitializeParameterStateBinders()

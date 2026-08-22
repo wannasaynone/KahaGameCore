@@ -21,7 +21,8 @@ namespace KahaGameCore.GameEvents.Editor
             EventCatalog,
             ParameterTables,
             TriggerTimings,
-            Commands
+            Commands,
+            SceneTriggers
         }
 
         internal enum ConditionSetupState
@@ -41,7 +42,7 @@ namespace KahaGameCore.GameEvents.Editor
 
         private static readonly ParameterType[] AllParameterTypes =
             { ParameterType.Int, ParameterType.Float, ParameterType.Bool, ParameterType.String };
-        private static readonly string[] BoolValueLabels = { "真", "假" };
+        private static readonly string[] BoolValueLabels = { "TRUE", "FALSE" };
 
         private static GUIStyle cardStyle;
         private static GUIStyle sectionTitleStyle;
@@ -60,6 +61,7 @@ namespace KahaGameCore.GameEvents.Editor
         [SerializeField] private Vector2 parameterTableScrollPosition;
         [SerializeField] private Vector2 commandCatalogScrollPosition;
         [SerializeField] private Vector2 timingCatalogScrollPosition;
+        [SerializeField] private Vector2 sceneTriggerScrollPosition;
         [SerializeField] private string conditionEditorError;
         [SerializeField] private bool parameterTablesFoldout = true;
         [SerializeField] private bool serializedPreviewFoldout;
@@ -310,16 +312,9 @@ namespace KahaGameCore.GameEvents.Editor
                 return;
             }
 
-            if (!session.HasOpenFile)
-            {
-                DrawGameEventDocumentSetup();
-                SyncUnsavedState();
-                return;
-            }
-
             DrawEventCatalogSelector();
             DrawTabs();
-            if (selectedTab == EditorTab.GameEvent)
+            if (selectedTab == EditorTab.GameEvent && session.HasOpenFile)
             {
                 DrawToolbar();
             }
@@ -329,7 +324,14 @@ namespace KahaGameCore.GameEvents.Editor
                     gameEventScrollPosition = EditorGUILayout.BeginScrollView(
                         gameEventScrollPosition);
                     EditorGUILayout.Space();
-                    DrawDocumentFields();
+                    if (session.HasOpenFile)
+                    {
+                        DrawDocumentFields();
+                    }
+                    else
+                    {
+                        DrawGameEventDocumentSetup();
+                    }
                     EditorGUILayout.Space();
                     break;
                 case EditorTab.EventCatalog:
@@ -358,6 +360,16 @@ namespace KahaGameCore.GameEvents.Editor
                         timingCatalogScrollPosition);
                     EditorGUILayout.Space();
                     DrawTriggerTimingSettings();
+                    EditorGUILayout.Space();
+                    break;
+                case EditorTab.SceneTriggers:
+                    sceneTriggerScrollPosition = EditorGUILayout.BeginScrollView(
+                        sceneTriggerScrollPosition);
+                    EditorGUILayout.Space();
+                    using (new EditorGUILayout.VerticalScope(CardStyle))
+                    {
+                        DrawSceneTriggerOverview();
+                    }
                     EditorGUILayout.Space();
                     break;
                 default:
@@ -389,7 +401,8 @@ namespace KahaGameCore.GameEvents.Editor
                     "事件目錄",
                     parameterLabel,
                     "觸發時機",
-                    "指令設定"
+                    "指令設定",
+                    "場景 Trigger"
                 },
                 GUILayout.Height(26f));
         }
@@ -608,7 +621,7 @@ namespace KahaGameCore.GameEvents.Editor
 
             DrawSectionHeader(
                 $"場景觸發器引用（{references.Count}）",
-                "列出目前場景中使用此事件的物件。");
+                "列出本場景中引用目前事件的 Trigger。");
             EditorGUILayout.LabelField(
                 activeScene.IsValid()
                     ? $"目前場景：{activeScene.name}"
@@ -618,7 +631,7 @@ namespace KahaGameCore.GameEvents.Editor
             if (references.Count == 0)
             {
                 EditorGUILayout.HelpBox(
-                    "目前場景中沒有觸發器引用此遊戲事件。",
+                    "本場景中沒有 Trigger 引用目前事件。",
                     MessageType.Info);
                 return;
             }
@@ -630,15 +643,97 @@ namespace KahaGameCore.GameEvents.Editor
                     GUILayout.Label(GetSceneObjectPath(trigger), EditorStyles.boldLabel);
                     GUILayout.FlexibleSpace();
                     GUILayout.Label(
-                        trigger is SceneGameEventTrigger2D ? "2D" : "3D",
+                        GetSceneTriggerKind(trigger),
                         EditorStyles.miniLabel,
-                        GUILayout.Width(24f));
+                        GUILayout.Width(40f));
                     if (GUILayout.Button("定位", GUILayout.Width(48f)))
                     {
-                        EditorGUIUtility.PingObject(trigger.gameObject);
+                        LocateSceneTrigger(trigger);
                     }
                 }
             }
+        }
+
+        private void DrawSceneTriggerOverview()
+        {
+            Scene activeScene = SceneManager.GetActiveScene();
+            IReadOnlyList<Component> triggers = FindSceneTriggers(activeScene);
+            TextAsset currentEvent = session.HasOpenFile
+                ? AssetDatabase.LoadAssetAtPath<TextAsset>(session.AssetPath)
+                : null;
+
+            DrawSectionHeader(
+                $"本場景 Trigger（{triggers.Count}）",
+                "列出本場景所有 Trigger 與各自引用的事件。");
+            EditorGUILayout.LabelField(
+                activeScene.IsValid()
+                    ? $"目前場景：{activeScene.name}"
+                    : "目前沒有開啟場景。",
+                EditorStyles.miniLabel);
+
+            if (triggers.Count == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "本場景中沒有 Game Event Trigger。",
+                    MessageType.Info);
+                return;
+            }
+
+            foreach (Component trigger in triggers)
+            {
+                TextAsset eventAsset = GetSceneTriggerEventFile(trigger);
+                bool isCurrentEvent =
+                    eventAsset != null && eventAsset == currentEvent;
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    using (new EditorGUILayout.VerticalScope())
+                    {
+                        GUILayout.Label(GetSceneObjectPath(trigger), EditorStyles.boldLabel);
+                        GUILayout.Label(
+                            eventAsset == null
+                                ? "未掛載事件"
+                                : SceneGameEventTriggerEditorBase
+                                    .FormatEventLabel(eventAsset),
+                            EditorStyles.miniLabel);
+                    }
+
+                    GUILayout.FlexibleSpace();
+                    GUILayout.Label(
+                        GetSceneTriggerKind(trigger),
+                        EditorStyles.miniLabel,
+                        GUILayout.Width(40f));
+                    if (GUILayout.Button("定位", GUILayout.Width(48f)))
+                    {
+                        LocateSceneTrigger(trigger);
+                    }
+
+                    using (new EditorGUI.DisabledScope(
+                               eventAsset == null || isCurrentEvent))
+                    {
+                        if (GUILayout.Button(
+                                isCurrentEvent ? "目前" : "前往",
+                                GUILayout.Width(48f)))
+                        {
+                            OpenCatalogEvent(eventAsset);
+                            GUIUtility.ExitGUI();
+                        }
+                    }
+                }
+            }
+        }
+
+        internal static IReadOnlyList<Component> FindSceneTriggers(Scene scene)
+        {
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                return Array.Empty<Component>();
+            }
+
+            return FindAllSceneTriggers()
+                .Where(trigger => trigger.gameObject.scene == scene)
+                .OrderBy(GetSceneObjectPath, StringComparer.Ordinal)
+                .ThenBy(GetSceneTriggerKind, StringComparer.Ordinal)
+                .ToList();
         }
 
         internal static IReadOnlyList<Component> FindSceneTriggersReferencing(
@@ -650,38 +745,76 @@ namespace KahaGameCore.GameEvents.Editor
                 return Array.Empty<Component>();
             }
 
-            List<Component> references = new List<Component>();
-            SceneGameEventTrigger[] triggers3D =
-                UnityEngine.Object.FindObjectsByType<SceneGameEventTrigger>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None);
-            foreach (SceneGameEventTrigger trigger in triggers3D)
+            return FindSceneTriggers(scene)
+                .Where(trigger =>
+                    GetSceneTriggerEventFile(trigger) == documentAsset)
+                .ToList();
+        }
+
+        internal static TextAsset GetSceneTriggerEventFile(Component trigger)
+        {
+            if (trigger is StartGameEventTrigger startTrigger)
             {
-                if (trigger.gameObject.scene == scene &&
-                    trigger.GameEventFile == documentAsset)
-                {
-                    references.Add(trigger);
-                }
+                return startTrigger.GameEventFile;
             }
 
-            SceneGameEventTrigger2D[] triggers2D =
-                UnityEngine.Object.FindObjectsByType<SceneGameEventTrigger2D>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None);
-            foreach (SceneGameEventTrigger2D trigger in triggers2D)
+            if (trigger is SceneGameEventTrigger2D trigger2D)
             {
-                if (trigger.gameObject.scene == scene &&
-                    trigger.GameEventFile == documentAsset)
-                {
-                    references.Add(trigger);
-                }
+                return trigger2D.GameEventFile;
             }
 
-            references.Sort((left, right) => string.Compare(
-                GetSceneObjectPath(left),
-                GetSceneObjectPath(right),
-                StringComparison.Ordinal));
-            return references;
+            if (trigger is SceneGameEventTrigger trigger3D)
+            {
+                return trigger3D.GameEventFile;
+            }
+
+            throw new ArgumentException(
+                "Component is not a supported Game Event Trigger.",
+                nameof(trigger));
+        }
+
+        internal static string GetSceneTriggerKind(Component trigger)
+        {
+            if (trigger is StartGameEventTrigger)
+            {
+                return "Start";
+            }
+
+            if (trigger is SceneGameEventTrigger2D)
+            {
+                return "2D";
+            }
+
+            if (trigger is SceneGameEventTrigger)
+            {
+                return "3D";
+            }
+
+            throw new ArgumentException(
+                "Component is not a supported Game Event Trigger.",
+                nameof(trigger));
+        }
+
+        private static IEnumerable<Component> FindAllSceneTriggers()
+        {
+            return UnityEngine.Object
+                .FindObjectsByType<StartGameEventTrigger>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None)
+                .Cast<Component>()
+                .Concat(UnityEngine.Object.FindObjectsByType<SceneGameEventTrigger2D>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None))
+                .Concat(UnityEngine.Object.FindObjectsByType<SceneGameEventTrigger>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None));
+        }
+
+        private static void LocateSceneTrigger(Component trigger)
+        {
+            Selection.activeGameObject = trigger.gameObject;
+            EditorGUIUtility.PingObject(trigger.gameObject);
+            SceneView.lastActiveSceneView?.FrameSelected();
         }
 
         private static string GetSceneObjectPath(Component component)

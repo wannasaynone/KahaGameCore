@@ -63,7 +63,7 @@ namespace KahaGameCore.GameEvents.Editor
             serializedObject.ApplyModifiedProperties();
         }
 
-        private static void DrawGameEventSelector(
+        internal static void DrawGameEventSelector(
             SerializedProperty gameEventFile,
             GameEventCatalogAsset catalog)
         {
@@ -172,7 +172,7 @@ namespace KahaGameCore.GameEvents.Editor
             return options;
         }
 
-        private static string FormatEventLabel(TextAsset asset)
+        internal static string FormatEventLabel(TextAsset asset)
         {
             try
             {
@@ -234,5 +234,29 @@ namespace KahaGameCore.GameEvents.Editor
     internal sealed class SceneGameEventTrigger2DEditor :
         SceneGameEventTriggerEditorBase
     {
+    }
+
+    [CustomEditor(typeof(StartGameEventTrigger))]
+    [CanEditMultipleObjects]
+    internal sealed class StartGameEventTriggerEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            serializedObject.Update();
+
+            using (new EditorGUI.DisabledScope(true))
+            {
+                EditorGUILayout.PropertyField(
+                    serializedObject.FindProperty("m_Script"));
+            }
+
+            SceneGameEventTriggerEditorBase.DrawGameEventSelector(
+                serializedObject.FindProperty("gameEventFile"),
+                GameEventEditorProjectSettings.instance.LoadEventCatalog());
+            EditorGUILayout.HelpBox(
+                "Parameter Binder 初始化後，只有仍 active 的物件會在場景開始時執行此事件。",
+                MessageType.Info);
+            serializedObject.ApplyModifiedProperties();
+        }
     }
 }

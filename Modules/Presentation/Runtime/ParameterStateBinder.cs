@@ -38,10 +38,14 @@ namespace KahaGameCore.Presentation
         [SerializeField]
         private string behaviourCondition;
 
+        [SerializeField, HideInInspector]
+        private bool behaviourTargetsManaged;
+
         private ParameterStore parameters;
 
         public IReadOnlyList<Behaviour> BehaviourTargets => behaviourTargets;
         public string BehaviourCondition => behaviourCondition;
+        public bool BehaviourTargetsManaged => behaviourTargetsManaged;
 
         public void Configure(
             IEnumerable<ParameterChildConditionBinding> conditionBindings)
@@ -61,6 +65,21 @@ namespace KahaGameCore.Presentation
             IEnumerable<Behaviour> targets,
             string condition)
         {
+            ConfigureBehaviourBinding(targets, condition, false);
+        }
+
+        public void ConfigureManagedBehaviourBinding(
+            IEnumerable<Behaviour> targets,
+            string condition)
+        {
+            ConfigureBehaviourBinding(targets, condition, true);
+        }
+
+        private void ConfigureBehaviourBinding(
+            IEnumerable<Behaviour> targets,
+            string condition,
+            bool targetsManaged)
+        {
             if (parameters != null)
                 throw new InvalidOperationException(
                     "ParameterStateBinder cannot be configured after initialization.");
@@ -70,6 +89,7 @@ namespace KahaGameCore.Presentation
             ValidateBehaviourTargets(configuredTargets);
             behaviourTargets = configuredTargets;
             behaviourCondition = condition ?? string.Empty;
+            behaviourTargetsManaged = targetsManaged;
         }
 
         public void Initialize(ParameterStore parameterStore)

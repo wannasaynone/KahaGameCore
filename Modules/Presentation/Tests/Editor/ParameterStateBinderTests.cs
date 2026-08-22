@@ -94,6 +94,37 @@ namespace KahaGameCore.Presentation.Tests
         }
 
         [Test]
+        public void ManagedBehaviourBinding_RecordsDerivedAuthoringOwnership()
+        {
+            GameObject host = new GameObject("Binder Host");
+
+            try
+            {
+                ParameterStateBinderTestBehaviour target =
+                    host.AddComponent<ParameterStateBinderTestBehaviour>();
+                ParameterStateBinder binder =
+                    host.AddComponent<ParameterStateBinder>();
+
+                binder.ConfigureManagedBehaviourBinding(
+                    new Behaviour[] { target },
+                    "$Enabled");
+
+                Assert.That(binder.BehaviourTargetsManaged, Is.True);
+                Assert.That(binder.BehaviourTargets, Does.Contain(target));
+
+                binder.ConfigureBehaviourBinding(
+                    new Behaviour[] { target },
+                    "$Enabled");
+
+                Assert.That(binder.BehaviourTargetsManaged, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void BehaviourBinding_TargetOutsideBinderHierarchyFails()
         {
             GameObject host = new GameObject("Binder Host");
