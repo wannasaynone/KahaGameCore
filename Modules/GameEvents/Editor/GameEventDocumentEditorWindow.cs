@@ -2222,6 +2222,9 @@ namespace KahaGameCore.GameEvents.Editor
                     EditorGUILayout.TextArea(session.Commands, GUILayout.MinHeight(56f));
                 }
             }
+
+            EditorGUILayout.Space(8f);
+            DrawDocumentSaveButton();
         }
 
         private void DrawCommandSelector(GameEventCommandDraft draft)
