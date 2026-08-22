@@ -52,6 +52,9 @@ Command assembly 在自己的 runtime asmdef 實作 public、可無參數建立�
 `IEffectCommandArgumentOptionProvider`。Game Event Editor 只保存選項的 `Value`；
 `Label`、分組、說明、定位物件與預覽行為都只影響作者介面。每個
 `SourceKey` 必須只有一個 provider，重複或找不到 provider 會在事件編輯頁直接報錯。
+Provider 的 `GetOptions` 會收到目前的 Command 名稱、參數索引及所有參數值；
+需要相依選項時（例如先選 Actor、再選該 Actor 的 Animation State），應從這份
+context 產生選項，不要建立一份與實際目標脫節的全域清單。
 
 事件文件不會自行執行。專案啟動／場景組裝程式建立以下四個物件後才能觸發：
 

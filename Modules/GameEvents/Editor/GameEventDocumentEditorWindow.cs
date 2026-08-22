@@ -2279,6 +2279,7 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 DrawCommandArgumentOptions(
                     draft,
+                    descriptor,
                     argumentIndex,
                     parameter,
                     label);
@@ -2394,6 +2395,7 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void DrawCommandArgumentOptions(
             GameEventCommandDraft draft,
+            EffectCommandDescriptor descriptor,
             int argumentIndex,
             EffectCommandParameterDefinition parameter,
             string label)
@@ -2411,8 +2413,12 @@ namespace KahaGameCore.GameEvents.Editor
             IReadOnlyList<EffectCommandArgumentOption> options;
             try
             {
-                options = provider.GetOptions() ??
-                    Array.Empty<EffectCommandArgumentOption>();
+                options = provider.GetOptions(
+                              new EffectCommandArgumentOptionContext(
+                                  descriptor.Name,
+                                  argumentIndex,
+                                  draft.Arguments)) ??
+                          Array.Empty<EffectCommandArgumentOption>();
             }
             catch (Exception exception)
             {

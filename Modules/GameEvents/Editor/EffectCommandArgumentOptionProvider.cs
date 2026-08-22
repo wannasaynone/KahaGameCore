@@ -4,6 +4,37 @@ using UnityEngine;
 
 namespace KahaGameCore.GameEvents.Editor
 {
+    public sealed class EffectCommandArgumentOptionContext
+    {
+        public EffectCommandArgumentOptionContext(
+            string commandName,
+            int argumentIndex,
+            IReadOnlyList<string> arguments)
+        {
+            if (string.IsNullOrWhiteSpace(commandName))
+            {
+                throw new ArgumentException(
+                    "Command name is required.",
+                    nameof(commandName));
+            }
+
+            if (argumentIndex < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(argumentIndex));
+            }
+
+            CommandName = commandName.Trim();
+            ArgumentIndex = argumentIndex;
+            Arguments = new List<string>(
+                    arguments ?? Array.Empty<string>())
+                .AsReadOnly();
+        }
+
+        public string CommandName { get; }
+        public int ArgumentIndex { get; }
+        public IReadOnlyList<string> Arguments { get; }
+    }
+
     public sealed class EffectCommandArgumentOption
     {
         public EffectCommandArgumentOption(
@@ -14,11 +45,19 @@ namespace KahaGameCore.GameEvents.Editor
             UnityEngine.Object target = null,
             Action preview = null)
         {
-            if (string.IsNullOrWhiteSpace(value))
+            if (value == null)
             {
                 throw new ArgumentException(
                     "Argument option value is required.",
                     nameof(value));
+            }
+
+            if (string.IsNullOrWhiteSpace(value) &&
+                string.IsNullOrWhiteSpace(label))
+            {
+                throw new ArgumentException(
+                    "An empty argument option requires a label.",
+                    nameof(label));
             }
 
             Value = value.Trim();
@@ -40,7 +79,8 @@ namespace KahaGameCore.GameEvents.Editor
     public interface IEffectCommandArgumentOptionProvider
     {
         string SourceKey { get; }
-        IReadOnlyList<EffectCommandArgumentOption> GetOptions();
+        IReadOnlyList<EffectCommandArgumentOption> GetOptions(
+            EffectCommandArgumentOptionContext context);
         void StopPreview();
     }
 }
