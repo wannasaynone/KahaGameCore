@@ -325,6 +325,74 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
+        public async Task QueueActivityChanged_CoversTheEntireSharedQueue()
+        {
+            ParameterStore parameters =
+                new ParameterStore(Array.Empty<ParameterDefinition>());
+            List<string> records = new List<string>();
+            List<bool> activityChanges = new List<bool>();
+            BlockingCommand blocker = new BlockingCommand(records);
+            EffectCommandRegistry registry = new EffectCommandRegistry();
+            registry.Register(new EffectCommandDefinition(
+                name: "Block",
+                displayName: "Block",
+                category: "Tests",
+                new[]
+                {
+                    new EffectCommandParameterDefinition(
+                        "value",
+                        EffectCommandParameterKind.Literal)
+                },
+                blocker));
+            TextAsset firstFile = CreateEvent(
+                "20000000-0000-0000-0000-000000000009",
+                "First",
+                "",
+                "",
+                "Block(first);");
+            TextAsset secondFile = CreateEvent(
+                "20000000-0000-0000-0000-000000000010",
+                "Second",
+                "",
+                "",
+                "");
+            GameEventRunner runner = CreateRunner(parameters, registry);
+            void RecordActivity(GameEventRunner changedRunner, bool isActive)
+            {
+                if (changedRunner == runner)
+                {
+                    activityChanges.Add(isActive);
+                }
+            }
+
+            GameEventRunner.QueueActivityChanged += RecordActivity;
+            UniTask first = runner.RunAsync(
+                firstFile,
+                new EventContext(CancellationToken.None));
+            UniTask second = runner.RunAsync(
+                secondFile,
+                new EventContext(CancellationToken.None));
+
+            try
+            {
+                CollectionAssert.AreEqual(new[] { true }, activityChanges);
+
+                blocker.Release();
+                await first;
+                await second;
+            }
+            finally
+            {
+                blocker.Release();
+                GameEventRunner.QueueActivityChanged -= RecordActivity;
+                UnityEngine.Object.DestroyImmediate(firstFile);
+                UnityEngine.Object.DestroyImmediate(secondFile);
+            }
+
+            CollectionAssert.AreEqual(new[] { true, false }, activityChanges);
+        }
+
+        [Test]
         public async Task RunAsync_InvalidDirectFileWaitsForEarlierQueuedJob()
         {
             ParameterStore parameters = new ParameterStore(Array.Empty<ParameterDefinition>());

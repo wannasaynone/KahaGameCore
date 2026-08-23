@@ -11,6 +11,8 @@ namespace KahaGameCore.GameEvents
 {
     public sealed class GameEventRunner
     {
+        public static event Action<GameEventRunner, bool> QueueActivityChanged;
+
         private sealed class QueuedJob
         {
             public QueuedJob(Func<UniTask> operation, CancellationToken cancellationToken)
@@ -32,6 +34,8 @@ namespace KahaGameCore.GameEvents
         private readonly Queue<QueuedJob> queue = new Queue<QueuedJob>();
         private bool isProcessingQueue;
         private UniTaskCompletionSource idleCompletion;
+
+        public bool IsProcessingQueue => isProcessingQueue;
 
         public GameEventRunner(
             GameEventCatalog catalog,
@@ -121,6 +125,7 @@ namespace KahaGameCore.GameEvents
             {
                 isProcessingQueue = true;
                 idleCompletion = new UniTaskCompletionSource();
+                NotifyQueueActivityChanged(true);
                 ProcessQueueAsync().Forget();
             }
 
@@ -151,7 +156,31 @@ namespace KahaGameCore.GameEvents
             isProcessingQueue = false;
             UniTaskCompletionSource completion = idleCompletion;
             idleCompletion = null;
+            NotifyQueueActivityChanged(false);
             completion.TrySetResult();
+        }
+
+        private void NotifyQueueActivityChanged(bool isActive)
+        {
+            Delegate[] subscribers = QueueActivityChanged?.GetInvocationList();
+            if (subscribers == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < subscribers.Length; index++)
+            {
+                try
+                {
+                    ((Action<GameEventRunner, bool>)subscribers[index])(
+                        this,
+                        isActive);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
+                }
+            }
         }
 
         private async UniTask RunDocumentAsync(GameEventDocument document, EventContext context)
