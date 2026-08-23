@@ -573,7 +573,6 @@ GameObject:
   - component: {fileID: 7855773770234252089}
   - component: {fileID: 8491568585108009276}
   - component: {fileID: 791667804552392393}
-  - component: {fileID: 5439601372697113506}
   m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -697,35 +696,6 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!114 &5439601372697113506
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5615222135683580365}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8ace8ced0e81c847968cdca0aeda757, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  typewriterStartsAutomatically: 0
-  animationLoop: 0
-  timeScale: 0
-  _text: New Text
-  useDynamicScaling: 1
-  referenceFontSize: 5
-  isResettingTimeOnNewText: 1
-  useDefaultDatabases: 1
-  databaseBehaviors: {fileID: 11400000, guid: 5ee84c39d759a874b982318f033effde, type: 2}
-  databaseAppearances: {fileID: 11400000, guid: e696567b72cb8844cbcd73d2d8eff1aa, type: 2}
-  useDefaultStyleSheet: 1
-  styleSheet: {fileID: 0}
-  databaseActions: {fileID: 11400000, guid: 842bedc6c792882428be8ede177dd549, type: 2}
-  defaultAppearancesTags: []
-  defaultDisappearancesTags: []
-  defaultBehaviorsTags: []
-  defaultTagsMode: 0
 --- !u!1 &6608363220629223715
 GameObject:
   m_ObjectHideFlags: 0
@@ -897,8 +867,6 @@ GameObject:
   - component: {fileID: 6694281728571484796}
   - component: {fileID: 4694779823561244657}
   - component: {fileID: 5254353546657419805}
-  - component: {fileID: 4044482408143873488}
-  - component: {fileID: 4932769076818891134}
   m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -1023,92 +991,6 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!114 &4044482408143873488
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8170419236501741370}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8ace8ced0e81c847968cdca0aeda757, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  typewriterStartsAutomatically: 0
-  animationLoop: 0
-  timeScale: 0
-  _text: New Text
-  useDynamicScaling: 1
-  referenceFontSize: 5
-  isResettingTimeOnNewText: 1
-  useDefaultDatabases: 1
-  databaseBehaviors: {fileID: 11400000, guid: 5ee84c39d759a874b982318f033effde, type: 2}
-  databaseAppearances: {fileID: 11400000, guid: e696567b72cb8844cbcd73d2d8eff1aa, type: 2}
-  useDefaultStyleSheet: 1
-  styleSheet: {fileID: 0}
-  databaseActions: {fileID: 11400000, guid: 842bedc6c792882428be8ede177dd549, type: 2}
-  defaultAppearancesTags: []
-  defaultDisappearancesTags: []
-  defaultBehaviorsTags: []
-  defaultTagsMode: 0
---- !u!114 &4932769076818891134
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8170419236501741370}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 57a6945b90dcd0c4b81619c0d8b5c283, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  useTypeWriter: 1
-  startTypewriterMode: 2
-  hideAppearancesOnSkip: 0
-  hideDisappearancesOnSkip: 0
-  triggerEventsOnSkip: 0
-  resetTypingSpeedAtStartup: 1
-  disappearanceOrientation: 0
-  triggerShowedAfterEffectsEnd: 0
-  triggerDisappearedAfterEffectsEnd: 0
-  onTextShowed:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 8614997904038675671}
-        m_TargetAssemblyTypeName: KahaGameCore.Dialogue.DialogueView, KahaGameCore.Modules.Dialogue
-        m_MethodName: TextAnimator_OnTypingCompleted
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  onTypewriterStart:
-    m_PersistentCalls:
-      m_Calls: []
-  onTextDisappeared:
-    m_PersistentCalls:
-      m_Calls: []
-  onCharacterVisible:
-    m_PersistentCalls:
-      m_Calls: []
-  onMessage:
-    m_PersistentCalls:
-      m_Calls: []
-  waitForNormalChars: 0.03
-  waitLong: 0.6
-  waitMiddle: 0.2
-  avoidMultiplePunctuationWait: 0
-  waitForNewLines: 1
-  waitForLastCharacter: 1
-  useTypewriterWaitForDisappearances: 1
-  disappearanceWaitTime: 0.015
-  disappearanceSpeedMultiplier: 1
 --- !u!1 &8522274461172019871
 GameObject:
   m_ObjectHideFlags: 0
@@ -1165,7 +1047,6 @@ MonoBehaviour:
   speakerNameContainer: {fileID: 1861988331043975050}
   dialogueText: {fileID: 5254353546657419805}
   dialogueTextContainer: {fileID: 3024913086169149758}
-  typeEffect: {fileID: 4932769076818891134}
   blackoutOverlay: {fileID: 6833548575015607373}
   optionContainer: {fileID: 9151092141723571962}
   optionButtonPrefab: {fileID: 4981266044759279563, guid: 94dc388149c592b46a3b925191555e6e, type: 3}

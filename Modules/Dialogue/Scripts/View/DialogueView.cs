@@ -1,4 +1,3 @@
-using Febucci.UI;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,7 +29,6 @@ namespace KahaGameCore.Dialogue.View
         [SerializeField] private GameObject speakerNameContainer;
         [SerializeField] private TextMeshProUGUI dialogueText;
         [SerializeField] private GameObject dialogueTextContainer;
-        [SerializeField] private TypewriterByCharacter typeEffect;
         [SerializeField] private CanvasGroup blackoutOverlay;
         [SerializeField] private Transform optionContainer;
         [SerializeField] private DialogueView_OptionButton optionButtonPrefab;
@@ -45,6 +43,10 @@ namespace KahaGameCore.Dialogue.View
 
         private State state = State.None;
         private CancellationTokenSource cts;
+        private CancellationTokenSource dialogueTextDisplayCts;
+        private IDialogueTextDisplayRule dialogueTextDisplayRule = new ImmediateDialogueTextDisplayRule();
+        private string currentDialogueText = string.Empty;
+        private int dialogueTextDisplayVersion;
         private readonly List<DialogueView_OptionButton> spawnedOptionButtons = new List<DialogueView_OptionButton>();
 
         public static event System.Action<SpeedState> OnSpeedStateChanged;
@@ -54,6 +56,8 @@ namespace KahaGameCore.Dialogue.View
 
         private void OnEnable()
         {
+            CancelDialogueTextDisplay();
+
             if (cts != null)
             {
                 cts.Cancel();
@@ -65,6 +69,7 @@ namespace KahaGameCore.Dialogue.View
             dialogueTextContainer.SetActive(false);
             speakerNameText.text = string.Empty;
             dialogueText.text = string.Empty;
+            currentDialogueText = string.Empty;
 
             if (blackoutOverlay != null)
             {
@@ -103,6 +108,17 @@ namespace KahaGameCore.Dialogue.View
             }
         }
 
+        public void SetDialogueTextDisplayRule(IDialogueTextDisplayRule displayRule)
+        {
+            if (state == State.Typing)
+            {
+                throw new System.InvalidOperationException(
+                    "Cannot replace the dialogue text display rule while text is being displayed.");
+            }
+
+            dialogueTextDisplayRule = displayRule ?? new ImmediateDialogueTextDisplayRule();
+        }
+
         public void SetDialogueText(string text)
         {
             if (state != State.None)
@@ -112,6 +128,7 @@ namespace KahaGameCore.Dialogue.View
             }
 
             state = State.Typing;
+            currentDialogueText = text ?? string.Empty;
             dialogueText.text = string.Empty;
 
             if (!dialogueTextContainer.activeSelf)
@@ -119,21 +136,81 @@ namespace KahaGameCore.Dialogue.View
                 dialogueTextContainer.SetActive(true);
             }
 
-            PlayTypeEffect(text);
+            StartDialogueTextDisplay(currentDialogueText);
         }
 
-        private async void PlayTypeEffect(string text)
+        private void StartDialogueTextDisplay(string text)
         {
-            await Task.Yield();
-            typeEffect.ShowText(text);
-            if (currentSpeedState == SpeedState.Accelerated)
+            CancelDialogueTextDisplay();
+
+            int displayVersion = dialogueTextDisplayVersion;
+            var displayCts = new CancellationTokenSource();
+            dialogueTextDisplayCts = displayCts;
+
+            DisplayDialogueTextAsync(
+                text,
+                dialogueTextDisplayRule,
+                displayVersion,
+                displayCts).Forget();
+        }
+
+        private async UniTask DisplayDialogueTextAsync(
+            string text,
+            IDialogueTextDisplayRule displayRule,
+            int displayVersion,
+            CancellationTokenSource displayCts)
+        {
+            CancellationToken cancellationToken = displayCts.Token;
+
+            try
             {
-                typeEffect.SkipTypewriter();
+                await displayRule.DisplayAsync(
+                    text,
+                    visibleText =>
+                    {
+                        if (displayVersion == dialogueTextDisplayVersion)
+                        {
+                            dialogueText.text = visibleText ?? string.Empty;
+                        }
+                    },
+                    cancellationToken);
+
+                if (displayVersion != dialogueTextDisplayVersion || cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                dialogueText.text = text;
+                CompleteDialogueTextDisplay();
+            }
+            catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch (System.Exception exception)
+            {
+                if (displayVersion == dialogueTextDisplayVersion)
+                {
+                    Debug.LogException(exception, this);
+                    dialogueText.text = text;
+                    CompleteDialogueTextDisplay();
+                }
+            }
+            finally
+            {
+                if (ReferenceEquals(dialogueTextDisplayCts, displayCts))
+                {
+                    dialogueTextDisplayCts = null;
+                }
+
+                displayCts.Dispose();
             }
         }
 
-        public void TextAnimator_OnTypingCompleted()
+        private void CompleteDialogueTextDisplay()
         {
+            CancelDialogueTextDisplay();
+            dialogueText.text = currentDialogueText;
+
             if (currentSpeedState == SpeedState.Accelerated)
             {
                 state = State.None;
@@ -143,6 +220,19 @@ namespace KahaGameCore.Dialogue.View
             {
                 state = State.TypeCompleted;
             }
+        }
+
+        private void CancelDialogueTextDisplay()
+        {
+            dialogueTextDisplayVersion++;
+
+            if (dialogueTextDisplayCts == null)
+            {
+                return;
+            }
+
+            dialogueTextDisplayCts.Cancel();
+            dialogueTextDisplayCts = null;
         }
 
         private async void InvokeDialogueTextCompletedWithCooldown()
@@ -167,7 +257,7 @@ namespace KahaGameCore.Dialogue.View
             switch (state)
             {
                 case State.Typing:
-                    typeEffect.SkipTypewriter();
+                    CompleteDialogueTextDisplay();
                     break;
                 case State.TypeCompleted:
                     state = State.None;
@@ -189,7 +279,7 @@ namespace KahaGameCore.Dialogue.View
 
                 if (state == State.Typing)
                 {
-                    typeEffect.SkipTypewriter();
+                    CompleteDialogueTextDisplay();
                 }
                 else if (state == State.TypeCompleted)
                 {

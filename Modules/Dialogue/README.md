@@ -52,6 +52,23 @@ DialogueData
 
 `DialogueManager` 負責對話佇列、行序、建立 `DialogueContext` 與推進下一行；具體指令只處理自己的演出或跳轉行為。
 
+## 文字顯示規則
+
+`DialogueView.SetDialogueText()` 將文字呈現委派給 `IDialogueTextDisplayRule`。預設使用
+`ImmediateDialogueTextDisplayRule`，立即顯示完整文字並進入等待玩家確認的狀態；它只完成
+「文字呈現」，不會自動完成 `Say` command。
+
+需要逐字顯示或其他效果時，由 composition root 在開始對話前設定 adapter：
+
+```csharp
+dialogueView.SetDialogueTextDisplayRule(customTextDisplayRule);
+```
+
+Adapter 的 `DisplayAsync()` 可透過 `setVisibleText` 更新目前可見文字，並在完整呈現結束時
+完成傳回的 `UniTask`。Adapter 必須遵守 `CancellationToken`；玩家在呈現期間要求繼續、
+View 被停用或新呈現取代舊呈現時，`DialogueView` 會取消工作並直接顯示完整文字。
+傳入 `null` 可恢復預設的立即顯示規則。
+
 ## DialogueData 表格式
 
 | 欄位 | 說明 |

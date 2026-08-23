@@ -4,7 +4,9 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "KahaGameCore.Modules.Dialogue"
+        "KahaGameCore.Modules.Dialogue",
+        "UniTask",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [
         "Editor"
