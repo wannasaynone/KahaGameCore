@@ -2318,6 +2318,50 @@ namespace KahaGameCore.GameEvents.Editor
         {
             EffectCommandParameterDefinition parameter = descriptor.Parameters[argumentIndex];
             string label = FormatCommandParameterLabel(parameter);
+            string customEditorError = string.Empty;
+            if (!string.IsNullOrWhiteSpace(parameter.OptionSourceKey) &&
+                EffectCommandArgumentEditorCatalog.TryGetProvider(
+                    parameter.OptionSourceKey,
+                    out IEffectCommandArgumentEditorProvider customEditor,
+                    out customEditorError))
+            {
+                try
+                {
+                    customEditor.Draw(
+                        new EffectCommandArgumentEditorContext(
+                            session.DocumentGuid,
+                            descriptor.Name,
+                            argumentIndex,
+                            draft.Arguments,
+                            value =>
+                            {
+                                draft.Arguments[argumentIndex] = value;
+                                session.Commands = GameEventCommandDraftCodec.Serialize(
+                                    commandDrafts
+                                        .Where(item => !string.IsNullOrWhiteSpace(item.Name))
+                                        .ToList());
+                                Repaint();
+                            }));
+                }
+                catch (Exception exception)
+                {
+                    EditorGUILayout.LabelField(label, "無法編輯");
+                    EditorGUILayout.HelpBox(
+                        $"無法載入「{parameter.OptionSourceKey}」參數編輯器：" +
+                        exception.Message,
+                        MessageType.Error);
+                }
+
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(customEditorError))
+            {
+                EditorGUILayout.LabelField(label, "無法編輯");
+                EditorGUILayout.HelpBox(customEditorError, MessageType.Error);
+                return;
+            }
+
             CommandArgumentEditorKind editorKind = GetCommandArgumentEditorKind(
                 draft,
                 descriptor,

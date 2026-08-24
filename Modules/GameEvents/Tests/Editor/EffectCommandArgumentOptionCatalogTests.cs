@@ -56,16 +56,28 @@ namespace KahaGameCore.GameEvents.Tests
             }
         }
 
+        public sealed class UniqueEditorProvider :
+            IEffectCommandArgumentEditorProvider
+        {
+            public string SourceKey => "TestUniqueEditor";
+
+            public void Draw(EffectCommandArgumentEditorContext context)
+            {
+            }
+        }
+
         [SetUp]
         public void SetUp()
         {
             EffectCommandArgumentOptionCatalog.Reset();
+            EffectCommandArgumentEditorCatalog.Reset();
         }
 
         [TearDown]
         public void TearDown()
         {
             EffectCommandArgumentOptionCatalog.Reset();
+            EffectCommandArgumentEditorCatalog.Reset();
         }
 
         [Test]
@@ -128,6 +140,38 @@ namespace KahaGameCore.GameEvents.Tests
 
             Assert.That(found, Is.False);
             Assert.That(error, Does.Contain("2 個提供者"));
+        }
+
+        [Test]
+        public void CustomEditorContext_CopiesArgumentsAndCanSetValue()
+        {
+            var arguments = new List<string> { "speaker", "line" };
+            string assigned = string.Empty;
+            var context = new EffectCommandArgumentEditorContext(
+                "event-guid",
+                "Say",
+                1,
+                arguments,
+                value => assigned = value);
+            arguments[1] = "changed";
+
+            context.SetValue("replacement");
+
+            Assert.That(context.DocumentGuid, Is.EqualTo("event-guid"));
+            Assert.That(context.Value, Is.EqualTo("line"));
+            Assert.That(assigned, Is.EqualTo("replacement"));
+        }
+
+        [Test]
+        public void CustomEditorCatalog_ResolvesOneProviderForSourceKey()
+        {
+            bool found = EffectCommandArgumentEditorCatalog.TryGetProvider(
+                "TestUniqueEditor",
+                out IEffectCommandArgumentEditorProvider provider,
+                out string error);
+
+            Assert.That(found, Is.True, error);
+            Assert.That(provider, Is.TypeOf<UniqueEditorProvider>());
         }
     }
 }

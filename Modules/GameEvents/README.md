@@ -56,6 +56,14 @@ Provider 的 `GetOptions` 會收到目前的 Command 名稱、參數索引及所
 需要相依選項時（例如先選 Actor、再選該 Actor 的 Animation State），應從這份
 context 產生選項，不要建立一份與實際目標脫節的全域清單。
 
+若參數需要的不只是選擇既有值，而是建立或編輯該值所代表的專案資料，可使用相同
+`optionSourceKey` 提供 public、可無參數建立的
+`IEffectCommandArgumentEditorProvider`。Custom editor 會優先於 option provider，並取得
+目前的 `DocumentGuid`、Command 名稱、參數索引、完整參數快照與 `SetValue` callback；
+provider 擁有該參數的完整 authoring UI，但仍只能透過 callback 改寫序列化的 argument。
+這個 seam 適合 localized text 等需要 inline 編輯與穩定 identity 的資料，不應用來把
+一般固定值重新包裝成專案專屬 UI。
+
 事件文件不會自行執行。專案啟動／場景組裝程式建立以下四個物件後才能觸發：
 
 ```csharp
