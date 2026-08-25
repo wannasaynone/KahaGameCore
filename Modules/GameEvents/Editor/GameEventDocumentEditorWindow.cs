@@ -2588,12 +2588,21 @@ namespace KahaGameCore.GameEvents.Editor
 
             if (currentMatches.Length > 1)
             {
-                string duplicateDetails = string.Join(
-                    "\n",
-                    currentMatches.Select(BuildArgumentOptionTooltip));
                 EditorGUILayout.HelpBox(
-                    $"多個選項指向同一目標，runtime 無法判斷。\n{duplicateDetails}",
+                    "多個選項使用相同識別值，runtime 無法判斷。\n" +
+                    "請分別定位物件並修正重複值。",
                     MessageType.Error);
+                foreach (EffectCommandArgumentOption match in currentMatches)
+                {
+                    using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                    {
+                        EditorGUILayout.LabelField(
+                            BuildArgumentOptionTooltip(match),
+                            EditorStyles.wordWrappedMiniLabel);
+                        DrawCommandArgumentOptionControls(match);
+                    }
+                }
+
                 return;
             }
 
@@ -2620,6 +2629,12 @@ namespace KahaGameCore.GameEvents.Editor
                 EditorGUILayout.HelpBox(option.Description, MessageType.None);
             }
 
+            DrawCommandArgumentOptionControls(option);
+        }
+
+        private static void DrawCommandArgumentOptionControls(
+            EffectCommandArgumentOption option)
+        {
             if (option.Target == null && option.Preview == null)
             {
                 return;
