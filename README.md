@@ -168,6 +168,7 @@ Persistence 不會由 Builder 自動加入遊戲 UI。需要存讀檔時：
 | Dialogue | [Dialogue](Modules/Dialogue/README.md) |
 | Presentation | [Presentation](Modules/Presentation/README.md) |
 | StaticData | [StaticData](Modules/StaticData/README.md) |
+| Directional UI | [DirectionalUI](Modules/DirectionalUI/README.md) |
 | User Interface | [UserInterfaceSystem](Modules/UserInterfaceSystem/README.md) |
 | ValueContainer | [ValueContainer](Modules/ValueContainer/README.md) |
 | Serialization | [Serialization](Modules/Serialization/README.md) |
