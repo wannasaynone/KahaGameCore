@@ -32,7 +32,10 @@ namespace KahaGameCore.GameEvents
         private readonly ParameterStore parameters;
         private readonly GameEventDocumentJsonCodec codec;
         private readonly Queue<QueuedJob> queue = new Queue<QueuedJob>();
+        private readonly HashSet<Guid> activeDocuments = new HashSet<Guid>();
         private bool isProcessingQueue;
+        private bool isExecutingCommands;
+        private bool hasActiveQueueWork;
         private UniTaskCompletionSource idleCompletion;
 
         public bool IsProcessingQueue => isProcessingQueue;
@@ -55,7 +58,6 @@ namespace KahaGameCore.GameEvents
             if (context == null) throw new ArgumentNullException(nameof(context));
 
             string json = gameEventFile.text;
-            Debug.Log("Run " + json);
             return Enqueue(
                 () => RunDirectAsync(json, context),
                 context.CancellationToken);
@@ -107,7 +109,7 @@ namespace KahaGameCore.GameEvents
 
             for (int index = 0; index < snapshot.Count; index++)
             {
-                await RunCommandsAsync(snapshot[index].Document, context);
+                await ExecuteDocumentAsync(snapshot[index].Document, context);
             }
         }
 
@@ -115,6 +117,26 @@ namespace KahaGameCore.GameEvents
         {
             GameEventDocument document = codec.Read(json);
             return RunDocumentAsync(document, context);
+        }
+
+        internal UniTask TriggerDocumentAsync(
+            Guid documentGuid,
+            EffectExecutionContext effectContext,
+            CancellationToken cancellationToken)
+        {
+            if (!catalog.TryGetDocument(documentGuid, out GameEventDocument document))
+            {
+                throw new GameEventException(
+                    "MissingDocument",
+                    $"Game Event '{documentGuid:D}' is not in the current catalog.");
+            }
+
+            var context = new EventContext(cancellationToken, effectContext);
+            return isExecutingCommands
+                ? RunDocumentAsync(document, context)
+                : Enqueue(
+                    () => RunDocumentAsync(document, context),
+                    cancellationToken);
         }
 
         private UniTask Enqueue(Func<UniTask> operation, CancellationToken cancellationToken)
@@ -125,7 +147,6 @@ namespace KahaGameCore.GameEvents
             {
                 isProcessingQueue = true;
                 idleCompletion = new UniTaskCompletionSource();
-                NotifyQueueActivityChanged(true);
                 ProcessQueueAsync().Forget();
             }
 
@@ -156,8 +177,23 @@ namespace KahaGameCore.GameEvents
             isProcessingQueue = false;
             UniTaskCompletionSource completion = idleCompletion;
             idleCompletion = null;
-            NotifyQueueActivityChanged(false);
+            if (hasActiveQueueWork)
+            {
+                hasActiveQueueWork = false;
+                NotifyQueueActivityChanged(false);
+            }
             completion.TrySetResult();
+        }
+
+        private void EnsureQueueActivityStarted()
+        {
+            if (hasActiveQueueWork)
+            {
+                return;
+            }
+
+            hasActiveQueueWork = true;
+            NotifyQueueActivityChanged(true);
         }
 
         private void NotifyQueueActivityChanged(bool isActive)
@@ -190,7 +226,28 @@ namespace KahaGameCore.GameEvents
                 return;
             }
 
-            await RunCommandsAsync(document, context);
+            await ExecuteDocumentAsync(document, context);
+        }
+
+        private async UniTask ExecuteDocumentAsync(
+            GameEventDocument document,
+            EventContext context)
+        {
+            if (!activeDocuments.Add(document.DocumentGuid))
+            {
+                throw new GameEventException(
+                    "RecursiveEvent",
+                    $"Game Event '{document.DisplayName}' recursively triggers itself.");
+            }
+
+            try
+            {
+                await RunCommandsAsync(document, context);
+            }
+            finally
+            {
+                activeDocuments.Remove(document.DocumentGuid);
+            }
         }
 
         private bool EvaluateCondition(GameEventDocument document)
@@ -209,10 +266,21 @@ namespace KahaGameCore.GameEvents
         private async UniTask RunCommandsAsync(GameEventDocument document, EventContext context)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
-            EffectExecutionResult result = await effects.ExecuteAsync(
-                document.Commands,
-                context.EffectContext,
-                context.CancellationToken);
+            EnsureQueueActivityStarted();
+            bool previousIsExecutingCommands = isExecutingCommands;
+            isExecutingCommands = true;
+            EffectExecutionResult result;
+            try
+            {
+                result = await effects.ExecuteAsync(
+                    document.Commands,
+                    context.EffectContext,
+                    context.CancellationToken);
+            }
+            finally
+            {
+                isExecutingCommands = previousIsExecutingCommands;
+            }
             if (result.Status == EffectExecutionStatus.Cancelled)
             {
                 throw new OperationCanceledException(

@@ -60,7 +60,6 @@ namespace KahaGameCore.GameEvents
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            Debug.Log("OnTriggerEnter2D");
             if (runner == null || other == null || !IncludesLayer(other.gameObject.layer))
             {
                 return;

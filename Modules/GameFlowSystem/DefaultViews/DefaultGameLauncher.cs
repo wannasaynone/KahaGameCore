@@ -164,10 +164,14 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                 gameEventCatalog,
                 gameEventCodec);
 
+            var eventCommandRouter = new GameEventCommandRouter();
+
             // 全部採用預設實作；Game Events 由可選 integration assembly 接入。
             services = new GameFlowSystemBuilder(staticDataManager, parameters)
                 .WithEffectCommandConfiguration(
                     gameEventCatalog.CommandConfiguration)
+                .WithEffectCommandServices(commandServices =>
+                    commandServices.Add(eventCommandRouter))
                 .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
                 .WithActionMenuPresenter(actionMenuPresenter)
                 .WithHintPresenter(hintPresenter)
@@ -179,6 +183,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
                         effectRuntime,
                         parameters,
                         gameEventCodec);
+                    eventCommandRouter.Initialize(gameEventRunner);
                     return new GameFlowGameEventAdapter(gameEventRunner);
                 })
                 .Build();

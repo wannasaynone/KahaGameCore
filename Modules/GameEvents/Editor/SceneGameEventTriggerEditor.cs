@@ -1,20 +1,89 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
+using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
 namespace KahaGameCore.GameEvents.Editor
 {
     internal readonly struct GameEventTriggerOption
     {
-        public GameEventTriggerOption(TextAsset asset, string label)
+        public GameEventTriggerOption(TextAsset asset, string label, string category = null)
         {
             Asset = asset;
             Label = label ?? throw new ArgumentNullException(nameof(label));
+            Category = category?.Trim() ?? string.Empty;
         }
 
         public TextAsset Asset { get; }
         public string Label { get; }
+        public string Category { get; }
+    }
+
+    internal sealed class GameEventAssetAdvancedDropdown : AdvancedDropdown
+    {
+        private sealed class OptionItem : AdvancedDropdownItem
+        {
+            public OptionItem(GameEventTriggerOption option) : base(option.Label)
+            {
+                Option = option;
+            }
+
+            public GameEventTriggerOption Option { get; }
+        }
+
+        private readonly IReadOnlyList<GameEventTriggerOption> options;
+        private readonly Action<TextAsset> onSelected;
+
+        public GameEventAssetAdvancedDropdown(
+            AdvancedDropdownState state,
+            IReadOnlyList<GameEventTriggerOption> options,
+            Action<TextAsset> onSelected)
+            : base(state)
+        {
+            this.options = options ?? Array.Empty<GameEventTriggerOption>();
+            this.onSelected = onSelected ?? throw new ArgumentNullException(nameof(onSelected));
+            minimumSize = new Vector2(420f, 320f);
+        }
+
+        protected override AdvancedDropdownItem BuildRoot()
+        {
+            var root = new AdvancedDropdownItem("選擇 Game Event");
+            var groups = new Dictionary<string, AdvancedDropdownItem>(
+                StringComparer.Ordinal);
+            foreach (GameEventTriggerOption option in options
+                         .OrderBy(item => item.Category, StringComparer.Ordinal)
+                         .ThenBy(item => item.Label, StringComparer.Ordinal))
+            {
+                AdvancedDropdownItem parent = root;
+                if (!string.IsNullOrWhiteSpace(option.Category))
+                {
+                    if (!groups.TryGetValue(
+                            option.Category,
+                            out AdvancedDropdownItem group))
+                    {
+                        group = new AdvancedDropdownItem(option.Category);
+                        groups.Add(option.Category, group);
+                        root.AddChild(group);
+                    }
+
+                    parent = group;
+                }
+
+                parent.AddChild(new OptionItem(option));
+            }
+
+            return root;
+        }
+
+        protected override void ItemSelected(AdvancedDropdownItem item)
+        {
+            if (item is OptionItem optionItem)
+            {
+                onSelected(optionItem.Option.Asset);
+            }
+        }
     }
 
     internal abstract class SceneGameEventTriggerEditorBase : UnityEditor.Editor
@@ -72,14 +141,13 @@ namespace KahaGameCore.GameEvents.Editor
                 : gameEventFile.objectReferenceValue as TextAsset;
             IReadOnlyList<GameEventTriggerOption> options =
                 BuildGameEventOptions(catalog, current);
-            string[] labels = new string[options.Count];
-            int currentIndex = 0;
+            string currentLabel = "未選擇";
             for (int index = 0; index < options.Count; index++)
             {
-                labels[index] = options[index].Label;
                 if (options[index].Asset == current)
                 {
-                    currentIndex = index;
+                    currentLabel = options[index].Label;
+                    break;
                 }
             }
 
@@ -87,19 +155,26 @@ namespace KahaGameCore.GameEvents.Editor
             EditorGUI.showMixedValue = gameEventFile.hasMultipleDifferentValues;
             using (new EditorGUILayout.HorizontalScope())
             {
-                EditorGUI.BeginChangeCheck();
-                int selectedIndex = EditorGUILayout.Popup(
+                Rect controlRect = EditorGUILayout.GetControlRect();
+                Rect buttonRect = EditorGUI.PrefixLabel(
+                    controlRect,
                     new GUIContent(
                         "Game Event File",
-                        "Select from the event list in Game Event Editor."),
-                    currentIndex,
-                    labels);
-                bool changed = EditorGUI.EndChangeCheck();
-
-                if (changed && selectedIndex >= 0 && selectedIndex < options.Count)
+                        "Select from the event list in Game Event Editor."));
+                if (EditorGUI.DropdownButton(
+                        buttonRect,
+                        new GUIContent(currentLabel),
+                        FocusType.Keyboard))
                 {
-                    current = options[selectedIndex].Asset;
-                    gameEventFile.objectReferenceValue = current;
+                    var dropdown = new GameEventAssetAdvancedDropdown(
+                        new AdvancedDropdownState(),
+                        options,
+                        selected =>
+                        {
+                            gameEventFile.objectReferenceValue = selected;
+                            gameEventFile.serializedObject.ApplyModifiedProperties();
+                        });
+                    dropdown.Show(buttonRect);
                 }
 
                 using (new EditorGUI.DisabledScope(
@@ -157,7 +232,8 @@ namespace KahaGameCore.GameEvents.Editor
                     {
                         options.Add(new GameEventTriggerOption(
                             asset,
-                            FormatEventLabel(asset)));
+                            FormatEventLabel(asset),
+                            GameEventEditorAssetUtility.GetCategory(asset)));
                     }
                 }
             }

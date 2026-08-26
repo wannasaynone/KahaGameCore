@@ -17,6 +17,8 @@ namespace KahaGameCore.GameEvents
         }
 
         private readonly List<Entry> entries = new List<Entry>();
+        private readonly Dictionary<Guid, Entry> entriesByDocumentGuid =
+            new Dictionary<Guid, Entry>();
 
         public GameEventCatalog(
             GameEventCatalogAsset asset,
@@ -52,10 +54,24 @@ namespace KahaGameCore.GameEvents
                         $"Duplicate Game Event DocumentGuid '{document.DocumentGuid:D}'.");
                 }
 
-                entries.Add(new Entry(document));
+                Entry entry = new Entry(document);
+                entries.Add(entry);
+                entriesByDocumentGuid.Add(document.DocumentGuid, entry);
             }
         }
 
         internal IReadOnlyList<Entry> Entries => entries;
+
+        internal bool TryGetDocument(Guid documentGuid, out GameEventDocument document)
+        {
+            if (entriesByDocumentGuid.TryGetValue(documentGuid, out Entry entry))
+            {
+                document = entry.Document;
+                return true;
+            }
+
+            document = null;
+            return false;
+        }
     }
 }

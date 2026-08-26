@@ -56,6 +56,16 @@ Provider 的 `GetOptions` 會收到目前的 Command 名稱、參數索引及所
 需要相依選項時（例如先選 Actor、再選該 Actor 的 Animation State），應從這份
 context 產生選項，不要建立一份與實際目標脫節的全域清單。
 
+The built-in `TriggerEvent(documentGuid)` command runs another event from the same
+Catalog inside the current runner job. The editor stores the target event's stable
+`DocumentGuid`, evaluates the target condition at runtime, and rejects recursive
+event cycles instead of queueing work behind the command that is currently waiting.
+
+The Scene Trigger event selector and the `TriggerEvent` argument selector group
+events by the name of their immediate containing folder. The folder name alone is
+the category key: events under `A/B/GameEvent` and `C/D/GameEvent` therefore share
+the `GameEvent` category regardless of their full asset paths.
+
 若參數需要的不只是選擇既有值，而是建立或編輯該值所代表的專案資料，可使用相同
 `optionSourceKey` 提供 public、可無參數建立的
 `IEffectCommandArgumentEditorProvider`。Custom editor 會優先於 option provider，並取得
@@ -228,7 +238,7 @@ sceneGameEventTrigger.Initialize(
     new EventContext(lifetime.Token));
 ```
 
-初始化後，允許 Layer 的 Collider 進入時，`OnTriggerEnter` 會呼叫 `runner.RunAsync(file, context)`；也可以由 UnityEvent 手動綁定 `SceneGameEventTrigger.Trigger()`。這條路徑會直接執行指定文件並檢查 condition，但不比對文件的 `TriggerTiming`。
+初始化後，允許 Layer 的 Collider 進入時，`OnTriggerEnter` 會呼叫 `runner.RunAsync(file, context)`；也可以由 UnityEvent 手動綁定 `SceneGameEventTrigger.Trigger()`。這條路徑會直接執行指定文件並檢查 condition，但不比對文件的 `TriggerTiming`。若 condition 不通過，Runner 不會發布 active queue work，因此整合層也不會暫停 gameplay input。
 
 `SceneGameEventTrigger` 不保存碰撞歷史，也不自行判斷「只能觸發一次」。需要跨存檔保持的一次性事件應使用 Parameter 作為權威狀態：
 

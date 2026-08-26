@@ -45,5 +45,25 @@ namespace KahaGameCore.GameEvents.Tests
                 Does.Contain("StandardEffectCommandModuleFactory"));
             Assert.That(warnings, Is.Empty);
         }
+
+        [Test]
+        public void GetDescriptors_GameEventsOwnsTriggerEvent()
+        {
+            const string gameEventsAssembly =
+                "KahaGameCore.Modules.GameEvents";
+            var warnings = new List<string>();
+
+            EffectCommandDescriptor descriptor =
+                KahaGameCore.GameEvents.Editor.EffectCommandAssemblyCatalog
+                    .GetDescriptors(new[] { gameEventsAssembly }, warnings)
+                    .Single(item => item.Name == "TriggerEvent");
+
+            Assert.That(descriptor.DisplayName, Is.EqualTo("Trigger Event"));
+            Assert.That(descriptor.Parameters.Count, Is.EqualTo(1));
+            Assert.That(
+                descriptor.Parameters[0].OptionSourceKey,
+                Is.EqualTo(GameEventEffectCommandModule.EventOptionSourceKey));
+            Assert.That(warnings, Is.Empty);
+        }
     }
 }

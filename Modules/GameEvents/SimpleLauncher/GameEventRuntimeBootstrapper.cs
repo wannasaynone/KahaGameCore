@@ -45,19 +45,27 @@ namespace KahaGameCore.GameEvents
 
             ParameterStore parameters =
                 ParameterRuntimeLoader.Load(catalog.ParameterTables);
-            EffectCommandServiceRegistry commandServices =
-                new EffectCommandServiceRegistry()
-                    .Add(parameters);
-            EffectRuntime effects = EffectCommandBootstrapper.CreateRuntime(
-                catalog.CommandConfiguration,
-                commandServices);
             GameEventDocumentJsonCodec eventCodec =
                 new GameEventDocumentJsonCodec();
+            GameEventCatalog runtimeCatalog =
+                new GameEventCatalog(catalog, eventCodec);
+            var eventCommandRouter = new GameEventCommandRouter();
+            EffectCommandServiceRegistry commandServices =
+                new EffectCommandServiceRegistry()
+                    .Add(parameters)
+                    .Add(eventCommandRouter);
+            var commandRegistry = new EffectCommandRegistry();
+            var effects = new EffectRuntime(commandRegistry);
+            EffectCommandBootstrapper.Populate(
+                commandRegistry,
+                catalog.CommandConfiguration,
+                commandServices);
             GameEventRunner events = new GameEventRunner(
-                new GameEventCatalog(catalog, eventCodec),
+                runtimeCatalog,
                 effects,
                 parameters,
                 eventCodec);
+            eventCommandRouter.Initialize(events);
 
             return new GameEventRuntime(
                 parameters,

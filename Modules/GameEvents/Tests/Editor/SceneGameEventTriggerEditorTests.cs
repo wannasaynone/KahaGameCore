@@ -167,6 +167,44 @@ namespace KahaGameCore.GameEvents.Tests
             }
         }
 
+        [Test]
+        public void GameEventCategory_UsesOnlyTheImmediateFolderName()
+        {
+            string first = GameEventEditorAssetUtility.GetCategoryFromAssetPath(
+                "Assets/A/B/GameEvent/First.gameevent.json");
+            string second = GameEventEditorAssetUtility.GetCategoryFromAssetPath(
+                "Assets/C/D/GameEvent/Second.gameevent.json");
+
+            Assert.That(first, Is.EqualTo("GameEvent"));
+            Assert.That(second, Is.EqualTo(first));
+        }
+
+        [Test]
+        public void TriggerEventOption_UsesImmediateFolderAsItsGroup()
+        {
+            TextAsset asset = CreateEvent(
+                "50000000-0000-0000-0000-000000000014",
+                "Grouped Event");
+
+            try
+            {
+                EffectCommandArgumentOption option =
+                    GameEventArgumentOptionProvider.CreateOption(
+                        asset,
+                        "Assets/C/D/GameEvent/Grouped.gameevent.json");
+
+                Assert.That(option, Is.Not.Null);
+                Assert.That(option.Group, Is.EqualTo("GameEvent"));
+                Assert.That(
+                    option.Value,
+                    Is.EqualTo("50000000-0000-0000-0000-000000000014"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(asset);
+            }
+        }
+
         private static void AssertDefaultTriggerLayerIsNothing<T>(
             System.Type expectedEditorType)
             where T : MonoBehaviour

@@ -548,6 +548,158 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
+        public void RunAsync_ConditionFalseDoesNotReportQueueActivity()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Int("Gate", "Gate", 0, 0, 1)
+            });
+            TextAsset file = CreateEvent(
+                "30000000-0000-0000-0000-000000000012",
+                "Skipped Without Input Lock",
+                "",
+                "$Gate == 1",
+                "");
+            GameEventRunner runner = CreateRunner(
+                parameters,
+                new EffectCommandRegistry());
+            var activityChanges = new List<bool>();
+            void RecordActivity(GameEventRunner changedRunner, bool isActive)
+            {
+                if (changedRunner == runner)
+                {
+                    activityChanges.Add(isActive);
+                }
+            }
+
+            GameEventRunner.QueueActivityChanged += RecordActivity;
+            try
+            {
+                runner.RunAsync(file, new EventContext(CancellationToken.None))
+                    .GetAwaiter()
+                    .GetResult();
+            }
+            finally
+            {
+                GameEventRunner.QueueActivityChanged -= RecordActivity;
+                UnityEngine.Object.DestroyImmediate(file);
+            }
+
+            Assert.That(activityChanges, Is.Empty);
+        }
+
+        [Test]
+        public void TriggerEventCommand_ExecutesCatalogEventInTheCurrentJob()
+        {
+            ParameterStore parameters =
+                new ParameterStore(Array.Empty<ParameterDefinition>());
+            var records = new List<string>();
+            TextAsset nested = CreateEvent(
+                "30000000-0000-0000-0000-000000000013",
+                "Nested",
+                "",
+                "",
+                "Record(nested);");
+            TextAsset outer = CreateEvent(
+                "30000000-0000-0000-0000-000000000014",
+                "Outer",
+                "",
+                "",
+                "Record(before);" +
+                "TriggerEvent(30000000-0000-0000-0000-000000000013);" +
+                "Record(after);");
+
+            try
+            {
+                var codec = new GameEventDocumentJsonCodec();
+                var catalog = new GameEventCatalog(new[] { nested }, codec);
+                var registry = CreateRecordingRegistry(records);
+                var router = new GameEventCommandRouter();
+                registry.Register(
+                    new GameEventEffectCommandModule(router)
+                        .CreateDefinition("TriggerEvent"));
+                var runner = new GameEventRunner(
+                    catalog,
+                    new EffectRuntime(registry),
+                    parameters,
+                    codec);
+                router.Initialize(runner);
+
+                runner.RunAsync(outer, new EventContext(CancellationToken.None))
+                    .GetAwaiter()
+                    .GetResult();
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(outer);
+                UnityEngine.Object.DestroyImmediate(nested);
+            }
+
+            CollectionAssert.AreEqual(
+                new[] { "before", "nested", "after" },
+                records);
+        }
+
+        [Test]
+        public void RuntimeBootstrapper_WiresTriggerEventCommandToItsRunner()
+        {
+            TextAsset nested = CreateEvent(
+                "30000000-0000-0000-0000-000000000015",
+                "Nested Bootstrap Event",
+                "",
+                "",
+                "");
+            TextAsset outer = CreateEvent(
+                "30000000-0000-0000-0000-000000000016",
+                "Outer Bootstrap Event",
+                "",
+                "",
+                "TriggerEvent(30000000-0000-0000-0000-000000000015);");
+            TextAsset parameterTable = new TextAsset(
+                "{\"SchemaVersion\":1," +
+                "\"TableGuid\":\"30000000-0000-0000-0000-000000000017\"," +
+                "\"DisplayName\":\"Bootstrap Parameters\"," +
+                "\"Parameters\":[{\"Key\":\"Unused\"," +
+                "\"DisplayName\":\"Unused\",\"Type\":\"Bool\"," +
+                "\"InitialValue\":\"false\"}]}\n");
+            GameEventCatalogAsset asset =
+                ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+            GameEventRuntime runtime = null;
+
+            try
+            {
+                SerializedObject serialized = new SerializedObject(asset);
+                SerializedProperty files = serialized.FindProperty("files");
+                files.arraySize = 2;
+                files.GetArrayElementAtIndex(0).objectReferenceValue = nested;
+                files.GetArrayElementAtIndex(1).objectReferenceValue = outer;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                asset.SetParameterTables(new[] { parameterTable });
+                Type factoryType = typeof(GameEventEffectCommandModuleFactory);
+                asset.SetCommandModules(new[]
+                {
+                    new EffectCommandModuleReference(
+                        factoryType.Assembly.GetName().Name,
+                        $"{factoryType.FullName}, {factoryType.Assembly.GetName().Name}")
+                });
+                asset.SetEnabledCommandNames(new[] { "TriggerEvent" });
+
+                runtime = GameEventRuntimeBootstrapper.Create(asset);
+                runtime.Events.RunAsync(outer, runtime.Context)
+                    .GetAwaiter()
+                    .GetResult();
+            }
+            finally
+            {
+                runtime?.Dispose();
+                UnityEngine.Object.DestroyImmediate(asset);
+                UnityEngine.Object.DestroyImmediate(parameterTable);
+                UnityEngine.Object.DestroyImmediate(outer);
+                UnityEngine.Object.DestroyImmediate(nested);
+            }
+        }
+
+        [Test]
         public void RunAsync_InvalidConditionFailsExplicitly()
         {
             ParameterStore parameters = new ParameterStore(Array.Empty<ParameterDefinition>());

@@ -62,6 +62,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
         private EffectCommandConfiguration commandConfiguration;
         private Func<ICommandExecutor, IDialoguePlayer> dialoguePlayerFactory;
+        private Action<EffectCommandServiceRegistry> configureEffectCommandServices;
 
         /// <param name="staticDataManager">已載入所有表格的資料管理器（可用 LoadDefaultTables 載入預設表）。</param>
         public GameFlowSystemBuilder(GameStaticDataManager staticDataManager, ParameterStore parameters)
@@ -123,6 +124,18 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         {
             commandConfiguration = configuration ??
                 throw new ArgumentNullException(nameof(configuration));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds command services owned by an outer composition root before enabled
+        /// command modules are created.
+        /// </summary>
+        public GameFlowSystemBuilder WithEffectCommandServices(
+            Action<EffectCommandServiceRegistry> configure)
+        {
+            configureEffectCommandServices += configure ??
+                throw new ArgumentNullException(nameof(configure));
             return this;
         }
 
@@ -193,6 +206,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                         services.TextProvider,
                         hintPresenter,
                         locationMenuPresenter));
+            configureEffectCommandServices?.Invoke(commandServices);
             EffectCommandBootstrapper.Populate(
                 services.CommandRegistry,
                 commandConfiguration,
