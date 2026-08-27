@@ -1,0 +1,23 @@
+{
+  "name": "KahaGameCore.Modules.FontLocalization.Tests.EditMode",
+  "rootNamespace": "KahaGameCore.FontLocalization.Tests",
+  "references": [
+    "KahaGameCore.Modules.FontLocalization",
+    "KahaGameCore.Modules.FontLocalization.Editor",
+    "Unity.TextMeshPro"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
