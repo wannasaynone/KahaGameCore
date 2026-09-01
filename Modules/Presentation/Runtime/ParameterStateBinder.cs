@@ -188,8 +188,8 @@ namespace KahaGameCore.Presentation
         {
             if (bindings.Count == 0 && behaviourTargets.Count == 0)
             {
-                throw new InvalidOperationException(
-                    "ParameterStateBinder requires at least one binding.");
+                Debug.LogWarning(
+                    "ParameterStateBinder behaviour binding requires at least 1 condition, this binder will not work. game object: " + gameObject.name, gameObject);
             }
 
             ValidateBindings(bindings);
@@ -197,8 +197,8 @@ namespace KahaGameCore.Presentation
             if (behaviourTargets.Count > 0 &&
                 string.IsNullOrWhiteSpace(behaviourCondition))
             {
-                throw new InvalidOperationException(
-                    "ParameterStateBinder behaviour binding requires a condition.");
+                Debug.LogWarning(
+                    "ParameterStateBinder behaviour binding requires a condition, will skip. game object: " + gameObject.name, gameObject);
             }
         }
 
