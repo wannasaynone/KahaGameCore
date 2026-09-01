@@ -53,12 +53,6 @@ namespace KahaGameCore.GameEvents
             runtime = null;
         }
 
-        private void OnDisable()
-        {
-            Debug.Log("diabled")
-;
-        }
-
         private void InitializeTriggers()
         {
             foreach (SceneGameEventTrigger trigger in
