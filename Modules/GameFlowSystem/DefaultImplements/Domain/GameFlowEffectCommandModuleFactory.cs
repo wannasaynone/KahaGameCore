@@ -14,10 +14,11 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             return GameFlowEffectCommandManifest.Descriptors;
         }
 
-        public IEffectCommandModule Create(EffectCommandServiceRegistry services)
+        public IReadOnlyList<EffectCommandDefinition> Create(
+            EffectCommandDependencies services)
         {
             if (services == null) throw new ArgumentNullException(nameof(services));
-            return new GameFlowEffectCommandModule(
+            return GameFlowEffectCommandModule.CreateDefinitions(
                 services.GetRequired<GameFlowEffectCommandServices>());
         }
     }

@@ -18,9 +18,10 @@ namespace KahaGameCore.Effects.Tests
                 return new[] { Enabled, Disabled };
             }
 
-            public IEffectCommandModule Create(EffectCommandServiceRegistry services)
+            public IReadOnlyList<EffectCommandDefinition> Create(
+                EffectCommandDependencies services)
             {
-                return new TestModule(Enabled, Disabled);
+                return Definitions(Enabled, Disabled);
             }
         }
 
@@ -33,42 +34,32 @@ namespace KahaGameCore.Effects.Tests
                 return new[] { Other };
             }
 
-            public IEffectCommandModule Create(EffectCommandServiceRegistry services)
+            public IReadOnlyList<EffectCommandDefinition> Create(
+                EffectCommandDependencies services)
             {
-                return new TestModule(Other);
+                return Definitions(Other);
             }
         }
 
-        private sealed class TestModule : IEffectCommandModule
+        private sealed class NoOpCommand : IEffectCommand
         {
-            private sealed class NoOpCommand : IEffectCommand
+            public UniTask ExecuteAsync(
+                EffectExecutionContext context,
+                IReadOnlyList<string> arguments,
+                CancellationToken cancellationToken)
             {
-                public UniTask ExecuteAsync(
-                    EffectExecutionContext context,
-                    IReadOnlyList<string> arguments,
-                    CancellationToken cancellationToken)
-                {
-                    return UniTask.CompletedTask;
-                }
+                return UniTask.CompletedTask;
             }
+        }
 
-            private readonly IReadOnlyList<EffectCommandDescriptor> descriptors;
-
-            public TestModule(params EffectCommandDescriptor[] descriptors)
-            {
-                this.descriptors = descriptors;
-            }
-
-            public EffectCommandDefinition CreateDefinition(string commandName)
-            {
-                foreach (EffectCommandDescriptor descriptor in descriptors)
-                {
-                    if (descriptor.Name == commandName)
-                        return new EffectCommandDefinition(descriptor, new NoOpCommand());
-                }
-
-                throw new InvalidOperationException(commandName);
-            }
+        private static IReadOnlyList<EffectCommandDefinition> Definitions(
+            params EffectCommandDescriptor[] descriptors)
+        {
+            List<EffectCommandDefinition> definitions =
+                new List<EffectCommandDefinition>(descriptors.Length);
+            foreach (EffectCommandDescriptor descriptor in descriptors)
+                definitions.Add(new EffectCommandDefinition(descriptor, new NoOpCommand()));
+            return definitions;
         }
 
         [Test]
@@ -77,10 +68,9 @@ namespace KahaGameCore.Effects.Tests
             EffectCommandRegistry registry = new EffectCommandRegistry();
             EffectCommandConfiguration configuration = Configuration<TestFactory>("Enabled");
 
-            EffectCommandBootstrapper.Populate(
-                registry,
+            registry.PopulateByEffectCommandBootstrapper(
                 configuration,
-                new EffectCommandServiceRegistry());
+                new EffectCommandDependencies());
 
             Assert.That(registry.TryGetDefinition("Enabled", out _), Is.True);
             Assert.That(registry.TryGetDefinition("Disabled", out _), Is.False);
@@ -100,10 +90,9 @@ namespace KahaGameCore.Effects.Tests
                 new[] { "Missing" });
 
             Assert.That(
-                () => EffectCommandBootstrapper.Populate(
-                    registry,
+                () => registry.PopulateByEffectCommandBootstrapper(
                     configuration,
-                    new EffectCommandServiceRegistry()),
+                    new EffectCommandDependencies()),
                 Throws.TypeOf<EffectCommandCompositionException>()
                     .With.Message.Contains("has no loadable factory"));
             Assert.That(registry.TryGetDefinition("Missing", out _), Is.False);
@@ -116,14 +105,45 @@ namespace KahaGameCore.Effects.Tests
             EffectCommandConfiguration configuration = Configuration<TestFactory>("Other");
 
             Assert.That(
-                () => EffectCommandBootstrapper.Populate(
-                    registry,
+                () => registry.PopulateByEffectCommandBootstrapper(
                     configuration,
-                    new EffectCommandServiceRegistry()),
+                    new EffectCommandDependencies()),
                 Throws.TypeOf<EffectCommandCompositionException>()
                     .With.Message.Contains("not provided by a selected factory"));
             Assert.That(registry.TryGetDefinition("Enabled", out _), Is.False);
             Assert.That(registry.TryGetDefinition("Other", out _), Is.False);
+        }
+
+        public sealed class LyingFactory : IEffectCommandModuleFactory
+        {
+            internal static readonly EffectCommandDescriptor Promised = Describe("Promised");
+
+            public IReadOnlyList<EffectCommandDescriptor> GetDescriptors()
+            {
+                return new[] { Promised };
+            }
+
+            public IReadOnlyList<EffectCommandDefinition> Create(
+                EffectCommandDependencies services)
+            {
+                return Array.Empty<EffectCommandDefinition>();
+            }
+        }
+
+        [Test]
+        public void Populate_FactoryThatSkipsAPublishedCommandFails()
+        {
+            EffectCommandRegistry registry = new EffectCommandRegistry();
+            EffectCommandConfiguration configuration =
+                Configuration<LyingFactory>("Promised");
+
+            Assert.That(
+                () => registry.PopulateByEffectCommandBootstrapper(
+                    configuration,
+                    new EffectCommandDependencies()),
+                Throws.TypeOf<EffectCommandCompositionException>()
+                    .With.Message.Contains("but did not create it"));
+            Assert.That(registry.TryGetDefinition("Promised", out _), Is.False);
         }
 
         private static EffectCommandConfiguration Configuration<TFactory>(

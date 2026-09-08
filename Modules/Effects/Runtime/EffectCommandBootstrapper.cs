@@ -17,69 +17,49 @@ namespace KahaGameCore.Effects
 
     public static class EffectCommandBootstrapper
     {
-        private sealed class FactoryRuntime
-        {
-            public FactoryRuntime(
-                EffectCommandModuleReference reference,
-                IEffectCommandModuleFactory factory)
-            {
-                Reference = reference;
-                Factory = factory;
-            }
-
-            public EffectCommandModuleReference Reference { get; }
-            public IEffectCommandModuleFactory Factory { get; }
-            public IEffectCommandModule Module { get; set; }
-        }
-
-        private sealed class AvailableCommand
-        {
-            public AvailableCommand(
-                FactoryRuntime factory,
-                EffectCommandDescriptor descriptor)
-            {
-                Factory = factory;
-                Descriptor = descriptor;
-            }
-
-            public FactoryRuntime Factory { get; }
-            public EffectCommandDescriptor Descriptor { get; }
-        }
-
         public static EffectRuntime CreateRuntime(
             EffectCommandConfiguration configuration,
-            EffectCommandServiceRegistry services)
+            EffectCommandDependencies services)
         {
             EffectCommandRegistry registry = new EffectCommandRegistry();
-            Populate(registry, configuration, services);
+            registry.PopulateByEffectCommandBootstrapper(configuration, services);
             return new EffectRuntime(registry);
         }
 
-        public static void Populate(
-            EffectCommandRegistry registry,
+        /// <summary>
+        /// Fills <paramref name="registry"/> with every command the configuration enables.
+        /// Use this when the registry has to exist before its commands do — a caller whose
+        /// dependencies are themselves built on top of the registry's EffectRuntime.
+        /// Otherwise prefer <see cref="CreateRuntime"/>.
+        /// </summary>
+        public static void PopulateByEffectCommandBootstrapper(
+            this EffectCommandRegistry registry,
             EffectCommandConfiguration configuration,
-            EffectCommandServiceRegistry services)
+            EffectCommandDependencies services)
         {
             if (registry == null) throw new ArgumentNullException(nameof(registry));
             if (configuration == null)
                 throw new ArgumentNullException(nameof(configuration));
             if (services == null) throw new ArgumentNullException(nameof(services));
 
-            Dictionary<string, AvailableCommand> commands =
-                DiscoverCommands(configuration.Modules);
+            Dictionary<string, IEffectCommandModuleFactory> owners =
+                DiscoverOwners(configuration.Modules);
             List<EffectCommandDefinition> definitions =
-                CreateDefinitions(configuration.CommandNames, commands, registry, services);
+                CreateDefinitions(configuration.CommandNames, owners, services);
 
             foreach (EffectCommandDefinition definition in definitions)
                 registry.Register(definition);
         }
 
-        private static Dictionary<string, AvailableCommand> DiscoverCommands(
+        /// <summary>
+        /// Maps every command name published by the selected factories to its owner.
+        /// </summary>
+        private static Dictionary<string, IEffectCommandModuleFactory> DiscoverOwners(
             IReadOnlyList<EffectCommandModuleReference> references)
         {
             HashSet<string> factoryTypes = new HashSet<string>(StringComparer.Ordinal);
-            Dictionary<string, AvailableCommand> commands =
-                new Dictionary<string, AvailableCommand>(StringComparer.Ordinal);
+            Dictionary<string, IEffectCommandModuleFactory> owners =
+                new Dictionary<string, IEffectCommandModuleFactory>(StringComparer.Ordinal);
 
             foreach (EffectCommandModuleReference reference in references)
             {
@@ -89,13 +69,10 @@ namespace KahaGameCore.Effects
                         $"Effect command factory '{reference.FactoryTypeName}' is selected more than once.");
                 }
 
-                FactoryRuntime runtime = new FactoryRuntime(
-                    reference,
-                    CreateFactory(reference));
-                IReadOnlyList<EffectCommandDescriptor> descriptors =
-                    runtime.Factory.GetDescriptors() ??
-                    Array.Empty<EffectCommandDescriptor>();
-                foreach (EffectCommandDescriptor descriptor in descriptors)
+                IEffectCommandModuleFactory factory = CreateFactory(reference);
+                foreach (EffectCommandDescriptor descriptor in
+                         factory.GetDescriptors() ??
+                         Array.Empty<EffectCommandDescriptor>())
                 {
                     if (descriptor == null)
                     {
@@ -103,17 +80,17 @@ namespace KahaGameCore.Effects
                             $"Command factory '{reference.FactoryTypeName}' contains a null descriptor.");
                     }
 
-                    if (commands.ContainsKey(descriptor.Name))
+                    if (owners.ContainsKey(descriptor.Name))
                     {
                         throw new EffectCommandCompositionException(
                             $"Selected command '{descriptor.Name}' is declared by more than one factory.");
                     }
 
-                    commands.Add(descriptor.Name, new AvailableCommand(runtime, descriptor));
+                    owners.Add(descriptor.Name, factory);
                 }
             }
 
-            return commands;
+            return owners;
         }
 
         private static IEffectCommandModuleFactory CreateFactory(
@@ -127,23 +104,11 @@ namespace KahaGameCore.Effects
                     $"factory '{reference.FactoryTypeName}'.");
             }
 
-            if (!string.Equals(
-                    factoryType.Assembly.GetName().Name,
-                    reference.AssemblyName,
-                    StringComparison.Ordinal))
+            if (!typeof(IEffectCommandModuleFactory).IsAssignableFrom(factoryType))
             {
                 throw new EffectCommandCompositionException(
-                    $"Command factory '{factoryType.FullName}' does not belong to selected " +
-                    $"assembly '{reference.AssemblyName}'.");
-            }
-
-            if (factoryType.IsAbstract || factoryType.IsInterface ||
-                !typeof(IEffectCommandModuleFactory).IsAssignableFrom(factoryType) ||
-                factoryType.GetConstructor(Type.EmptyTypes) == null)
-            {
-                throw new EffectCommandCompositionException(
-                    $"Command factory '{reference.FactoryTypeName}' must be a concrete " +
-                    "IEffectCommandModuleFactory with a public parameterless constructor.");
+                    $"Command factory '{reference.FactoryTypeName}' is not an " +
+                    "IEffectCommandModuleFactory.");
             }
 
             try
@@ -158,70 +123,83 @@ namespace KahaGameCore.Effects
             }
         }
 
+        /// <summary>
+        /// Builds every enabled command. A factory is only asked to create its commands
+        /// when at least one of them is enabled, so a selected but unused assembly never
+        /// needs its services registered.
+        /// </summary>
         private static List<EffectCommandDefinition> CreateDefinitions(
             IReadOnlyList<string> commandNames,
-            IReadOnlyDictionary<string, AvailableCommand> commands,
-            EffectCommandRegistry registry,
-            EffectCommandServiceRegistry services)
+            IReadOnlyDictionary<string, IEffectCommandModuleFactory> owners,
+            EffectCommandDependencies services)
         {
-            List<EffectCommandDefinition> result =
-                new List<EffectCommandDefinition>(commandNames.Count);
+            List<IEffectCommandModuleFactory> factoryOrder =
+                new List<IEffectCommandModuleFactory>();
+            Dictionary<IEffectCommandModuleFactory, List<string>> wanted =
+                new Dictionary<IEffectCommandModuleFactory, List<string>>();
+
             foreach (string commandName in commandNames)
             {
-                if (!commands.TryGetValue(commandName, out AvailableCommand available))
+                if (!owners.TryGetValue(commandName, out IEffectCommandModuleFactory owner))
                 {
                     throw new EffectCommandCompositionException(
                         $"Enabled command '{commandName}' is not provided by a selected factory.");
                 }
 
-                if (registry.TryGetDefinition(commandName, out _))
+                if (!wanted.TryGetValue(owner, out List<string> names))
                 {
-                    throw new EffectCommandCompositionException(
-                        $"Effect command '{commandName}' is already registered.");
+                    wanted.Add(owner, names = new List<string>());
+                    factoryOrder.Add(owner);
                 }
 
-                if (available.Factory.Module == null)
-                {
-                    available.Factory.Module =
-                        available.Factory.Factory.Create(services) ??
-                        throw new EffectCommandCompositionException(
-                            $"Command factory '{available.Factory.Reference.FactoryTypeName}' " +
-                            "returned no runtime module.");
-                }
-
-                EffectCommandDefinition definition =
-                    available.Factory.Module.CreateDefinition(commandName);
-                ValidateDefinition(commandName, available, definition);
-                result.Add(definition);
+                names.Add(commandName);
             }
+
+            List<EffectCommandDefinition> result =
+                new List<EffectCommandDefinition>(commandNames.Count);
+            foreach (IEffectCommandModuleFactory factory in factoryOrder)
+                Collect(factory, wanted[factory], services, result);
 
             return result;
         }
 
-        private static void ValidateDefinition(
-            string commandName,
-            AvailableCommand available,
-            EffectCommandDefinition definition)
+        private static void Collect(
+            IEffectCommandModuleFactory factory,
+            List<string> wanted,
+            EffectCommandDependencies services,
+            List<EffectCommandDefinition> result)
         {
-            string factoryName = available.Factory.Reference.FactoryTypeName;
-            if (definition == null)
+            string factoryName = factory.GetType().FullName;
+            IReadOnlyList<EffectCommandDefinition> created = factory.Create(services);
+            if (created == null)
             {
                 throw new EffectCommandCompositionException(
-                    $"Command factory '{factoryName}' returned no definition for '{commandName}'.");
+                    $"Command factory '{factoryName}' returned no runtime commands.");
             }
 
-            if (!string.Equals(definition.Name, commandName, StringComparison.Ordinal))
+            Dictionary<string, EffectCommandDefinition> byName =
+                new Dictionary<string, EffectCommandDefinition>(StringComparer.Ordinal);
+            foreach (EffectCommandDefinition definition in created)
             {
-                throw new EffectCommandCompositionException(
-                    $"Command factory '{factoryName}' returned definition '{definition.Name}' " +
-                    $"for requested command '{commandName}'.");
+                if (definition == null)
+                {
+                    throw new EffectCommandCompositionException(
+                        $"Command factory '{factoryName}' returned a null command.");
+                }
+
+                byName[definition.Name] = definition;
             }
 
-            if (!ReferenceEquals(definition.Descriptor, available.Descriptor))
+            foreach (string commandName in wanted)
             {
-                throw new EffectCommandCompositionException(
-                    $"Command factory '{factoryName}' did not use its published descriptor " +
-                    $"for '{commandName}'.");
+                if (!byName.TryGetValue(commandName, out EffectCommandDefinition definition))
+                {
+                    throw new EffectCommandCompositionException(
+                        $"Command factory '{factoryName}' publishes '{commandName}' " +
+                        "but did not create it.");
+                }
+
+                result.Add(definition);
             }
         }
     }

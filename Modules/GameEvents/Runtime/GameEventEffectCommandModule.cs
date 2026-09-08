@@ -64,9 +64,20 @@ namespace KahaGameCore.GameEvents
             Array.AsReadOnly(new[] { TriggerEvent });
     }
 
-    public sealed class GameEventEffectCommandModule : IEffectCommandModule
+    public static class GameEventEffectCommandModule
     {
         public const string EventOptionSourceKey = "GameEventDocument";
+
+        public static IReadOnlyList<EffectCommandDefinition> CreateDefinitions(
+            GameEventCommandRouter router)
+        {
+            return new[]
+            {
+                new EffectCommandDefinition(
+                    GameEventEffectCommandManifest.TriggerEvent,
+                    new TriggerEventCommand(router))
+            };
+        }
 
         private sealed class TriggerEventCommand : IEffectCommand
         {
@@ -96,26 +107,6 @@ namespace KahaGameCore.GameEvents
             }
         }
 
-        private readonly GameEventCommandRouter router;
-
-        public GameEventEffectCommandModule(GameEventCommandRouter router)
-        {
-            this.router = router ?? throw new ArgumentNullException(nameof(router));
-        }
-
-        public EffectCommandDefinition CreateDefinition(string commandName)
-        {
-            if (string.Equals(commandName, "TriggerEvent", StringComparison.Ordinal))
-            {
-                return new EffectCommandDefinition(
-                    GameEventEffectCommandManifest.TriggerEvent,
-                    new TriggerEventCommand(router));
-            }
-
-            throw new ArgumentException(
-                $"Game Events does not own command '{commandName}'.",
-                nameof(commandName));
-        }
     }
 
     [Preserve]
@@ -127,10 +118,11 @@ namespace KahaGameCore.GameEvents
             return GameEventEffectCommandManifest.Descriptors;
         }
 
-        public IEffectCommandModule Create(EffectCommandServiceRegistry services)
+        public IReadOnlyList<EffectCommandDefinition> Create(
+            EffectCommandDependencies services)
         {
             if (services == null) throw new ArgumentNullException(nameof(services));
-            return new GameEventEffectCommandModule(
+            return GameEventEffectCommandModule.CreateDefinitions(
                 services.GetRequired<GameEventCommandRouter>());
         }
     }

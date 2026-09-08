@@ -1,5 +1,11 @@
 namespace KahaGameCore.Effects
 {
+    /// <summary>
+    /// The commands an effect program can call, keyed by the name used in its source.
+    /// Filled once by <see cref="EffectCommandBootstrapper"/> and then read by
+    /// <see cref="EffectRuntime"/> on every execution. The services used to build these
+    /// commands live in <see cref="EffectCommandDependencies"/> instead.
+    /// </summary>
     public sealed class EffectCommandRegistry
     {
         private readonly System.Collections.Generic.Dictionary<string, EffectCommandDefinition> definitions =

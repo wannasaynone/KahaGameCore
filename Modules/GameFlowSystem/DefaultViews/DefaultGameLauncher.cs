@@ -170,8 +170,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             services = new GameFlowSystemBuilder(staticDataManager, parameters)
                 .WithEffectCommandConfiguration(
                     gameEventCatalog.CommandConfiguration)
-                .WithEffectCommandServices(commandServices =>
-                    commandServices.Add(eventCommandRouter))
+                .WithEffectCommandDependencies(commandDependencies =>
+                    commandDependencies.Add(eventCommandRouter))
                 .WithDialoguePlayerFactory(cmdExec => new DialoguePlayer(dialogueView, staticDataManager, cmdExec))
                 .WithActionMenuPresenter(actionMenuPresenter)
                 .WithHintPresenter(hintPresenter)

@@ -615,9 +615,11 @@ namespace KahaGameCore.GameEvents.Tests
                 var catalog = new GameEventCatalog(new[] { nested }, codec);
                 var registry = CreateRecordingRegistry(records);
                 var router = new GameEventCommandRouter();
-                registry.Register(
-                    new GameEventEffectCommandModule(router)
-                        .CreateDefinition("TriggerEvent"));
+                foreach (var definition in
+                         GameEventEffectCommandModule.CreateDefinitions(router))
+                {
+                    registry.Register(definition);
+                }
                 var runner = new GameEventRunner(
                     catalog,
                     new EffectRuntime(registry),

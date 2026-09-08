@@ -66,77 +66,51 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         }
     }
 
-    public sealed class GameFlowEffectCommandModule : IEffectCommandModule
+    public static class GameFlowEffectCommandModule
     {
-        private readonly GameFlowExpressions expressions;
-        private readonly ITimeService timeService;
-        private readonly ILocationService locationService;
-        private readonly IDialoguePlayer dialoguePlayer;
-        private readonly IPerformancePlayer performancePlayer;
-        private readonly IGameTextProvider textProvider;
-        private readonly IHintPresenter hintPresenter;
-        private readonly ILocationMenuPresenter locationMenuPresenter;
-
-        public GameFlowEffectCommandModule(GameFlowEffectCommandServices services)
+        public static IReadOnlyList<EffectCommandDefinition> CreateDefinitions(
+            GameFlowEffectCommandServices services)
         {
             if (services == null) throw new ArgumentNullException(nameof(services));
-            expressions = services.Expressions;
-            timeService = services.TimeService;
-            locationService = services.LocationService;
-            dialoguePlayer = services.DialoguePlayer;
-            performancePlayer = services.PerformancePlayer;
-            textProvider = services.TextProvider;
-            hintPresenter = services.HintPresenter;
-            locationMenuPresenter = services.LocationMenuPresenter;
-        }
-
-        public EffectCommandDefinition CreateDefinition(string commandName)
-        {
-            switch (commandName)
+            return new[]
             {
-                case "AdvancePhase":
-                    return Bind(
-                        GameFlowEffectCommandManifest.AdvancePhase,
-                        new AdvancePhaseCommand(timeService));
-                case "SetPhase":
-                    return Bind(
-                        GameFlowEffectCommandManifest.SetPhase,
-                        new SetPhaseCommand(timeService));
-                case "MoveToLocation":
-                    return Bind(
-                        GameFlowEffectCommandManifest.MoveToLocation,
-                        new MoveToLocationCommand(expressions, locationService));
-                case "StartDialogue":
-                    return Bind(
-                        GameFlowEffectCommandManifest.StartDialogue,
-                        new StartDialogueCommand(expressions, dialoguePlayer));
-                case "ShowHint":
-                    return Bind(
-                        GameFlowEffectCommandManifest.ShowHint,
-                        new ShowHintCommand(expressions, textProvider, hintPresenter));
-                case "Monologue":
-                    return Bind(
-                        GameFlowEffectCommandManifest.Monologue,
-                        new MonologueCommand(textProvider));
-                case "PlayPerformance":
-                    return Bind(
-                        GameFlowEffectCommandManifest.PlayPerformance,
-                        new PlayPerformanceCommand(performancePlayer));
-                case "OpenLocationMenu":
-                    return Bind(
-                        GameFlowEffectCommandManifest.OpenLocationMenu,
-                        new OpenLocationMenuCommand(
-                            locationService,
-                            locationMenuPresenter));
-                case "ReturnToTitle":
-                    return Bind(
-                        GameFlowEffectCommandManifest.ReturnToTitle,
-                        new ReturnToTitleCommand());
-                default:
-                    throw new ArgumentException(
-                        $"GameFlow does not own command '{commandName}'.",
-                        nameof(commandName));
-            }
+                Bind(
+                    GameFlowEffectCommandManifest.AdvancePhase,
+                    new AdvancePhaseCommand(services.TimeService)),
+                Bind(
+                    GameFlowEffectCommandManifest.SetPhase,
+                    new SetPhaseCommand(services.TimeService)),
+                Bind(
+                    GameFlowEffectCommandManifest.MoveToLocation,
+                    new MoveToLocationCommand(
+                        services.Expressions,
+                        services.LocationService)),
+                Bind(
+                    GameFlowEffectCommandManifest.StartDialogue,
+                    new StartDialogueCommand(
+                        services.Expressions,
+                        services.DialoguePlayer)),
+                Bind(
+                    GameFlowEffectCommandManifest.ShowHint,
+                    new ShowHintCommand(
+                        services.Expressions,
+                        services.TextProvider,
+                        services.HintPresenter)),
+                Bind(
+                    GameFlowEffectCommandManifest.Monologue,
+                    new MonologueCommand(services.TextProvider)),
+                Bind(
+                    GameFlowEffectCommandManifest.PlayPerformance,
+                    new PlayPerformanceCommand(services.PerformancePlayer)),
+                Bind(
+                    GameFlowEffectCommandManifest.OpenLocationMenu,
+                    new OpenLocationMenuCommand(
+                        services.LocationService,
+                        services.LocationMenuPresenter)),
+                Bind(
+                    GameFlowEffectCommandManifest.ReturnToTitle,
+                    new ReturnToTitleCommand())
+            };
         }
 
         private static EffectCommandDefinition Bind(

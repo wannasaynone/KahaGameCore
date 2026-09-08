@@ -48,35 +48,6 @@ namespace KahaGameCore.Parameters.EffectsIntegration
         }
     }
 
-    public sealed class ParameterEffectCommandModule : IEffectCommandModule
-    {
-        private readonly ParameterStore parameters;
-
-        public ParameterEffectCommandModule(ParameterStore parameters)
-        {
-            this.parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
-        }
-
-        public EffectCommandDefinition CreateDefinition(string commandName)
-        {
-            switch (commandName)
-            {
-                case "AddParameter":
-                    return new EffectCommandDefinition(
-                        ParameterEffectCommandManifest.Add,
-                        new AddParameterCommand(parameters));
-                case "SetParameter":
-                    return new EffectCommandDefinition(
-                        ParameterEffectCommandManifest.Set,
-                        new SetParameterCommand(parameters));
-                default:
-                    throw new ArgumentException(
-                        $"Parameters does not own command '{commandName}'.",
-                        nameof(commandName));
-            }
-        }
-    }
-
     public sealed class AddParameterCommand : IEffectCommand
     {
         private readonly ParameterStore parameters;
@@ -165,11 +136,20 @@ namespace KahaGameCore.Parameters.EffectsIntegration
             return ParameterEffectCommandManifest.Descriptors;
         }
 
-        public IEffectCommandModule Create(EffectCommandServiceRegistry services)
+        public IReadOnlyList<EffectCommandDefinition> Create(
+            EffectCommandDependencies services)
         {
             if (services == null) throw new ArgumentNullException(nameof(services));
-            return new ParameterEffectCommandModule(
-                services.GetRequired<ParameterStore>());
+            ParameterStore parameters = services.GetRequired<ParameterStore>();
+            return new[]
+            {
+                new EffectCommandDefinition(
+                    ParameterEffectCommandManifest.Add,
+                    new AddParameterCommand(parameters)),
+                new EffectCommandDefinition(
+                    ParameterEffectCommandManifest.Set,
+                    new SetParameterCommand(parameters))
+            };
         }
     }
 }

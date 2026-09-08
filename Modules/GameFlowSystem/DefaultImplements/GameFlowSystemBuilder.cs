@@ -62,7 +62,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
         private EffectCommandConfiguration commandConfiguration;
         private Func<ICommandExecutor, IDialoguePlayer> dialoguePlayerFactory;
-        private Action<EffectCommandServiceRegistry> configureEffectCommandServices;
+        private Action<EffectCommandDependencies> configureEffectCommandDependencies;
 
         /// <param name="staticDataManager">已載入所有表格的資料管理器（可用 LoadDefaultTables 載入預設表）。</param>
         public GameFlowSystemBuilder(GameStaticDataManager staticDataManager, ParameterStore parameters)
@@ -131,10 +131,10 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
         /// Adds command services owned by an outer composition root before enabled
         /// command modules are created.
         /// </summary>
-        public GameFlowSystemBuilder WithEffectCommandServices(
-            Action<EffectCommandServiceRegistry> configure)
+        public GameFlowSystemBuilder WithEffectCommandDependencies(
+            Action<EffectCommandDependencies> configure)
         {
-            configureEffectCommandServices += configure ??
+            configureEffectCommandDependencies += configure ??
                 throw new ArgumentNullException(nameof(configure));
             return this;
         }
@@ -194,8 +194,8 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             services.CommandExecutor = commandExecutor ?? new EffectCommandExecutor(services.EffectRuntime);
             services.DialoguePlayer = dialoguePlayer ?? dialoguePlayerFactory(services.CommandExecutor);
 
-            EffectCommandServiceRegistry commandServices =
-                new EffectCommandServiceRegistry()
+            EffectCommandDependencies commandDependencies =
+                new EffectCommandDependencies()
                     .Add(services.Parameters)
                     .Add(new GameFlowEffectCommandServices(
                         gameFlowExpressions,
@@ -206,11 +206,10 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                         services.TextProvider,
                         hintPresenter,
                         locationMenuPresenter));
-            configureEffectCommandServices?.Invoke(commandServices);
-            EffectCommandBootstrapper.Populate(
-                services.CommandRegistry,
+            configureEffectCommandDependencies?.Invoke(commandDependencies);
+            services.CommandRegistry.PopulateByEffectCommandBootstrapper(
                 commandConfiguration,
-                commandServices);
+                commandDependencies);
 
             services.TriggerService = eventTriggerFactory(services.EffectRuntime)
                 ?? throw new InvalidOperationException(
