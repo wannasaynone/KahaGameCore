@@ -7,7 +7,8 @@
         "KahaGameCore.Modules.Expressions",
         "KahaGameCore.Modules.ValueContainer",
         "GUID:3d6d896ea5fe86e44ba0a944120e8174",
-        "UniTask"
+        "UniTask",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

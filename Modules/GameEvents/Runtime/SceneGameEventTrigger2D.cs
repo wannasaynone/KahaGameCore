@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace KahaGameCore.GameEvents
 {
@@ -14,8 +15,18 @@ namespace KahaGameCore.GameEvents
         [SerializeField]
         private LayerMask triggeringLayers;
 
+        [Tooltip("Leave empty to trigger on enter, or assign an action to wait for that input.")]
+        [SerializeField]
+        private InputActionReference triggerInput;
+
+        [Tooltip("Object shown while this trigger waits for the key press.")]
+        [SerializeField]
+        private GameObject inputPrompt;
+
         private GameEventRunner runner;
         private EventContext context;
+        private bool isWaitingForKeyPress;
+        private bool enabledTriggerInput;
 
         public TextAsset GameEventFile => gameEventFile;
 
@@ -66,7 +77,86 @@ namespace KahaGameCore.GameEvents
                 return;
             }
             UnityEngine.Debug.Log(gameObject.name + " triggered by " + other.gameObject.name);
+            if (TriggerAction == null)
+            {
+                Trigger();
+                return;
+            }
+
+            isWaitingForKeyPress = true;
+            ShowPrompt(true);
+        }
+
+        private void OnTriggerExit2D(Collider2D other)
+        {
+            if (other == null || !IncludesLayer(other.gameObject.layer))
+            {
+                return;
+            }
+
+            CancelKeyPress();
+        }
+
+        private void Awake()
+        {
+            ShowPrompt(false);
+        }
+
+        private void OnEnable()
+        {
+            InputAction action = TriggerAction;
+            if (action != null && !action.enabled)
+            {
+                action.Enable();
+                enabledTriggerInput = true;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (enabledTriggerInput)
+            {
+                TriggerAction?.Disable();
+                enabledTriggerInput = false;
+            }
+
+            CancelKeyPress();
+        }
+
+        private void Update()
+        {
+            InputAction action = TriggerAction;
+            if (isWaitingForKeyPress &&
+                action != null &&
+                action.enabled &&
+                action.WasPressedThisFrame())
+            {
+                ConfirmKeyPress();
+            }
+        }
+
+        private InputAction TriggerAction =>
+            triggerInput == null ? null : triggerInput.action;
+
+        private void ConfirmKeyPress()
+        {
+            isWaitingForKeyPress = false;
+            ShowPrompt(false);
             Trigger();
+        }
+
+        private void CancelKeyPress()
+        {
+            isWaitingForKeyPress = false;
+            ShowPrompt(false);
+        }
+
+        private void ShowPrompt(bool visible)
+        {
+            if (inputPrompt != null)
+            {
+                inputPrompt.SetActive(visible);
+            }
         }
 
         private bool IncludesLayer(int layer)

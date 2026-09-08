@@ -7,6 +7,7 @@ using KahaGameCore.Parameters;
 using KahaGameCore.Parameters.EffectsIntegration;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace KahaGameCore.GameEvents.Tests
 {
@@ -79,6 +80,72 @@ namespace KahaGameCore.GameEvents.Tests
             }
 
             Assert.That(parameters.GetInt("Stage"), Is.Zero);
+        }
+
+        [Test]
+        public void OnTriggerEnter2D_WithTriggerInput_ShowsPromptAndWaitsForConfirmation()
+        {
+            ParameterStore parameters = CreateParameters();
+            GameEventRunner runner = CreateRunner(parameters);
+            TextAsset file = CreateEvent(
+                "50000000-0000-0000-0000-000000000005",
+                "$Stage == 0");
+            GameObject host = new GameObject("SceneGameEventTrigger2D Host");
+            GameObject enteringObject = new GameObject("Entering Object");
+            GameObject prompt = new GameObject("Input Prompt");
+            InputActionAsset actions = ScriptableObject.CreateInstance<InputActionAsset>();
+            InputActionReference confirmInput = InputActionReference.Create(
+                actions.AddActionMap("Test").AddAction("Confirm", InputActionType.Button));
+
+            try
+            {
+                SceneGameEventTrigger2D trigger = host.AddComponent<SceneGameEventTrigger2D>();
+                const int enteringLayer = 8;
+                enteringObject.layer = enteringLayer;
+                Collider2D enteringCollider = enteringObject.AddComponent<BoxCollider2D>();
+
+                trigger.Configure(file, 1 << enteringLayer);
+                trigger.Initialize(runner, new EventContext(CancellationToken.None));
+                SetPrivateField(trigger, "triggerInput", confirmInput);
+                SetPrivateField(trigger, "inputPrompt", prompt);
+
+                InvokeOnTriggerEnter2D(trigger, enteringCollider);
+                runner.WaitUntilIdleAsync(CancellationToken.None).GetAwaiter().GetResult();
+                Assert.That(parameters.GetInt("Stage"), Is.Zero);
+                Assert.That(prompt.activeSelf, Is.True);
+
+                InvokePrivate(trigger, "ConfirmKeyPress");
+                runner.WaitUntilIdleAsync(CancellationToken.None).GetAwaiter().GetResult();
+                Assert.That(parameters.GetInt("Stage"), Is.EqualTo(1));
+                Assert.That(prompt.activeSelf, Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+                UnityEngine.Object.DestroyImmediate(enteringObject);
+                UnityEngine.Object.DestroyImmediate(prompt);
+                UnityEngine.Object.DestroyImmediate(confirmInput);
+                UnityEngine.Object.DestroyImmediate(actions);
+                UnityEngine.Object.DestroyImmediate(file);
+            }
+        }
+
+        private static void SetPrivateField(object target, string fieldName, object value)
+        {
+            FieldInfo field = target.GetType().GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null);
+            field.SetValue(target, value);
+        }
+
+        private static void InvokePrivate(object target, string methodName)
+        {
+            MethodInfo method = target.GetType().GetMethod(
+                methodName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            method.Invoke(target, Array.Empty<object>());
         }
 
         private static ParameterStore CreateParameters()

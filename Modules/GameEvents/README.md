@@ -240,6 +240,10 @@ sceneGameEventTrigger.Initialize(
 
 初始化後，允許 Layer 的 Collider 進入時，`OnTriggerEnter` 會呼叫 `runner.RunAsync(file, context)`；也可以由 UnityEvent 手動綁定 `SceneGameEventTrigger.Trigger()`。這條路徑會直接執行指定文件並檢查 condition，但不比對文件的 `TriggerTiming`。若 condition 不通過，Runner 不會發布 active queue work，因此整合層也不會暫停 gameplay input。
 
+`Trigger Input` 指定 `InputActionReference`（例如 `InputSystem_Actions` 的 `Player/Interact`）後改成兩段式：Collider 進入時只顯示 `Input Prompt` 指定的物件並等待輸入，玩家按下該 action 才執行原本的 `TriggerAsync`。離開 Collider、或 trigger 被 disable 時會取消等待並收起提示；`Trigger Input` 留空則維持進入即觸發。
+
+`Trigger Input` 的 action 若在 `OnEnable` 時還沒被啟用（例如沒有 `PlayerInput` 管理），trigger 會自己 `Enable()`，並只在自己啟用過的情況下於 `OnDisable` 關掉，不會關掉別人已經開著的 action。
+
 `SceneGameEventTrigger` 不保存碰撞歷史，也不自行判斷「只能觸發一次」。需要跨存檔保持的一次性事件應使用 Parameter 作為權威狀態：
 
 ```json
