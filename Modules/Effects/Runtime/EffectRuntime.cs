@@ -97,6 +97,7 @@ namespace KahaGameCore.Effects
 
                 try
                 {
+                    UnityEngine.Debug.Log(definition.Command.GetType().Name);
                     await definition.Command.ExecuteAsync(
                         context ?? new EffectExecutionContext(),
                         call.Arguments,

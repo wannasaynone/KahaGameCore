@@ -38,6 +38,7 @@ namespace KahaGameCore.GameEvents
 
         public void Trigger()
         {
+            UnityEngine.Debug.Log("trigger " + gameObject.name);
             TriggerAsync().Forget();
         }
 
@@ -64,7 +65,7 @@ namespace KahaGameCore.GameEvents
             {
                 return;
             }
-
+            UnityEngine.Debug.Log(gameObject.name + " triggered by " + other.gameObject.name);
             Trigger();
         }
 
