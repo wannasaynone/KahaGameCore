@@ -1,5 +1,5 @@
 using System;
-using KahaGameCore.UserInterfaceSystem;
+using KahaGameCore.UIStackSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,7 +10,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
     /// 製作人員名單畫面（佔位版本：顯示文字，點擊結束）。
     /// 正式的捲動動畫請替換或擴充此 View 與 CreditsPerformance。
     /// </summary>
-    public class CreditsView : AView
+    public class CreditsView : AStackableView
     {
         [SerializeField] private TextMeshProUGUI creditsText;
         [SerializeField] private Button finishButton;

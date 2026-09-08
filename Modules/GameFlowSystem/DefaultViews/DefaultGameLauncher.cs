@@ -10,7 +10,7 @@ using KahaGameCore.GameFlowSystem.DefaultImplements;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.GameFlowSystem.DefaultImplements.DataAccess;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Events;
-using KahaGameCore.UserInterfaceSystem;
+using KahaGameCore.UIStackSystem;
 using KahaGameCore.Dialogue;
 using KahaGameCore.Dialogue.View;
 using KahaGameCore.Parameters;
@@ -37,7 +37,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
         private const string CREDITS_VIEW_PATH = "GameFlowUIViews/CreditsView";
         private static readonly string[] HUD_PARAMETER_KEYS = { "Supplies", "Satiety", "Spirit" };
 
-        [SerializeField] private UserInterfaceController uiController;
+        [SerializeField] private UIStackController uiController;
         [SerializeField] private DialogueView dialogueView;
         [Tooltip("行動選單、提示視窗等覆蓋層 View 的父節點。")]
         [SerializeField] private RectTransform overlayRoot;
@@ -285,7 +285,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
             services.PerformancePlayer.Register("Credits", new CreditsPerformance(creditsView, services.TextProvider, creditsTextId));
         }
 
-        private T InstantiateOverlayView<T>(string resourcePath) where T : AView
+        private T InstantiateOverlayView<T>(string resourcePath) where T : AStackableView
         {
             T prefab = Resources.Load<T>(resourcePath);
             if (prefab == null)

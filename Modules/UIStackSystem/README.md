@@ -1,17 +1,17 @@
-# UserInterfaceSystem
+# UIStackSystem
 
 ## 用途
 
-UserInterfaceSystem 提供 `AView` 淡入淡出生命週期，以及 `UserInterfaceController` 的主 View stack、附加 View、返回鍵與黑幕控制。
+UIStackSystem 提供 `AStackableView` 淡入淡出生命週期，以及 `UIStackController` 的主 View stack、附加 View、返回鍵與黑幕控制。
 
 ## 第一次使用：Push 一個 View
 
-呼叫端 asmdef 引用 `KahaGameCore.Modules.UserInterfaceSystem`。先建立一個 View script：
+呼叫端 asmdef 引用 `KahaGameCore.Modules.UIStackSystem`。先建立一個 View script：
 
 ```csharp
-using KahaGameCore.UserInterfaceSystem;
+using KahaGameCore.UIStackSystem;
 
-public sealed class InventoryView : AView
+public sealed class InventoryView : AStackableView
 {
     public void Bind()
     {
@@ -20,9 +20,9 @@ public sealed class InventoryView : AView
 }
 ```
 
-1. 建立含 `InventoryView` 與 `CanvasGroup` 的 prefab，並把 `AView.Canvas Group` 指向同物件的 CanvasGroup。
+1. 建立含 `InventoryView` 與 `CanvasGroup` 的 prefab，並把 `AStackableView.Canvas Group` 指向同物件的 CanvasGroup。
 2. 將 prefab 放到 `Assets/Resources/UI/InventoryView.prefab`。
-3. 場景建立 `UserInterfaceController`，指定 `Ui Root` 與 `Blackout Overlay`。
+3. 場景建立 `UIStackController`，指定 `Ui Root` 與 `Blackout Overlay`。
 4. 由 presenter 或 composition root Push／Pop：
 
 ```csharp
@@ -50,7 +50,7 @@ public override BackButtonResult OnBackButtonPressed()
 
 ## Stack 行為與限制
 
-- `AView` 必須有有效的 `CanvasGroup` reference。
+- `AStackableView` 必須有有效的 `CanvasGroup` reference。
 - `PushView<T>(path)` 使用 `Resources.Load<T>`；路徑不含 `Resources/` 與副檔名。
 - `HandleBackButton` 只在 stack 超過一層時自動 Pop；根 View 的關閉由專案決定。
 - API 回傳 `System.Threading.Tasks.Task`，內部 transition 使用 UniTask。

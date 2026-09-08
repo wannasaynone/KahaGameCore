@@ -2,8 +2,7 @@
     "name": "KahaGameCore.Modules.Parameters",
     "rootNamespace": "KahaGameCore.Parameters",
     "references": [
-        "KahaGameCore.Modules.Expressions",
-        "GUID:3d6d896ea5fe86e44ba0a944120e8174"
+        "GUID:66c469c12c624a9488e2da5b0522b8f0"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

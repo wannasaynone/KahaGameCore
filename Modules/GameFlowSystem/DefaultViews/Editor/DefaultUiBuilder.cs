@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using KahaGameCore.GameEvents;
-using KahaGameCore.UserInterfaceSystem;
+using KahaGameCore.UIStackSystem;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -343,7 +343,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews.Editor
             CanvasGroup blackoutGroup = blackoutObject.AddComponent<CanvasGroup>();
             blackoutObject.SetActive(false);
 
-            UserInterfaceController uiController = canvasObject.AddComponent<UserInterfaceController>();
+            UIStackController uiController = canvasObject.AddComponent<UIStackController>();
             SetReference(uiController, "uiRoot", uiRootObject.GetComponent<RectTransform>());
             SetReference(uiController, "blackoutOverlay", blackoutGroup);
 

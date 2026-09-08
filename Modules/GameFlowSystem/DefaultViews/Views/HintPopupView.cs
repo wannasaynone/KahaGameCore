@@ -1,5 +1,5 @@
 using System;
-using KahaGameCore.UserInterfaceSystem;
+using KahaGameCore.UIStackSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace KahaGameCore.GameFlowSystem.DefaultViews
 {
     /// <summary>提示視窗：顯示一段文字並等待玩家按下確認。</summary>
-    public class HintPopupView : AView
+    public class HintPopupView : AStackableView
     {
         [SerializeField] private TextMeshProUGUI messageText;
         [SerializeField] private Button confirmButton;

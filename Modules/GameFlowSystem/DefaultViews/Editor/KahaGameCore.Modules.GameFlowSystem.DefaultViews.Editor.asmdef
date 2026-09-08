@@ -8,7 +8,7 @@
         "KahaGameCore.Modules.StaticData",
         "KahaGameCore.Modules.GameEvents",
         "KahaGameCore.Modules.Presentation",
-        "KahaGameCore.Modules.UserInterfaceSystem",
+        "KahaGameCore.Modules.UIStackSystem",
         "KahaGameCore.Modules.Dialogue",
         "KahaGameCore.Modules.Parameters.Unity",
         "Unity.TextMeshPro",

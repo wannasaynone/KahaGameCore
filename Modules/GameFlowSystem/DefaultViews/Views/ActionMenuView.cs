@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using KahaGameCore.GameFlowSystem;
-using KahaGameCore.UserInterfaceSystem;
+using KahaGameCore.UIStackSystem;
 using UnityEngine;
 
 namespace KahaGameCore.GameFlowSystem.DefaultViews
 {
     /// <summary>行動選單：依表格資料動態產生行動按鈕。</summary>
-    public class ActionMenuView : AView
+    public class ActionMenuView : AStackableView
     {
         [SerializeField] private RectTransform buttonContainer;
         [SerializeField] private ActionButtonItem buttonPrefab;

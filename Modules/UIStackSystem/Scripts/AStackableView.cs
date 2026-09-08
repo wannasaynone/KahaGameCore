@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace KahaGameCore.UserInterfaceSystem
+namespace KahaGameCore.UIStackSystem
 {
-    public abstract class AView : MonoBehaviour
+    public abstract class AStackableView : MonoBehaviour
     {
         [SerializeField] private CanvasGroup canvasGroup;
         [SerializeField] private float transitionDuration = 0.5f;

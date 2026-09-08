@@ -5,17 +5,17 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace KahaGameCore.UserInterfaceSystem
+namespace KahaGameCore.UIStackSystem
 {
-    public class UserInterfaceController : MonoBehaviour
+    public class UIStackController : MonoBehaviour
     {
         [SerializeField] private RectTransform uiRoot;
         [SerializeField] private CanvasGroup blackoutOverlay;
 
         private class ViewStackEntry
         {
-            public AView MainView;
-            public readonly Dictionary<string, AView> AttachedViews = new Dictionary<string, AView>();
+            public AStackableView MainView;
+            public readonly Dictionary<string, AStackableView> AttachedViews = new Dictionary<string, AStackableView>();
         }
 
         private readonly Stack<ViewStackEntry> m_viewStack = new Stack<ViewStackEntry>();
@@ -84,7 +84,7 @@ namespace KahaGameCore.UserInterfaceSystem
             }
         }
 
-        public T GetView<T>() where T : AView
+        public T GetView<T>() where T : AStackableView
         {
             foreach (ViewStackEntry entry in m_viewStack)
             {
@@ -93,7 +93,7 @@ namespace KahaGameCore.UserInterfaceSystem
                     return mainTyped;
                 }
 
-                foreach (AView attached in entry.AttachedViews.Values)
+                foreach (AStackableView attached in entry.AttachedViews.Values)
                 {
                     if (attached is T attachedTyped)
                     {
@@ -112,7 +112,7 @@ namespace KahaGameCore.UserInterfaceSystem
         {
             List<Task> tasks = new List<Task>();
             tasks.Add(entry.MainView.Hide(token));
-            foreach (AView attached in entry.AttachedViews.Values)
+            foreach (AStackableView attached in entry.AttachedViews.Values)
             {
                 tasks.Add(attached.Hide(token));
             }
@@ -123,7 +123,7 @@ namespace KahaGameCore.UserInterfaceSystem
         {
             List<Task> tasks = new List<Task>();
             tasks.Add(entry.MainView.Show(token));
-            foreach (AView attached in entry.AttachedViews.Values)
+            foreach (AStackableView attached in entry.AttachedViews.Values)
             {
                 tasks.Add(attached.Show(token));
             }
@@ -132,7 +132,7 @@ namespace KahaGameCore.UserInterfaceSystem
 
         private void DestroyEntry(ViewStackEntry entry)
         {
-            foreach (AView attached in entry.AttachedViews.Values)
+            foreach (AStackableView attached in entry.AttachedViews.Values)
             {
                 Destroy(attached.gameObject);
             }
@@ -140,19 +140,19 @@ namespace KahaGameCore.UserInterfaceSystem
             Destroy(entry.MainView.gameObject);
         }
 
-        public async Task<T> PushView<T>(string resourcePath, Action<T> onBeforeShow = null) where T : AView
+        public async Task<T> PushView<T>(string resourcePath, Action<T> onBeforeShow = null) where T : AStackableView
         {
             T prefab = Resources.Load<T>(resourcePath);
             if (prefab == null)
             {
-                Debug.LogError($"[UserInterfaceController] Cannot load prefab at path: {resourcePath}");
+                Debug.LogError($"[UIStackController] Cannot load prefab at path: {resourcePath}");
                 return null;
             }
 
             T viewInstance = Instantiate(prefab, uiRoot);
             if (viewInstance == null)
             {
-                Debug.LogError($"[UserInterfaceController] Prefab does not have component: {typeof(T).Name}");
+                Debug.LogError($"[UIStackController] Prefab does not have component: {typeof(T).Name}");
                 return null;
             }
 
@@ -175,7 +175,7 @@ namespace KahaGameCore.UserInterfaceSystem
             }
             catch (OperationCanceledException)
             {
-                Debug.Log($"[UserInterfaceController] PushView canceled for: {typeof(T).Name}");
+                Debug.Log($"[UIStackController] PushView canceled for: {typeof(T).Name}");
             }
             finally
             {
@@ -185,7 +185,7 @@ namespace KahaGameCore.UserInterfaceSystem
             return viewInstance;
         }
 
-        public async Task PushView(AView view, Action onBeforeShow = null)
+        public async Task PushView(AStackableView view, Action onBeforeShow = null)
         {
             if (view == null)
             {
@@ -211,7 +211,7 @@ namespace KahaGameCore.UserInterfaceSystem
             }
             catch (OperationCanceledException)
             {
-                Debug.Log($"[UserInterfaceController] PushView canceled for: {view.name}");
+                Debug.Log($"[UIStackController] PushView canceled for: {view.name}");
             }
             finally
             {
@@ -242,7 +242,7 @@ namespace KahaGameCore.UserInterfaceSystem
             }
             catch (OperationCanceledException)
             {
-                Debug.Log("[UserInterfaceController] PopView canceled.");
+                Debug.Log("[UIStackController] PopView canceled.");
             }
             finally
             {
@@ -252,25 +252,25 @@ namespace KahaGameCore.UserInterfaceSystem
             return true;
         }
 
-        public async Task<T> AttachView<T>(string resourcePath, Action<T> onBeforeShow = null) where T : AView
+        public async Task<T> AttachView<T>(string resourcePath, Action<T> onBeforeShow = null) where T : AStackableView
         {
             if (m_viewStack.Count == 0)
             {
-                Debug.LogError($"[UserInterfaceController] Cannot attach view: no main view in stack. Path: {resourcePath}");
+                Debug.LogError($"[UIStackController] Cannot attach view: no main view in stack. Path: {resourcePath}");
                 return null;
             }
 
             T prefab = Resources.Load<T>(resourcePath);
             if (prefab == null)
             {
-                Debug.LogError($"[UserInterfaceController] Cannot load prefab at path: {resourcePath}");
+                Debug.LogError($"[UIStackController] Cannot load prefab at path: {resourcePath}");
                 return null;
             }
 
             T viewInstance = Instantiate(prefab, uiRoot);
             if (viewInstance == null)
             {
-                Debug.LogError($"[UserInterfaceController] Prefab does not have component: {typeof(T).Name}");
+                Debug.LogError($"[UIStackController] Prefab does not have component: {typeof(T).Name}");
                 return null;
             }
 
@@ -288,7 +288,7 @@ namespace KahaGameCore.UserInterfaceSystem
             }
             catch (OperationCanceledException)
             {
-                Debug.Log($"[UserInterfaceController] AttachView canceled for: {typeof(T).Name}");
+                Debug.Log($"[UIStackController] AttachView canceled for: {typeof(T).Name}");
             }
             finally
             {
@@ -307,9 +307,9 @@ namespace KahaGameCore.UserInterfaceSystem
 
             ViewStackEntry entry = m_viewStack.Peek();
 
-            if (!entry.AttachedViews.TryGetValue(resourcePath, out AView view))
+            if (!entry.AttachedViews.TryGetValue(resourcePath, out AStackableView view))
             {
-                Debug.LogWarning($"[UserInterfaceController] No attached view found for path: {resourcePath}");
+                Debug.LogWarning($"[UIStackController] No attached view found for path: {resourcePath}");
                 return false;
             }
 
@@ -324,7 +324,7 @@ namespace KahaGameCore.UserInterfaceSystem
             }
             catch (OperationCanceledException)
             {
-                Debug.Log($"[UserInterfaceController] DetachView canceled for: {resourcePath}");
+                Debug.Log($"[UIStackController] DetachView canceled for: {resourcePath}");
             }
             finally
             {
@@ -373,7 +373,7 @@ namespace KahaGameCore.UserInterfaceSystem
             }
             catch (OperationCanceledException)
             {
-                Debug.Log("[UserInterfaceController] ClearViewStack canceled.");
+                Debug.Log("[UIStackController] ClearViewStack canceled.");
             }
             finally
             {

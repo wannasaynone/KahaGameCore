@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using KahaGameCore.UserInterfaceSystem;
+using KahaGameCore.UIStackSystem;
 using TMPro;
 using UnityEngine;
 
@@ -12,7 +12,7 @@ namespace KahaGameCore.GameFlowSystem.DefaultViews
     /// 遊戲主 HUD：天數/時段、數值狀態列、自言自語浮動文字。
     /// 顯示哪些 Parameter 由 composition root 明列。
     /// </summary>
-    public class GameplayHudView : AView
+    public class GameplayHudView : AStackableView
     {
         [SerializeField] private TextMeshProUGUI dayPhaseText;
         [SerializeField] private RectTransform statContainer;

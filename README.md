@@ -44,7 +44,7 @@ Builder 會生成：
 | `Assets/Scenes/GameFlowGame.unity` | 已完成組裝的可執行 Scene |
 | `Assets/Resources/GameFlowUIViews/` | 主標題、HUD、選單、提示與製作名單 prefabs |
 
-生成的 Scene 已包含 Camera、EventSystem、Canvas、DialogueView、`UserInterfaceController` 與 `DefaultGameLauncher`。
+生成的 Scene 已包含 Camera、EventSystem、Canvas、DialogueView、`UIStackController` 與 `DefaultGameLauncher`。
 
 ### 2. 執行
 
@@ -169,7 +169,7 @@ Persistence 不會由 Builder 自動加入遊戲 UI。需要存讀檔時：
 | Presentation | [Presentation](Modules/Presentation/README.md) |
 | StaticData | [StaticData](Modules/StaticData/README.md) |
 | Directional UI | [DirectionalUI](Modules/DirectionalUI/README.md) |
-| User Interface | [UserInterfaceSystem](Modules/UserInterfaceSystem/README.md) |
+| UI Stack | [UIStackSystem](Modules/UIStackSystem/README.md) |
 | ValueContainer | [ValueContainer](Modules/ValueContainer/README.md) |
 | Serialization | [Serialization](Modules/Serialization/README.md) |
 | Audio | [Audio](Audio/README.md) |

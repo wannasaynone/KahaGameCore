@@ -129,7 +129,7 @@ asmdef `KahaGameCore.Modules.GameFlowSystem.DefaultViews`（runtime）＋ `.Defa
 
 | 內容 | 說明 |
 |---|---|
-| `Views/`（9 個腳本） | 主選單、HUD（含 StatValueItem）、行動/移動選單（含按鈕 item）、提示視窗、製作名單。皆繼承 UserInterfaceSystem 的 `AView` |
+| `Views/`（9 個腳本） | 主選單、HUD（含 StatValueItem）、行動/移動選單（含按鈕 item）、提示視窗、製作名單。皆繼承 UIStackSystem 的 `AStackableView` |
 | `Presenters/`（5 個腳本） | `IActionMenuPresenter` / `IHintPresenter` / `ILocationMenuPresenter` 的轉接實作＋HUD Presenter＋`IStagePerformance` 範例（CreditsPerformance） |
 | `DefaultGameLauncher.cs` | 預設 Flow 組裝根：載入五張 Flow tables，並從 `GameEventCatalogAsset` 取得 Parameters 與 Events → Builder 組裝 → 主標題/流程切換、返回標題處理 |
 | `Editor/DefaultUiBuilder.cs` | 選單 **KahaGameCore → GameFlowSystem → Build Default UI Prefabs And Scene**：在專案內生成 `Assets/Resources/GameFlowUIViews/` 九個 prefab 與 `Assets/Scenes/GameFlowGame.unity`（全部接好、測試表已掛上、可直接 Play）。全程式化版面（TMP 預設字型＋內建 UISprite），零美術資產依賴，可重複執行覆寫 |

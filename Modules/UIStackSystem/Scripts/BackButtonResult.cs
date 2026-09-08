@@ -1,4 +1,4 @@
-namespace KahaGameCore.UserInterfaceSystem
+namespace KahaGameCore.UIStackSystem
 {
     public enum BackButtonResult
     {

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using KahaGameCore.UserInterfaceSystem;
+using KahaGameCore.UIStackSystem;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace KahaGameCore.GameFlowSystem.DefaultViews
 {
     /// <summary>移動選單：列出可前往的地點，附取消（返回）按鈕。</summary>
-    public class LocationMenuView : AView
+    public class LocationMenuView : AStackableView
     {
         [SerializeField] private RectTransform buttonContainer;
         [SerializeField] private LocationButtonItem buttonPrefab;

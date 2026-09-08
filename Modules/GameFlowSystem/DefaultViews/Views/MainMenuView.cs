@@ -1,5 +1,5 @@
 using System;
-using KahaGameCore.UserInterfaceSystem;
+using KahaGameCore.UIStackSystem;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace KahaGameCore.GameFlowSystem.DefaultViews
 {
     /// <summary>主標題畫面。僅負責顯示與轉發按鈕事件，不含流程邏輯。</summary>
-    public class MainMenuView : AView
+    public class MainMenuView : AStackableView
     {
         public event Action OnStartRequested;
 

@@ -33,4 +33,4 @@ tracker.ForceUpdate();
 
 - `MainCanvas` 是 lazy static lookup；第一次存取時場景必須已有帶 `MainCanvas` tag 的 RectTransform。
 - 切換 Canvas 的場景後，已建立的 static instance 不會自動重新搜尋。
-- 此模組只處理位置與 scaler，不管理 View stack；View 導航請使用 UserInterfaceSystem。
+- 此模組只處理位置與 scaler，不管理 View stack；View 導航請使用 UIStackSystem。
