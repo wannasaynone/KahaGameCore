@@ -122,7 +122,7 @@ namespace KahaGameCore.Tests
                 string json = codec.Write("工廠", parameters);
                 store.Save(0, json);
 
-                Assert.That(json, Does.Match("1\.25(?:[,\"}])"));
+                Assert.That(json, Does.Match(@"1\.25(?:[,""}])"));
                 Assert.That(json, Does.Not.Contain("1,25"));
 
                 CultureInfo.CurrentCulture =
