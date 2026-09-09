@@ -13,6 +13,14 @@ namespace KahaGameCore.Persistence
 
         public string Write(string sceneKey, ParameterSnapshot parameters)
         {
+            return Write(sceneKey, parameters, null);
+        }
+
+        public string Write(
+            string sceneKey,
+            ParameterSnapshot parameters,
+            SaveableObjectRecord[] objects)
+        {
             if (string.IsNullOrWhiteSpace(sceneKey))
             {
                 throw new ArgumentException(
@@ -24,7 +32,8 @@ namespace KahaGameCore.Persistence
             {
                 SchemaVersion = CurrentSchemaVersion,
                 SceneKey = sceneKey,
-                Parameters = parameterCodec.Encode(parameters)
+                Parameters = parameterCodec.Encode(parameters),
+                Objects = objects ?? Array.Empty<SaveableObjectRecord>()
             };
             return JsonWriter.Serialize(document);
         }
@@ -34,7 +43,8 @@ namespace KahaGameCore.Persistence
             GameSaveDocument document = ReadDocument(json);
             return new GameSaveSnapshot(
                 document.SceneKey,
-                parameterCodec.Decode(document.Parameters));
+                parameterCodec.Decode(document.Parameters),
+                document.Objects);
         }
 
         internal GameSaveDocument ReadDocument(string json)

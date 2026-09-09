@@ -1,0 +1,22 @@
+{
+    "name": "KahaGameCore.Modules.Persistence.Tests",
+    "rootNamespace": "KahaGameCore.Persistence.Tests",
+    "references": [
+        "KahaGameCore.Modules.Persistence",
+        "KahaGameCore.Modules.Persistence.Unity"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

@@ -9,6 +9,52 @@ namespace KahaGameCore.Tests
     public sealed class GameSaveDocumentJsonCodecTests
     {
         [Test]
+        public void WriteRead_RoundTripsSaveableObjects()
+        {
+            ParameterSnapshot parameters = new ParameterSnapshot(
+                ParameterSnapshot.CurrentSchemaVersion,
+                new Dictionary<string, ParameterValue>());
+            SaveableObjectRecord[] objects =
+            {
+                new SaveableObjectRecord
+                {
+                    Id = "a1",
+                    ResourcePath = "Prefabs/Corpse",
+                    ScenePath = "Assets/Room3.unity",
+                    X = 12.5f,
+                    Y = -4f,
+                    Z = 1f
+                }
+            };
+            GameSaveDocumentJsonCodec codec = new GameSaveDocumentJsonCodec();
+
+            GameSaveSnapshot snapshot = codec.Read(
+                codec.Write("Factory", parameters, objects));
+
+            Assert.That(snapshot.Objects, Has.Length.EqualTo(1));
+            Assert.That(snapshot.Objects[0].Id, Is.EqualTo("a1"));
+            Assert.That(snapshot.Objects[0].ResourcePath, Is.EqualTo("Prefabs/Corpse"));
+            Assert.That(snapshot.Objects[0].ScenePath, Is.EqualTo("Assets/Room3.unity"));
+            Assert.That(snapshot.Objects[0].X, Is.EqualTo(12.5f));
+            Assert.That(snapshot.Objects[0].Y, Is.EqualTo(-4f));
+            Assert.That(snapshot.Objects[0].Z, Is.EqualTo(1f));
+        }
+
+        [Test]
+        public void Read_TreatsMissingObjectsAsEmpty()
+        {
+            const string json =
+                "{\"SchemaVersion\":1," +
+                "\"SceneKey\":\"Factory\"," +
+                "\"Parameters\":{\"SchemaVersion\":1,\"Values\":[]}}";
+
+            GameSaveSnapshot snapshot =
+                new GameSaveDocumentJsonCodec().Read(json);
+
+            Assert.That(snapshot.Objects, Is.Empty);
+        }
+
+        [Test]
         public void WriteRead_RoundTripsSceneAndParameters()
         {
             ParameterSnapshot parameters = new ParameterSnapshot(
