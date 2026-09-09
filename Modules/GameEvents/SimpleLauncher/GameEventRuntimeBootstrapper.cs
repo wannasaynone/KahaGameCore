@@ -1,39 +1,78 @@
 using System;
-using System.Threading;
 using KahaGameCore.Effects;
 using KahaGameCore.Parameters;
+using UnityEngine;
 
 namespace KahaGameCore.GameEvents
 {
-    public sealed class GameEventRuntime : IDisposable
+    /// <summary>
+    /// Parameters, Effects and Game Events for one play session. A Scene load
+    /// does not rebuild it, which is what lets parameters survive travelling
+    /// between Scenes. Scene-scoped things — the cancellation lifetime, state
+    /// binders, triggers — belong to the launcher, not here.
+    /// </summary>
+    public sealed class GameEventRuntime
     {
-        private readonly CancellationTokenSource lifetime;
-        private bool disposed;
-
         internal GameEventRuntime(
             ParameterStore parameters,
             EffectRuntime effects,
-            GameEventRunner events,
-            CancellationTokenSource lifetime)
+            GameEventRunner events)
         {
             Parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
             Effects = effects ?? throw new ArgumentNullException(nameof(effects));
             Events = events ?? throw new ArgumentNullException(nameof(events));
-            this.lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
-            Context = new EventContext(lifetime.Token);
         }
 
         public ParameterStore Parameters { get; }
         public EffectRuntime Effects { get; }
         public GameEventRunner Events { get; }
-        public EventContext Context { get; }
+    }
 
-        public void Dispose()
+    /// <summary>
+    /// Owns the single GameEventRuntime a play session has. Every Scene's
+    /// launcher asks for the same instance, so parameters outlive a Scene load
+    /// without anyone copying them across.
+    /// </summary>
+    public static class GameEventSession
+    {
+        private static GameEventCatalogAsset source;
+
+        public static GameEventRuntime Runtime { get; private set; }
+
+        public static GameEventRuntime GetOrCreate(GameEventCatalogAsset catalog)
         {
-            if (disposed) return;
-            disposed = true;
-            lifetime.Cancel();
-            lifetime.Dispose();
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+
+            if (Runtime == null)
+            {
+                source = catalog;
+                Runtime = GameEventRuntimeBootstrapper.Create(catalog);
+            }
+            else if (source != catalog)
+            {
+                throw new InvalidOperationException(
+                    $"[GameEventSession] The session was built from Game Event Catalog " +
+                    $"'{source.name}'; '{catalog.name}' cannot replace it. Call Reset first.");
+            }
+
+            return Runtime;
+        }
+
+        /// <summary>
+        /// Drops the session, so the next launcher builds a runtime with initial
+        /// parameter values. This is what starting a new game means.
+        /// </summary>
+        public static void Reset()
+        {
+            Runtime = null;
+            source = null;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetOnEnterPlayMode()
+        {
+            // Statics survive entering Play Mode when domain reload is disabled.
+            Reset();
         }
     }
 
@@ -67,11 +106,7 @@ namespace KahaGameCore.GameEvents
                 eventCodec);
             eventCommandRouter.Initialize(events);
 
-            return new GameEventRuntime(
-                parameters,
-                effects,
-                events,
-                new CancellationTokenSource());
+            return new GameEventRuntime(parameters, effects, events);
         }
     }
 }

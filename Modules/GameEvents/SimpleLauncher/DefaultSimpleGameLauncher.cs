@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using KahaGameCore.Effects;
 using KahaGameCore.Parameters;
@@ -8,9 +9,11 @@ using UnityEngine;
 namespace KahaGameCore.GameEvents
 {
     /// <summary>
-    /// Minimal composition root for Parameters, Effects and Game Events.
-    /// It intentionally owns no dialogue, UI or flow controller. Project flow may start
-    /// after this component's Awake and use the exposed runtime services.
+    /// Scene entry point for Parameters, Effects and Game Events. The runtime
+    /// itself belongs to GameEventSession and outlives this component, so this
+    /// class owns only what is genuinely Scene-scoped: the cancellation
+    /// lifetime, the state binders and the triggers under this hierarchy.
+    /// It intentionally owns no dialogue, UI or flow controller.
     /// </summary>
     [DefaultExecutionOrder(-1000)]
     [DisallowMultipleComponent]
@@ -21,12 +24,13 @@ namespace KahaGameCore.GameEvents
         [SerializeField] private bool initializeChildTriggers = true;
 
         private GameEventRuntime runtime;
+        private CancellationTokenSource sceneLifetime;
         private StartGameEventTrigger[] startEventTriggers = Array.Empty<StartGameEventTrigger>();
 
         public ParameterStore Parameters => runtime?.Parameters;
         public EffectRuntime Effects => runtime?.Effects;
         public GameEventRunner Events => runtime?.Events;
-        public EventContext Context => runtime?.Context;
+        public EventContext Context { get; private set; }
         public bool IsReady => runtime != null;
 
         protected virtual void Awake()
@@ -34,7 +38,9 @@ namespace KahaGameCore.GameEvents
             if (catalog == null)
                 throw new InvalidOperationException(
                     "[DefaultSimpleGameLauncher] Game Event Catalog is required.");
-            runtime = GameEventRuntimeBootstrapper.Create(catalog);
+            runtime = GameEventSession.GetOrCreate(catalog);
+            sceneLifetime = new CancellationTokenSource();
+            Context = new EventContext(sceneLifetime.Token);
             Initialize(Parameters);
             InitializeParameterStateBinders();
             if (initializeChildTriggers)
@@ -48,7 +54,12 @@ namespace KahaGameCore.GameEvents
 
         protected virtual void OnDestroy()
         {
-            runtime?.Dispose();
+            // Cancels the events this Scene started. Parameters and the event
+            // catalog belong to the session, so they are deliberately untouched.
+            sceneLifetime?.Cancel();
+            sceneLifetime?.Dispose();
+            sceneLifetime = null;
+            Context = null;
             runtime = null;
         }
 

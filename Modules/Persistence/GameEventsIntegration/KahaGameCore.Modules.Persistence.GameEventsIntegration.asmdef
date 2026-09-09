@@ -3,7 +3,10 @@
     "rootNamespace": "KahaGameCore.Persistence.GameEventsIntegration",
     "references": [
         "KahaGameCore.Modules.Persistence",
+        "KahaGameCore.Modules.Persistence.Unity",
         "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.GameEvents.SimpleLauncher",
+        "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Parameters",
         "UniTask"
     ],

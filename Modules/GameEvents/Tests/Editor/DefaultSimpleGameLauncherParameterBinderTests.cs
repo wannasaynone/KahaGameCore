@@ -11,6 +11,14 @@ namespace KahaGameCore.GameEvents.Tests
 {
     public sealed class DefaultSimpleGameLauncherParameterBinderTests
     {
+        // Each test builds its own catalog, so the process-wide session must
+        // not leak between them.
+        [SetUp]
+        public void ResetSession()
+        {
+            GameEventSession.Reset();
+        }
+
         [Test]
         public void Awake_InitializesChildParameterStateBinders()
         {

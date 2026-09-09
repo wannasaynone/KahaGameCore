@@ -439,7 +439,9 @@ namespace KahaGameCore.GameEvents.Tests
                 GameEventProjectAuthoringCatalog catalog =
                     GameEventProjectAuthoringCatalog.Load(asset);
 
-                Assert.That(catalog.Parameters.Count, Is.EqualTo(8));
+                Assert.That(
+                    catalog.ParameterEntries.Select(entry => entry.AssetPath),
+                    Is.Not.Empty.And.All.EqualTo(selectedPath));
                 Assert.That(
                     catalog.Parameters.Select(parameter => parameter.Key),
                     Does.Contain("Supplies"));

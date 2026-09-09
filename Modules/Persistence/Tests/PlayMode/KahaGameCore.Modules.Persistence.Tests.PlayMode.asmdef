@@ -1,13 +1,11 @@
 {
-    "name": "KahaGameCore.Modules.Persistence.Tests",
+    "name": "KahaGameCore.Modules.Persistence.Tests.PlayMode",
     "rootNamespace": "KahaGameCore.Persistence.Tests",
     "references": [
         "KahaGameCore.Modules.Persistence",
         "KahaGameCore.Modules.Persistence.Unity"
     ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

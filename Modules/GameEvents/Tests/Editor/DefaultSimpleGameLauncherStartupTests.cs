@@ -10,6 +10,14 @@ namespace KahaGameCore.GameEvents.Tests
 {
     public sealed class DefaultSimpleGameLauncherStartupTests
     {
+        // Each test builds its own catalog, so the process-wide session must
+        // not leak between them.
+        [SetUp]
+        public void ResetSession()
+        {
+            GameEventSession.Reset();
+        }
+
         [TestCase(true, true)]
         [TestCase(false, false)]
         public async Task StartTrigger_RunsOnlyWhenBinderLeavesObjectActive(

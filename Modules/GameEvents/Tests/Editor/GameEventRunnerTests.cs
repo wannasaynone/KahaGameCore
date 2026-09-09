@@ -687,13 +687,12 @@ namespace KahaGameCore.GameEvents.Tests
                 asset.SetEnabledCommandNames(new[] { "TriggerEvent" });
 
                 runtime = GameEventRuntimeBootstrapper.Create(asset);
-                runtime.Events.RunAsync(outer, runtime.Context)
+                runtime.Events.RunAsync(outer, new EventContext(CancellationToken.None))
                     .GetAwaiter()
                     .GetResult();
             }
             finally
             {
-                runtime?.Dispose();
                 UnityEngine.Object.DestroyImmediate(asset);
                 UnityEngine.Object.DestroyImmediate(parameterTable);
                 UnityEngine.Object.DestroyImmediate(outer);
