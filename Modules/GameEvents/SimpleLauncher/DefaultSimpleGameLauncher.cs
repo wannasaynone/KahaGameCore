@@ -21,8 +21,7 @@ namespace KahaGameCore.GameEvents
         [SerializeField] private bool initializeChildTriggers = true;
 
         private GameEventRuntime runtime;
-        private StartGameEventTrigger[] startEventTriggers =
-            Array.Empty<StartGameEventTrigger>();
+        private StartGameEventTrigger[] startEventTriggers = Array.Empty<StartGameEventTrigger>();
 
         public ParameterStore Parameters => runtime?.Parameters;
         public EffectRuntime Effects => runtime?.Effects;
@@ -55,15 +54,15 @@ namespace KahaGameCore.GameEvents
 
         private void InitializeTriggers()
         {
-            foreach (SceneGameEventTrigger trigger in
-                     GetComponentsInChildren<SceneGameEventTrigger>(true))
-                trigger.Initialize(Events, Context);
-            foreach (SceneGameEventTrigger2D trigger in
-                     GetComponentsInChildren<SceneGameEventTrigger2D>(true))
+            var sceneTriggerArray = GetComponentsInChildren<SceneGameEventTrigger>(true);
+            foreach (SceneGameEventTrigger trigger in sceneTriggerArray)
                 trigger.Initialize(Events, Context);
 
-            startEventTriggers =
-                GetComponentsInChildren<StartGameEventTrigger>(true);
+            var sceneTrigger2DArray = GetComponentsInChildren<SceneGameEventTrigger2D>(true);
+            foreach (SceneGameEventTrigger2D trigger in sceneTrigger2DArray)
+                trigger.Initialize(Events, Context);
+
+            startEventTriggers = GetComponentsInChildren<StartGameEventTrigger>(true);
             for (int index = 0; index < startEventTriggers.Length; index++)
             {
                 startEventTriggers[index].Initialize(Events, Context);
@@ -86,8 +85,8 @@ namespace KahaGameCore.GameEvents
 
         private void InitializeParameterStateBinders()
         {
-            foreach (ParameterStateBinder binder in
-                     GetComponentsInChildren<ParameterStateBinder>(true))
+            var binderArray = GetComponentsInChildren<ParameterStateBinder>(true);
+            foreach (ParameterStateBinder binder in binderArray)
             {
                 binder.Initialize(Parameters);
             }
