@@ -7,6 +7,7 @@
     { "Key": "Satiety", "DisplayName": "飽腹", "Type": "Int", "InitialValue": "100", "MinValue": "0", "MaxValue": "100" },
     { "Key": "Spirit", "DisplayName": "精神", "Type": "Int", "InitialValue": "100", "MinValue": "0", "MaxValue": "100" },
     { "Key": "Day", "DisplayName": "天數", "Type": "Int", "InitialValue": "1", "MinValue": "1", "MaxValue": "999" },
+    { "Key": "CurrentPhase", "DisplayName": "目前時段", "Type": "String", "InitialValue": "" },
     { "Key": "WorkCount", "DisplayName": "打工次數", "Type": "Int", "InitialValue": "0", "MinValue": "0", "MaxValue": "999" },
     { "Key": "OutingUnlocked", "DisplayName": "外出解鎖", "Type": "Bool", "InitialValue": "false" },
     { "Key": "LocationUnlocked_2", "DisplayName": "市集解鎖", "Type": "Bool", "InitialValue": "false" },

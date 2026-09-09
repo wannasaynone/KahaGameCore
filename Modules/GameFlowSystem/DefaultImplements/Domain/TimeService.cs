@@ -7,21 +7,17 @@ using KahaGameCore.GameFlowSystem;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.GameFlowSystem.DefaultImplements.Events;
 using KahaGameCore.Parameters;
-using KahaGameCore.Persistence;
 using UnityEngine;
 
 namespace KahaGameCore.GameFlowSystem.DefaultImplements
 {
-    public class TimeService :
-        ITimeService,
-        ISaveParticipant<TimeServiceSnapshot>
+    public class TimeService : ITimeService
     {
         public const string DayParameterKey = "Day";
-        public const string SaveParticipantKey = "GameFlow.CurrentPhase";
+        public const string PhaseParameterKey = "CurrentPhase";
 
         public TimePhaseData CurrentPhase { get; private set; }
         public int CurrentDay => parameters.GetInt(DayParameterKey);
-        public string SaveKey => SaveParticipantKey;
 
         IGameFlowTimePhase IGameFlowTimeService.CurrentPhase => CurrentPhase;
 
@@ -33,6 +29,12 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
             this.parameters = parameters ?? throw new ArgumentNullException(nameof(parameters));
 
             phases = LoadPhases(staticDataManager);
+
+            // ponytail: never unsubscribed; TimeService and its ParameterStore are
+            // built and dropped together by the composition root, so the handler
+            // cannot outlive the store. Add IDisposable if that stops being true.
+            this.parameters.Changed += OnParameterChanged;
+            SyncPhaseFromParameter(publish: false);
         }
 
         private static List<TimePhaseData> LoadPhases(GameStaticDataManager staticDataManager)
@@ -53,6 +55,12 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
         public void AdvancePhase()
         {
+            if (CurrentPhase == null)
+            {
+                throw new InvalidOperationException(
+                    "[TimeService] 尚未初始化目前階段，無法推進。");
+            }
+
             TimePhaseData nextPhase = phases.Find(phase => phase.ID == CurrentPhase.NextID);
             if (nextPhase == null)
             {
@@ -65,6 +73,11 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
 
         public void SetPhase(string phaseKey)
         {
+            ApplyPhase(FindPhase(phaseKey), isNewDayCounted: false);
+        }
+
+        private TimePhaseData FindPhase(string phaseKey)
+        {
             TimePhaseData targetPhase = phases.Find(phase => phase.Key == phaseKey);
             if (targetPhase == null)
             {
@@ -72,39 +85,46 @@ namespace KahaGameCore.GameFlowSystem.DefaultImplements
                     $"[TimeService] 找不到階段 Key={phaseKey}。");
             }
 
-            ApplyPhase(targetPhase, isNewDayCounted: false);
-        }
-
-        public TimeServiceSnapshot Capture()
-        {
-            if (CurrentPhase == null)
-            {
-                throw new InvalidOperationException(
-                    "[TimeService] 尚未初始化目前階段，無法建立存檔快照。");
-            }
-
-            return new TimeServiceSnapshot
-            {
-                CurrentPhaseKey = CurrentPhase.Key
-            };
-        }
-
-        public void Restore(TimeServiceSnapshot snapshot)
-        {
-            if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
-            SetPhase(snapshot.CurrentPhaseKey);
+            return targetPhase;
         }
 
         private void ApplyPhase(TimePhaseData phase, bool isNewDayCounted)
         {
-            CurrentPhase = phase;
-
             if (isNewDayCounted && phase.IsNewDay == 1)
             {
                 parameters.Add(DayParameterKey, 1);
             }
 
-            MessageBus.Publish(new TimePhaseChangedEvent(phase, CurrentDay));
+            // Writing the parameter is the single source of truth; the Changed
+            // handler resolves the phase and publishes TimePhaseChangedEvent,
+            // so a restored save takes the same path as a live phase change.
+            parameters.Set(PhaseParameterKey, phase.Key);
+        }
+
+        private void OnParameterChanged(ParameterChanged change)
+        {
+            if (!string.Equals(change.Key, PhaseParameterKey, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            SyncPhaseFromParameter(publish: true);
+        }
+
+        private void SyncPhaseFromParameter(bool publish)
+        {
+            string phaseKey = parameters.GetString(PhaseParameterKey);
+            if (string.IsNullOrEmpty(phaseKey))
+            {
+                CurrentPhase = null;
+                return;
+            }
+
+            CurrentPhase = FindPhase(phaseKey);
+            if (publish)
+            {
+                MessageBus.Publish(new TimePhaseChangedEvent(CurrentPhase, CurrentDay));
+            }
         }
     }
 }

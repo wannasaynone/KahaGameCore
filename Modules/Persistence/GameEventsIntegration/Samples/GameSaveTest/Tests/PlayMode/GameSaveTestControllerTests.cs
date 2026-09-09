@@ -33,7 +33,7 @@ namespace KahaGameCore.Samples.GameSaveTest.Tests
         }
 
         [UnityTest]
-        public IEnumerator SaveThenLoad_RestoresParametersParticipantAndVisualBinding()
+        public IEnumerator SaveThenLoad_RestoresParametersAndDerivedVisuals()
         {
             controller.MutateState();
             Assert.That(controller.MachineStage, Is.EqualTo(1));

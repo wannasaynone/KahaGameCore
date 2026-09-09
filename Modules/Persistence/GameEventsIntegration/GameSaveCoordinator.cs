@@ -10,14 +10,12 @@ namespace KahaGameCore.Persistence.GameEventsIntegration
     {
         private readonly GameEventRunner gameEvents;
         private readonly ParameterStore parameters;
-        private readonly SaveParticipantRegistry participants;
         private readonly GameSaveDocumentJsonCodec codec;
         private readonly GameSaveSlotStore slots;
 
         public GameSaveCoordinator(
             GameEventRunner gameEvents,
             ParameterStore parameters,
-            SaveParticipantRegistry participants,
             GameSaveDocumentJsonCodec codec,
             GameSaveSlotStore slots)
         {
@@ -25,8 +23,6 @@ namespace KahaGameCore.Persistence.GameEventsIntegration
                 throw new ArgumentNullException(nameof(gameEvents));
             this.parameters = parameters ??
                 throw new ArgumentNullException(nameof(parameters));
-            this.participants = participants ??
-                throw new ArgumentNullException(nameof(participants));
             this.codec = codec ??
                 throw new ArgumentNullException(nameof(codec));
             this.slots = slots ??
@@ -41,11 +37,7 @@ namespace KahaGameCore.Persistence.GameEventsIntegration
             await gameEvents.WaitUntilIdleAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
-            string json = codec.Write(
-                sceneKey,
-                parameters.Capture(),
-                participants.Capture());
-            slots.Save(slot, json);
+            slots.Save(slot, codec.Write(sceneKey, parameters.Capture()));
         }
     }
 }

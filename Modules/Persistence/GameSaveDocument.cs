@@ -7,6 +7,5 @@ namespace KahaGameCore.Persistence
         public int SchemaVersion;
         public string SceneKey;
         public ParameterSnapshotDocument Parameters;
-        public SaveParticipantDocument[] Participants;
     }
 }

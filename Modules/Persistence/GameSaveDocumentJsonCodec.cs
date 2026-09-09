@@ -10,13 +10,8 @@ namespace KahaGameCore.Persistence
 
         private readonly ParameterSnapshotDocumentCodec parameterCodec =
             new ParameterSnapshotDocumentCodec();
-        private readonly SaveParticipantDocumentCodec participantCodec =
-            new SaveParticipantDocumentCodec();
 
-        public string Write(
-            string sceneKey,
-            ParameterSnapshot parameters,
-            SaveParticipantSnapshotSet participants)
+        public string Write(string sceneKey, ParameterSnapshot parameters)
         {
             if (string.IsNullOrWhiteSpace(sceneKey))
             {
@@ -29,23 +24,17 @@ namespace KahaGameCore.Persistence
             {
                 SchemaVersion = CurrentSchemaVersion,
                 SceneKey = sceneKey,
-                Parameters = parameterCodec.Encode(parameters),
-                Participants = participantCodec.Encode(participants)
+                Parameters = parameterCodec.Encode(parameters)
             };
             return JsonWriter.Serialize(document);
         }
 
-        public GameSaveSnapshot Read(
-            string json,
-            SaveParticipantRegistry registry)
+        public GameSaveSnapshot Read(string json)
         {
-            if (registry == null) throw new ArgumentNullException(nameof(registry));
-
             GameSaveDocument document = ReadDocument(json);
             return new GameSaveSnapshot(
                 document.SceneKey,
-                parameterCodec.Decode(document.Parameters),
-                participantCodec.Decode(document.Participants, registry));
+                parameterCodec.Decode(document.Parameters));
         }
 
         internal GameSaveDocument ReadDocument(string json)
@@ -58,23 +47,10 @@ namespace KahaGameCore.Persistence
             return document;
         }
 
-        internal ParameterSnapshot DecodeParameters(
-            GameSaveDocument document)
+        internal ParameterSnapshot DecodeParameters(GameSaveDocument document)
         {
             Validate(document);
             return parameterCodec.Decode(document.Parameters);
-        }
-
-        internal SaveParticipantSnapshotSet DecodeRegisteredParticipants(
-            GameSaveDocument document,
-            SaveParticipantRegistry registry)
-        {
-            if (registry == null) throw new ArgumentNullException(nameof(registry));
-
-            Validate(document);
-            return participantCodec.DecodeRegistered(
-                document.Participants,
-                registry);
         }
 
         private static void Validate(GameSaveDocument document)
@@ -102,12 +78,6 @@ namespace KahaGameCore.Persistence
             {
                 throw new InvalidOperationException(
                     "Game save document is missing Parameters.");
-            }
-
-            if (document.Participants == null)
-            {
-                throw new InvalidOperationException(
-                    "Game save document is missing Participants.");
             }
         }
     }

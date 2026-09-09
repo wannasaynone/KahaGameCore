@@ -81,7 +81,8 @@ namespace KahaGameCore.GameFlowSystem.Tests
                 new TextAssetJsonStaticDataHandler(new[] { phaseTable }));
             ParameterStore parameters = new ParameterStore(new[]
             {
-                ParameterDefinition.Int("Day", "天數", 1, 1, 999)
+                ParameterDefinition.Int("Day", "天數", 1, 1, 999),
+                ParameterDefinition.String(TimeService.PhaseParameterKey, "目前時段", "")
             });
             TimeService timeService = new TimeService(staticData, parameters);
             timeService.ResetToFirstPhase();

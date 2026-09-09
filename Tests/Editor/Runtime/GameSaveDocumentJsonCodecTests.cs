@@ -9,40 +9,36 @@ namespace KahaGameCore.Tests
     public sealed class GameSaveDocumentJsonCodecTests
     {
         [Test]
-        public void WriteRead_RoundTripsSceneParametersAndParticipants()
+        public void WriteRead_RoundTripsSceneAndParameters()
         {
             ParameterSnapshot parameters = new ParameterSnapshot(
                 ParameterSnapshot.CurrentSchemaVersion,
                 new Dictionary<string, ParameterValue>
                 {
-                    ["Score"] = ParameterValue.FromInt(7)
+                    ["Score"] = ParameterValue.FromInt(7),
+                    ["CurrentPhase"] = ParameterValue.FromString("Night")
                 });
-            SaveParticipantRegistry source = new SaveParticipantRegistry();
-            source.Register(new PhaseParticipant("Night"));
             GameSaveDocumentJsonCodec codec =
                 new GameSaveDocumentJsonCodec();
 
-            string json = codec.Write(
-                "Factory",
-                parameters,
-                source.Capture());
+            string json = codec.Write("Factory", parameters);
 
             Assert.That(json, Does.Contain("\"SchemaVersion\":1"));
             Assert.That(json, Does.Contain("\"SceneKey\":\"Factory\""));
-            Assert.That(json, Does.Not.Contain(nameof(PhaseSnapshot)));
-            PhaseParticipant phase = new PhaseParticipant("Morning");
-            SaveParticipantRegistry target = new SaveParticipantRegistry();
-            target.Register(phase);
 
-            GameSaveSnapshot snapshot = codec.Read(json, target);
-            target.Restore(snapshot.Participants);
+            GameSaveSnapshot snapshot = codec.Read(json);
 
             Assert.That(snapshot.SceneKey, Is.EqualTo("Factory"));
             Assert.That(
                 snapshot.Parameters.TryGetValue("Score", out ParameterValue score),
                 Is.True);
             Assert.That(score, Is.EqualTo(ParameterValue.FromInt(7)));
-            Assert.That(phase.CurrentPhaseKey, Is.EqualTo("Night"));
+            Assert.That(
+                snapshot.Parameters.TryGetValue(
+                    "CurrentPhase",
+                    out ParameterValue phase),
+                Is.True);
+            Assert.That(phase.AsString(), Is.EqualTo("Night"));
         }
 
         [Test]
@@ -51,15 +47,10 @@ namespace KahaGameCore.Tests
             const string json =
                 "{\"SchemaVersion\":2," +
                 "\"SceneKey\":\"Factory\"," +
-                "\"Parameters\":{\"SchemaVersion\":1,\"Values\":[]}," +
-                "\"Participants\":[{" +
-                "\"SaveKey\":\"GameFlow.CurrentPhase\"," +
-                "\"Snapshot\":{\"CurrentPhaseKey\":\"Night\"}}]}";
-            SaveParticipantRegistry registry = new SaveParticipantRegistry();
-            registry.Register(new PhaseParticipant("Morning"));
+                "\"Parameters\":{\"SchemaVersion\":1,\"Values\":[]}}";
 
             Assert.Throws<InvalidOperationException>(
-                () => new GameSaveDocumentJsonCodec().Read(json, registry));
+                () => new GameSaveDocumentJsonCodec().Read(json));
         }
 
         [TestCase("null")]
@@ -70,13 +61,10 @@ namespace KahaGameCore.Tests
             string json =
                 "{\"SchemaVersion\":1," +
                 $"\"SceneKey\":{sceneKeyJson}," +
-                "\"Parameters\":{\"SchemaVersion\":1,\"Values\":[]}," +
-                "\"Participants\":[]}";
+                "\"Parameters\":{\"SchemaVersion\":1,\"Values\":[]}}";
 
             Assert.Throws<InvalidOperationException>(
-                () => new GameSaveDocumentJsonCodec().Read(
-                    json,
-                    new SaveParticipantRegistry()));
+                () => new GameSaveDocumentJsonCodec().Read(json));
         }
 
         [TestCase(null)]
@@ -89,68 +77,17 @@ namespace KahaGameCore.Tests
                 new Dictionary<string, ParameterValue>());
 
             Assert.Throws<ArgumentException>(
-                () => new GameSaveDocumentJsonCodec().Write(
-                    sceneKey,
-                    parameters,
-                    new SaveParticipantRegistry().Capture()));
+                () => new GameSaveDocumentJsonCodec().Write(sceneKey, parameters));
         }
 
         [Test]
         public void Read_RejectsMissingParameters()
         {
             const string json =
-                "{\"SchemaVersion\":1," +
-                "\"SceneKey\":\"Factory\"," +
-                "\"Participants\":[]}";
+                "{\"SchemaVersion\":1,\"SceneKey\":\"Factory\"}";
 
             Assert.Throws<InvalidOperationException>(
-                () => new GameSaveDocumentJsonCodec().Read(
-                    json,
-                    new SaveParticipantRegistry()));
-        }
-
-        [Test]
-        public void Read_RejectsMissingParticipants()
-        {
-            const string json =
-                "{\"SchemaVersion\":1," +
-                "\"SceneKey\":\"Factory\"," +
-                "\"Parameters\":{\"SchemaVersion\":1,\"Values\":[]}}";
-
-            Assert.Throws<InvalidOperationException>(
-                () => new GameSaveDocumentJsonCodec().Read(
-                    json,
-                    new SaveParticipantRegistry()));
-        }
-
-        public sealed class PhaseSnapshot
-        {
-            public string CurrentPhaseKey;
-        }
-
-        private sealed class PhaseParticipant :
-            ISaveParticipant<PhaseSnapshot>
-        {
-            public PhaseParticipant(string currentPhaseKey)
-            {
-                CurrentPhaseKey = currentPhaseKey;
-            }
-
-            public string SaveKey => "GameFlow.CurrentPhase";
-            public string CurrentPhaseKey { get; private set; }
-
-            public PhaseSnapshot Capture()
-            {
-                return new PhaseSnapshot
-                {
-                    CurrentPhaseKey = CurrentPhaseKey
-                };
-            }
-
-            public void Restore(PhaseSnapshot snapshot)
-            {
-                CurrentPhaseKey = snapshot.CurrentPhaseKey;
-            }
+                () => new GameSaveDocumentJsonCodec().Read(json));
         }
     }
 }

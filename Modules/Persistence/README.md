@@ -2,28 +2,19 @@
 
 ## 這個模組怎麼用
 
-Persistence 把遊戲狀態寫進 `slot-{n}.json`，之後再讀回。先判斷資料屬於哪一類：
+Persistence 把 `ParameterStore` 的內容寫進 `slot-{n}.json`，之後再讀回。存檔內容只有兩樣東西：Scene name 與整份 Parameter snapshot。
 
-它不是需要掛在 GameObject 上的自動存檔 component。專案在 Save 按鈕或選單事件中呼叫 `Capture → Write → Save`，在 Load 按鈕或讀檔流程中呼叫 `Load → Read → Restore`。
+它不是掛在 GameObject 上的自動存檔 component。專案在 Save 按鈕或選單事件中呼叫 `Capture → Write → Save`，在 Load 按鈕或讀檔流程中呼叫 `Load → Read → Restore`。
 
 | 要保存的資料 | 做法 |
 |---|---|
-| 已在 `ParameterStore` 的分數、旗標、資源量 | 不用另外註冊；Persistence 會保存整份 `ParameterStore`。 |
-| 玩家位置、背包、時間服務等 runtime state | 實作 `ISaveParticipant<TSnapshot>`，註冊到 `SaveParticipantRegistry`。 |
-| 可由 Parameters 推導的門、機關或 UI 顯示狀態 | 不保存；讀檔後由 Binder／Presenter 重新推導。 |
+| 分數、旗標、資源量、進度、時段 | 定義成 Parameter；Persistence 會整份保存。 |
+| 可由 Parameters 推導的門、機關、UI 顯示、角色位置 | 不保存；讀檔後由 Binder／Presenter 重新推導。 |
+| 數量不定又帶連續值的東西（未爆投擲物、動態生成物） | 目前不支援，見「已知限制」。 |
 
-第一次使用先完成「只存 Parameters」。確認存讀檔可運作後，再加入 participant。
+最短心智模型：**世界狀態就是 Parameters；存檔就是 Parameter snapshot 加上 Scene name。**
 
-最短心智模型：Parameters 自動整份保存；其他狀態先註冊 participant；最後由 codec 與 slot store 寫檔或讀檔。
-
-## 第一次使用：只存 Parameters
-
-呼叫端 asmdef 引用：
-
-- `KahaGameCore.Modules.Parameters`
-- `KahaGameCore.Modules.Persistence`
-
-### 1. 建立一次並持續共用
+## 建立一次並持續共用
 
 以下物件放在專案啟動或場景組裝程式中，不要每次 Save／Load 都重新建立：
 
@@ -43,53 +34,42 @@ ParameterStore parameters = new ParameterStore(new[]
         maxValue: 9999)
 });
 
-SaveParticipantRegistry participants =
-    new SaveParticipantRegistry();
-GameSaveDocumentJsonCodec saveCodec =
-    new GameSaveDocumentJsonCodec();
+GameSaveDocumentJsonCodec saveCodec = new GameSaveDocumentJsonCodec();
 GameSaveSlotStore slots = new GameSaveSlotStore(Path.Combine(
     Application.persistentDataPath,
     "Saves"));
 ```
 
-這四個物件的用途：
-
 | 物件 | 用途 |
 |---|---|
 | `parameters` | Gameplay 使用的同一份權威 Parameter 值。 |
-| `participants` | 保存不在 Parameters 裡的狀態；目前是空的也沒問題。 |
 | `saveCodec` | 將 snapshot 與 JSON 互相轉換。 |
 | `slots` | 將 JSON 寫入或讀出 `slot-{n}.json`。 |
 
-### 2. Save
+呼叫端 asmdef 引用 `KahaGameCore.Modules.Parameters` 與 `KahaGameCore.Modules.Persistence`。
+
+## Save
 
 ```csharp
 using UnityEngine.SceneManagement;
 
 const int SaveSlot = 0;
 
-string json = saveCodec.Write(
+slots.Save(SaveSlot, saveCodec.Write(
     sceneKey: SceneManager.GetActiveScene().name,
-    parameters: parameters.Capture(),
-    participants: participants.Capture());
-
-slots.Save(SaveSlot, json);
+    parameters: parameters.Capture()));
 ```
 
-結果：`{Application.persistentDataPath}/Saves/slot-0.json` 會包含目前 Scene name、整份 Parameter snapshot，以及空的 participant 集合。
+結果：`{Application.persistentDataPath}/Saves/slot-0.json` 包含目前 Scene name 與整份 Parameter snapshot。
 
-### 3. Load
+## Load
 
 同一個 Scene 已經開啟時：
 
 ```csharp
-GameSaveSnapshot snapshot = saveCodec.Read(
-    slots.Load(SaveSlot),
-    participants);
+GameSaveSnapshot snapshot = saveCodec.Read(slots.Load(SaveSlot));
 
-string activeSceneKey = UnityEngine.SceneManagement.SceneManager
-    .GetActiveScene()
-    .name;
+string activeSceneKey = SceneManager.GetActiveScene().name;
 if (!string.Equals(
         snapshot.SceneKey,
         activeSceneKey,
@@ -100,10 +80,9 @@ if (!string.Equals(
 }
 
 parameters.Restore(snapshot.Parameters);
-participants.Restore(snapshot.Participants);
 ```
 
-結果：`PlayerScore` 回到按下 Save 當下的值。
+Load 前先用 `slots.Exists(SaveSlot)` 檢查檔案。跨 Scene 請看後面的 `GameLoadCoordinator`。
 
 正式接到 UI 前，建議照這個順序驗證：
 
@@ -113,143 +92,27 @@ participants.Restore(snapshot.Participants);
 4. 執行 Load。
 5. `parameters.GetInt("PlayerScore")` 應為 `100`。
 
-Load 前先用 `slots.Exists(SaveSlot)` 檢查檔案。這個直接 Load 寫法只適用於存檔所屬 Scene 已經開啟的情況；跨 Scene 請看後面的 `GameLoadCoordinator`。
+## 不在 Parameters 裡的狀態怎麼辦
 
-## 加入玩家位置
-
-玩家位置不在 `ParameterStore` 中，所以需要 participant。Participant 只做兩件事：
-
-- `Capture()`：把 runtime object 轉成純資料 snapshot。
-- `Restore(snapshot)`：把 snapshot 套回 runtime object。
+先問它是不是「可推導的」。玩家站在哪、門開著沒、HUD 顯示什麼，通常都能從語意狀態算出來：
 
 ```csharp
-using System;
-using KahaGameCore.Persistence;
-using UnityEngine;
+// 存的是語意結果
+parameters.Set("Checkpoint", 3);
 
-public sealed class TransformSnapshot
-{
-    public float X;
-    public float Y;
-    public float Z;
-}
-
-public sealed class TransformSaveParticipant :
-    ISaveParticipant<TransformSnapshot>
-{
-    private readonly Transform target;
-
-    public TransformSaveParticipant(string saveKey, Transform target)
-    {
-        SaveKey = string.IsNullOrWhiteSpace(saveKey)
-            ? throw new ArgumentException("SaveKey is required.", nameof(saveKey))
-            : saveKey;
-        this.target = target ?? throw new ArgumentNullException(nameof(target));
-    }
-
-    public string SaveKey { get; }
-
-    public TransformSnapshot Capture()
-    {
-        Vector3 position = target.position;
-        return new TransformSnapshot
-        {
-            X = position.x,
-            Y = position.y,
-            Z = position.z
-        };
-    }
-
-    public void Restore(TransformSnapshot snapshot)
-    {
-        target.position = new Vector3(
-            snapshot.X,
-            snapshot.Y,
-            snapshot.Z);
-    }
-}
+// 讀檔後推導出表現
+player.position = checkpoints[parameters.GetInt("Checkpoint")].position;
 ```
 
-`participants` 就是前面建立的 `SaveParticipantRegistry`。加入玩家位置時，把前面的空 registry 建立程式：
+`ParameterStateBinder` 就是用來做這件事的，讀檔後 `ParameterStore.Changed` 會讓它自動重算。
 
-```csharp
-SaveParticipantRegistry participants =
-    new SaveParticipantRegistry();
-```
-
-改成下面這段完整組裝：
-
-```csharp
-SaveParticipantRegistry participants =
-    new SaveParticipantRegistry();
-
-TransformSaveParticipant playerTransformParticipant =
-    new TransformSaveParticipant(
-        saveKey: "Player.Transform",
-        target: player);
-
-participants.Register(playerTransformParticipant);
-```
-
-其中：
-
-- `participants`：registry，持有這次存讀檔使用的所有 participants。
-- `playerTransformParticipant`：知道如何擷取與還原玩家座標。
-- `player`：場景中實際玩家物件的 `Transform`，由 Inspector 或場景 composition root 提供。
-
-不要另外建立第二個 registry。Save 與 Load 必須繼續使用這個已註冊玩家位置的同一個 `participants`：
-
-```csharp
-string json = saveCodec.Write(
-    sceneKey,
-    parameters.Capture(),
-    participants.Capture());
-
-GameSaveSnapshot snapshot = saveCodec.Read(
-    slots.Load(SaveSlot),
-    participants);
-
-participants.Restore(snapshot.Participants);
-```
-
-呼叫關係是：
-
-```text
-專案建立 SaveParticipantRegistry
-→ 專案建立 TransformSaveParticipant
-→ registry.Register(participant)
-→ Save 時 registry.Capture()
-→ Load 時 codec.Read(..., registry)
-→ registry.Restore(...)
-```
-
-`TransformSaveParticipant` 不會建立或尋找 registry；是專案先建立 registry，再將 participant 放進去。
-
-以下是最短寫法，功能相同：
-
-```csharp
-participants.Register(new TransformSaveParticipant(
-    saveKey: "Player.Transform",
-    target: player));
-```
-
-Save／Load 程式不需要改。Save 時 registry 自動呼叫 `Capture()`；Load 時自動呼叫 `Restore()`。
-
-`Player.Transform` 是這筆資料在存檔中的 identity。每個 participant 的 `SaveKey` 必須穩定且唯一。Scene 重新載入後，應使用新的玩家 `Transform` 建立 participant，但仍註冊同一個 `Player.Transform` key。
-
-Snapshot 只能保存純資料，不可保存 `Transform`、`GameObject` 或其他 runtime object reference。
+服務類的狀態同樣改用 Parameter 持有。`TimeService` 是範例：目前時段存在 `CurrentPhase` String Parameter，服務只負責解析與發佈 `TimePhaseChangedEvent`，因此讀檔走的是跟一般階段變更完全相同的路徑。
 
 ## 專案有 Game Events 時怎麼 Save
 
 前面的直接 Save 不會等待正在執行的 Game Event。專案已使用 Game Events 時，改用 `GameSaveCoordinator`，確保存檔前 queue 已清空。
 
-呼叫端再引用：
-
-- `KahaGameCore.Modules.GameEvents`
-- `KahaGameCore.Modules.Persistence.GameEventsIntegration`
-- `UniTask`
-
-使用 gameplay 已經共用的 `gameEventRunner`、`parameters` 與 `participants`：
+呼叫端再引用 `KahaGameCore.Modules.GameEvents`、`KahaGameCore.Modules.Persistence.GameEventsIntegration` 與 `UniTask`。
 
 ```csharp
 using KahaGameCore.Persistence.GameEventsIntegration;
@@ -257,19 +120,16 @@ using KahaGameCore.Persistence.GameEventsIntegration;
 GameSaveCoordinator saver = new GameSaveCoordinator(
     gameEventRunner,
     parameters,
-    participants,
     saveCodec,
     slots);
 
 await saver.SaveAsync(
     slot: 0,
-    sceneKey: UnityEngine.SceneManagement.SceneManager
-        .GetActiveScene()
-        .name,
+    sceneKey: SceneManager.GetActiveScene().name,
     cancellationToken);
 ```
 
-`SaveAsync` 取代前面的 `saveCodec.Write(...)` 加 `slots.Save(...)`。其餘資料定義、participant 與 Load 方法不變。
+`SaveAsync` 取代前面的 `saveCodec.Write(...)` 加 `slots.Save(...)`。Load 方法不變。
 
 ## 跨 Scene Load
 
@@ -278,62 +138,35 @@ await saver.SaveAsync(
 ```text
 讀 slot
 → Restore Parameters
-→ Restore 不依賴 Scene 的 participants
 → 載入並組裝存檔指定的 Scene
-→ Restore Scene 中的 participants
 ```
 
-Participants 因此分成兩組：
+順序是重點：Parameters 先還原，Scene 組裝時的 Binder 與 Presenter 才會看到正確的值。
 
-| Registry | 放什麼 |
-|---|---|
-| `beforeSceneParticipants` | 不依賴 Scene 物件的服務，例如全域時間狀態。 |
-| `sceneParticipants` | Scene 載入後才存在的物件，例如玩家 Transform、寶箱與機關。 |
-
-專案實作 `IGameLoadHost`。它的責任是載入 `sceneKey`、完成該 Scene 的 composition，然後回傳已註冊 Scene 物件的 registry：
+專案實作 `IGameLoadHost`，負責載入 `sceneKey` 並完成該 Scene 的 composition：
 
 ```csharp
 public sealed class ProjectLoadHost : IGameLoadHost
 {
-    public async UniTask<SaveParticipantRegistry> LoadSceneAsync(
+    public async UniTask LoadSceneAsync(
         string sceneKey,
         ParameterStore restoredParameters,
         CancellationToken token)
     {
-        await LoadAndComposeScene(
-            sceneKey,
-            restoredParameters,
-            token);
-
-        SaveParticipantRegistry sceneParticipants =
-            new SaveParticipantRegistry();
-        sceneParticipants.Register(new TransformSaveParticipant(
-            "Player.Transform",
-            loadedPlayer));
-        return sceneParticipants;
+        await LoadAndComposeScene(sceneKey, restoredParameters, token);
     }
 }
 ```
 
-`LoadAndComposeScene` 與 `loadedPlayer` 由專案的 Scene 載入／組裝程式提供，並不是 Persistence 的場景掃描 API。
-
-建立 coordinator 並 Load：
-
 ```csharp
-SaveParticipantRegistry beforeSceneParticipants =
-    new SaveParticipantRegistry();
-
 GameLoadCoordinator loader = new GameLoadCoordinator(
     parameters,
-    beforeSceneParticipants,
     saveCodec,
     slots,
     new ProjectLoadHost());
 
 await loader.LoadAsync(0, cancellationToken);
 ```
-
-存檔中的每個 participant key 必須恰好註冊在其中一組。重複註冊或沒有註冊都會明確失敗。
 
 ## 直接看可操作 Sample
 
@@ -344,11 +177,13 @@ await loader.LoadAsync(0, cancellationToken);
 3. `CHANGE STATE` 或 `RELOAD SCENE`
 4. `LOAD`
 
-完整接線在 [GameSaveTestController.cs](GameEventsIntegration/Samples/GameSaveTest/GameSaveTestController.cs)。Sample 同時保存 Parameters、`TimeService` participant 與玩家 Transform participant。
+完整接線在 [GameSaveTestController.cs](GameEventsIntegration/Samples/GameSaveTest/GameSaveTestController.cs)。Sample 保存 `MachineStage` 與 `CurrentPhase` 兩個 Parameter，玩家位置與方塊顯示都是讀檔後推導出來的。
 
 ## 規則與限制
 
 - `GameSaveSlotStore` 使用 UTF-8 without BOM，檔名為 `slot-{n}.json`。
 - `Exists(slot)` 檢查檔案，`Delete(slot)` 刪除檔案。
+- `ParameterStore` 的定義在建構時凍結，`Restore` 遇到未定義的 key 會丟例外。因此**動態生成、沒有預先宣告 key 的物件無法保存**；`ParameterValue` 也只有 Int／Float／Bool／String，沒有集合型別，所以背包、未爆投擲物這類「數量不定」的狀態目前存不了。真的需要時，要在本模組加回一層 participant 或另建集合型 snapshot，不要把 JSON 塞進 String Parameter。
+- `GameSaveDocumentJsonCodec` 只接受 `SchemaVersion == 1`，沒有舊存檔遷移機制。
 - `GameLoadCoordinator` 不是 transaction；Scene 載入失敗時，先前已 Restore 的 Parameters 不會 rollback。
-- `GameSaveCoordinator` 已由 PlayMode sample 覆蓋；`GameLoadCoordinator` 由自動測試覆蓋，具體 Scene host 由專案提供。
+- `GameSaveCoordinator` 由 PlayMode sample 覆蓋；`GameLoadCoordinator` 由自動測試覆蓋，具體 Scene host 由專案提供。

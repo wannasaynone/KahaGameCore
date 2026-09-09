@@ -94,14 +94,11 @@ namespace KahaGameCore.Persistence.GameEventsIntegration.Tests
                 "\"Commands\":\"BlockingSet();\"}" );
             GameSaveSlotStore slots =
                 new GameSaveSlotStore(rootDirectory);
-            SaveParticipantRegistry participants =
-                new SaveParticipantRegistry();
             GameSaveDocumentJsonCodec saveCodec =
                 new GameSaveDocumentJsonCodec();
             GameSaveCoordinator coordinator = new GameSaveCoordinator(
                 runner,
                 parameters,
-                participants,
                 saveCodec,
                 slots);
             UniTask eventOperation = runner.RunAsync(
@@ -120,9 +117,7 @@ namespace KahaGameCore.Persistence.GameEventsIntegration.Tests
                 await eventOperation;
                 await saveOperation;
 
-                GameSaveSnapshot snapshot = saveCodec.Read(
-                    slots.Load(3),
-                    participants);
+                GameSaveSnapshot snapshot = saveCodec.Read(slots.Load(3));
                 Assert.That(
                     snapshot.Parameters.TryGetValue(
                         "Score",

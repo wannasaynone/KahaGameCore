@@ -27,7 +27,6 @@ namespace KahaGameCore.Samples.GameSaveTest
 
         private ParameterStore parameters;
         private TimeService time;
-        private SaveParticipantRegistry participants;
         private GameSaveDocumentJsonCodec codec;
         private GameSaveSlotStore slots;
         private GameSaveCoordinator saves;
@@ -76,7 +75,7 @@ namespace KahaGameCore.Samples.GameSaveTest
                 string.Equals(CurrentPhaseKey, MorningPhaseKey, StringComparison.Ordinal)
                     ? NightPhaseKey
                     : MorningPhaseKey);
-            player.position = new Vector3(StageToPlayerX(nextStage), -2f, 0f);
+            SyncPlayerToParameters();
             status = $"Changed to stage {nextStage}. This is not saved yet.";
         }
 
@@ -123,9 +122,7 @@ namespace KahaGameCore.Samples.GameSaveTest
 
             try
             {
-                GameSaveSnapshot snapshot = codec.Read(
-                    slots.Load(TestSlot),
-                    participants);
+                GameSaveSnapshot snapshot = codec.Read(slots.Load(TestSlot));
                 string activeScene = SceneManager.GetActiveScene().name;
                 if (!string.Equals(
                         snapshot.SceneKey,
@@ -137,7 +134,7 @@ namespace KahaGameCore.Samples.GameSaveTest
                 }
 
                 parameters.Restore(snapshot.Parameters);
-                participants.Restore(snapshot.Participants);
+                SyncPlayerToParameters();
                 status = $"Loaded stage {MachineStage}, phase {CurrentPhaseKey}, player X {PlayerPosition.x:0}.";
             }
             catch (Exception exception)
@@ -191,7 +188,11 @@ namespace KahaGameCore.Samples.GameSaveTest
                     "Machine Stage",
                     0,
                     0,
-                    2)
+                    2),
+                ParameterDefinition.String(
+                    TimeService.PhaseParameterKey,
+                    "Current Phase",
+                    string.Empty)
             });
 
             phaseTable = new TextAsset(
@@ -246,13 +247,17 @@ namespace KahaGameCore.Samples.GameSaveTest
             player = playerObject.transform;
         }
 
+        /// <summary>
+        /// Player position is derived from MachineStage, so it is never saved.
+        /// Restoring the parameter is enough to rebuild it.
+        /// </summary>
+        private void SyncPlayerToParameters()
+        {
+            player.position = new Vector3(StageToPlayerX(MachineStage), -2f, 0f);
+        }
+
         private void CreatePersistence()
         {
-            participants = new SaveParticipantRegistry();
-            participants.Register(time);
-            participants.Register(
-                new TransformSaveParticipant("Sample.PlayerTransform", player));
-
             GameEventDocumentJsonCodec eventCodec =
                 new GameEventDocumentJsonCodec();
             GameEventCatalog catalog = new GameEventCatalog(
@@ -272,7 +277,6 @@ namespace KahaGameCore.Samples.GameSaveTest
             saves = new GameSaveCoordinator(
                 runner,
                 parameters,
-                participants,
                 codec,
                 slots);
         }
@@ -435,55 +439,6 @@ namespace KahaGameCore.Samples.GameSaveTest
                 GUI.enabled = previousEnabled;
                 GUI.matrix = previousMatrix;
             }
-        }
-    }
-
-    internal sealed class TransformSnapshot
-    {
-        public float X;
-        public float Y;
-        public float Z;
-    }
-
-    internal sealed class TransformSaveParticipant :
-        ISaveParticipant<TransformSnapshot>
-    {
-        private readonly Transform target;
-
-        public TransformSaveParticipant(string saveKey, Transform target)
-        {
-            if (string.IsNullOrWhiteSpace(saveKey))
-            {
-                throw new ArgumentException(
-                    "Transform participant requires a SaveKey.",
-                    nameof(saveKey));
-            }
-
-            SaveKey = saveKey;
-            this.target = target ?? throw new ArgumentNullException(nameof(target));
-        }
-
-        public string SaveKey { get; }
-
-        public TransformSnapshot Capture()
-        {
-            Vector3 position = target.position;
-            return new TransformSnapshot
-            {
-                X = position.x,
-                Y = position.y,
-                Z = position.z
-            };
-        }
-
-        public void Restore(TransformSnapshot snapshot)
-        {
-            if (snapshot == null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
-
-            target.position = new Vector3(snapshot.X, snapshot.Y, snapshot.Z);
         }
     }
 }

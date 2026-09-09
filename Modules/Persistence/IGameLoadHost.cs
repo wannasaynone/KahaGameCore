@@ -13,9 +13,9 @@ namespace KahaGameCore.Persistence
         /// <summary>
         /// Loads and composes the requested Scene using the supplied restored
         /// ParameterStore. Before completing, the adapter must initialize Scene
-        /// binders and return the explicitly registered Scene save participants.
+        /// binders so presentation reflects the restored parameters.
         /// </summary>
-        UniTask<SaveParticipantRegistry> LoadSceneAsync(
+        UniTask LoadSceneAsync(
             string sceneKey,
             ParameterStore parameters,
             CancellationToken cancellationToken);

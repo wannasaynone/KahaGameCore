@@ -111,26 +111,18 @@ namespace KahaGameCore.Tests
                     new Dictionary<string, ParameterValue>
                     {
                         ["Temperature"] = ParameterValue.FromFloat(2.5f),
+                        ["Ratio"] = ParameterValue.FromFloat(1.25f),
                         ["Greeting"] = ParameterValue.FromString("歡迎")
                     });
-                SaveParticipantRegistry source =
-                    new SaveParticipantRegistry();
-                source.Register(
-                    new LocalizedParticipant("機關", 1.25f));
                 GameSaveDocumentJsonCodec codec =
                     new GameSaveDocumentJsonCodec();
                 GameSaveSlotStore store =
                     new GameSaveSlotStore(rootDirectory);
 
-                string json = codec.Write(
-                    "工廠",
-                    parameters,
-                    source.Capture());
+                string json = codec.Write("工廠", parameters);
                 store.Save(0, json);
 
-                Assert.That(
-                    json,
-                    Does.Match("\"Ratio\"\\s*:\\s*1\\.25(?:[,}])"));
+                Assert.That(json, Does.Match("1\.25(?:[,\"}])"));
                 Assert.That(json, Does.Not.Contain("1,25"));
 
                 CultureInfo.CurrentCulture =
@@ -138,15 +130,7 @@ namespace KahaGameCore.Tests
                 CultureInfo.CurrentUICulture =
                     CultureInfo.GetCultureInfo("en-US");
 
-                LocalizedParticipant participant =
-                    new LocalizedParticipant("Reset", 0f);
-                SaveParticipantRegistry target =
-                    new SaveParticipantRegistry();
-                target.Register(participant);
-                GameSaveSnapshot snapshot = codec.Read(
-                    store.Load(0),
-                    target);
-                target.Restore(snapshot.Participants);
+                GameSaveSnapshot snapshot = codec.Read(store.Load(0));
 
                 Assert.That(snapshot.SceneKey, Is.EqualTo("工廠"));
                 Assert.That(
@@ -157,52 +141,21 @@ namespace KahaGameCore.Tests
                 Assert.That(temperature.AsFloat(), Is.EqualTo(2.5f));
                 Assert.That(
                     snapshot.Parameters.TryGetValue(
+                        "Ratio",
+                        out ParameterValue ratio),
+                    Is.True);
+                Assert.That(ratio.AsFloat(), Is.EqualTo(1.25f));
+                Assert.That(
+                    snapshot.Parameters.TryGetValue(
                         "Greeting",
                         out ParameterValue greeting),
                     Is.True);
                 Assert.That(greeting.AsString(), Is.EqualTo("歡迎"));
-                Assert.That(participant.DisplayName, Is.EqualTo("機關"));
-                Assert.That(participant.Ratio, Is.EqualTo(1.25f));
             }
             finally
             {
                 CultureInfo.CurrentCulture = originalCulture;
                 CultureInfo.CurrentUICulture = originalUiCulture;
-            }
-        }
-
-        public sealed class LocalizedSnapshot
-        {
-            public string DisplayName;
-            public float Ratio;
-        }
-
-        private sealed class LocalizedParticipant :
-            ISaveParticipant<LocalizedSnapshot>
-        {
-            public LocalizedParticipant(string displayName, float ratio)
-            {
-                DisplayName = displayName;
-                Ratio = ratio;
-            }
-
-            public string SaveKey => "Tests.Localized";
-            public string DisplayName { get; private set; }
-            public float Ratio { get; private set; }
-
-            public LocalizedSnapshot Capture()
-            {
-                return new LocalizedSnapshot
-                {
-                    DisplayName = DisplayName,
-                    Ratio = Ratio
-                };
-            }
-
-            public void Restore(LocalizedSnapshot snapshot)
-            {
-                DisplayName = snapshot.DisplayName;
-                Ratio = snapshot.Ratio;
             }
         }
     }

@@ -40,7 +40,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
         }
 
         [Test]
-        public void TimeService_AdvancingIntoNewDay_ChangesDayParameterAndOwnsCurrentPhase()
+        public void TimeService_AdvancingIntoNewDay_ChangesDayAndCurrentPhaseParameters()
         {
             TextAsset phases = new TextAsset(
                 "[{\"ID\":1,\"Key\":\"Morning\",\"DisplayName\":\"早晨\",\"NextID\":2,\"IsNewDay\":1}," +
@@ -52,7 +52,8 @@ namespace KahaGameCore.GameFlowSystem.Tests
             staticData.Add<TimePhaseData>(new TextAssetJsonStaticDataHandler(new[] { phases }));
             ParameterStore parameters = new ParameterStore(new[]
             {
-                ParameterDefinition.Int("Day", "天數", initialValue: 1, minValue: 1, maxValue: 999)
+                ParameterDefinition.Int("Day", "天數", initialValue: 1, minValue: 1, maxValue: 999),
+                ParameterDefinition.String(TimeService.PhaseParameterKey, "目前時段", "")
             });
             TimeService time = new TimeService(staticData, parameters);
 
@@ -63,7 +64,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
             Assert.That(parameters.GetInt("Day"), Is.EqualTo(2));
             Assert.That(time.CurrentDay, Is.EqualTo(2));
             Assert.That(time.CurrentPhase.Key, Is.EqualTo("Morning"));
-            Assert.That(parameters.TryGetValue("CurrentPhase", out _), Is.False);
+            Assert.That(parameters.GetString(TimeService.PhaseParameterKey), Is.EqualTo("Morning"));
         }
 
         [Test]
@@ -103,7 +104,8 @@ namespace KahaGameCore.GameFlowSystem.Tests
             ParameterStore parameters = new ParameterStore(new[]
             {
                 ParameterDefinition.Int("Day", "天數", initialValue: 1, minValue: 1, maxValue: 999),
-                ParameterDefinition.Int("Supplies", "物資", initialValue: 12, minValue: 0, maxValue: 9999)
+                ParameterDefinition.Int("Supplies", "物資", initialValue: 12, minValue: 0, maxValue: 9999),
+                ParameterDefinition.String(TimeService.PhaseParameterKey, "目前時段", "")
             });
 
             Type gameFlowFactory = typeof(GameFlowEffectCommandModuleFactory);
@@ -140,7 +142,7 @@ namespace KahaGameCore.GameFlowSystem.Tests
         }
 
         [Test]
-        public void SampleParameterTables_LoadEightDefinitionsWithoutFlowStateKeys()
+        public void SampleParameterTables_LoadNineDefinitionsIncludingCurrentPhase()
         {
             const string folder = "Assets/KahaGameCore/Modules/GameFlowSystem/DefaultViews/SampleData/Parameters";
             string[] paths = AssetDatabase.FindAssets("t:TextAsset", new[] { folder })
@@ -158,9 +160,9 @@ namespace KahaGameCore.GameFlowSystem.Tests
             ParameterStore store = new ParameterStore(definitions);
 
             Assert.That(tables, Has.Length.EqualTo(1));
-            Assert.That(definitions, Has.Length.EqualTo(8));
+            Assert.That(definitions, Has.Length.EqualTo(9));
             Assert.That(store.TryGetValue("Day", out _), Is.True);
-            Assert.That(store.TryGetValue("CurrentPhase", out _), Is.False);
+            Assert.That(store.TryGetValue("CurrentPhase", out _), Is.True);
             Assert.That(store.TryGetValue("CurrentLocation", out _), Is.False);
         }
 

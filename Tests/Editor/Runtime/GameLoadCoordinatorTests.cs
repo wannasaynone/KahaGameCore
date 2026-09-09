@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,17 +13,10 @@ namespace KahaGameCore.Tests
     {
         private sealed class MemoryLoadHost : IGameLoadHost
         {
-            private readonly PhaseParticipant phase;
-            private readonly SaveParticipantRegistry sceneParticipants;
             private readonly Action onSceneLoaded;
 
-            public MemoryLoadHost(
-                PhaseParticipant phase,
-                SaveParticipantRegistry sceneParticipants,
-                Action onSceneLoaded = null)
+            public MemoryLoadHost(Action onSceneLoaded = null)
             {
-                this.phase = phase;
-                this.sceneParticipants = sceneParticipants;
                 this.onSceneLoaded = onSceneLoaded;
             }
 
@@ -32,7 +24,7 @@ namespace KahaGameCore.Tests
             public int ScoreObservedDuringSceneComposition { get; private set; }
             public string PhaseObservedDuringSceneComposition { get; private set; }
 
-            public UniTask<SaveParticipantRegistry> LoadSceneAsync(
+            public UniTask LoadSceneAsync(
                 string sceneKey,
                 ParameterStore parameters,
                 CancellationToken cancellationToken)
@@ -42,69 +34,9 @@ namespace KahaGameCore.Tests
                 ScoreObservedDuringSceneComposition =
                     parameters.GetInt("Score");
                 PhaseObservedDuringSceneComposition =
-                    phase.CurrentPhaseKey;
+                    parameters.GetString("CurrentPhase");
                 onSceneLoaded?.Invoke();
-                return UniTask.FromResult(sceneParticipants);
-            }
-        }
-
-        public sealed class PhaseSnapshot
-        {
-            public string CurrentPhaseKey;
-        }
-
-        private sealed class PhaseParticipant :
-            ISaveParticipant<PhaseSnapshot>
-        {
-            public PhaseParticipant(string currentPhaseKey)
-            {
-                CurrentPhaseKey = currentPhaseKey;
-            }
-
-            public string SaveKey => "GameFlow.CurrentPhase";
-            public string CurrentPhaseKey { get; private set; }
-
-            public PhaseSnapshot Capture()
-            {
-                return new PhaseSnapshot
-                {
-                    CurrentPhaseKey = CurrentPhaseKey
-                };
-            }
-
-            public void Restore(PhaseSnapshot snapshot)
-            {
-                CurrentPhaseKey = snapshot.CurrentPhaseKey;
-            }
-        }
-
-        public sealed class PlayerSnapshot
-        {
-            public int Position;
-        }
-
-        private sealed class PlayerParticipant :
-            ISaveParticipant<PlayerSnapshot>
-        {
-            public PlayerParticipant(int position)
-            {
-                Position = position;
-            }
-
-            public string SaveKey => "Player";
-            public int Position { get; private set; }
-
-            public PlayerSnapshot Capture()
-            {
-                return new PlayerSnapshot
-                {
-                    Position = Position
-                };
-            }
-
-            public void Restore(PlayerSnapshot snapshot)
-            {
-                Position = snapshot.Position;
+                return UniTask.CompletedTask;
             }
         }
 
@@ -129,41 +61,21 @@ namespace KahaGameCore.Tests
         }
 
         [Test]
-        public async Task LoadAsync_RestoresSemanticStateBeforeSceneParticipants()
+        public async Task LoadAsync_RestoresParametersBeforeSceneComposition()
         {
-            ParameterStore savedParameters = CreateParameters(score: 7);
-            SaveParticipantRegistry savedParticipants =
-                new SaveParticipantRegistry();
-            savedParticipants.Register(new PhaseParticipant("Night"));
-            savedParticipants.Register(new PlayerParticipant(position: 3));
+            ParameterStore savedParameters =
+                CreateParameters(score: 7, phase: "Night");
             GameSaveDocumentJsonCodec codec =
                 new GameSaveDocumentJsonCodec();
             GameSaveSlotStore slots =
                 new GameSaveSlotStore(rootDirectory);
-            slots.Save(
-                2,
-                codec.Write(
-                    "Factory",
-                    savedParameters.Capture(),
-                    savedParticipants.Capture()));
+            slots.Save(2, codec.Write("Factory", savedParameters.Capture()));
 
-            ParameterStore runtimeParameters = CreateParameters(score: 0);
-            PhaseParticipant runtimePhase =
-                new PhaseParticipant("Morning");
-            SaveParticipantRegistry beforeSceneParticipants =
-                new SaveParticipantRegistry();
-            beforeSceneParticipants.Register(runtimePhase);
-            PlayerParticipant runtimePlayer =
-                new PlayerParticipant(position: 0);
-            SaveParticipantRegistry sceneParticipants =
-                new SaveParticipantRegistry();
-            sceneParticipants.Register(runtimePlayer);
-            MemoryLoadHost host = new MemoryLoadHost(
-                runtimePhase,
-                sceneParticipants);
+            ParameterStore runtimeParameters =
+                CreateParameters(score: 0, phase: "Morning");
+            MemoryLoadHost host = new MemoryLoadHost();
             GameLoadCoordinator coordinator = new GameLoadCoordinator(
                 runtimeParameters,
-                beforeSceneParticipants,
                 codec,
                 slots,
                 host);
@@ -177,48 +89,26 @@ namespace KahaGameCore.Tests
             Assert.That(
                 host.PhaseObservedDuringSceneComposition,
                 Is.EqualTo("Night"));
-            Assert.That(runtimePlayer.Position, Is.EqualTo(3));
         }
 
         [Test]
-        public void LoadAsync_CancelledAfterSceneCompositionDoesNotRestoreSceneParticipants()
+        public void LoadAsync_CancelledDuringSceneCompositionPropagates()
         {
-            ParameterStore savedParameters = CreateParameters(score: 7);
-            SaveParticipantRegistry savedParticipants =
-                new SaveParticipantRegistry();
-            savedParticipants.Register(new PhaseParticipant("Night"));
-            savedParticipants.Register(new PlayerParticipant(position: 3));
+            ParameterStore savedParameters =
+                CreateParameters(score: 7, phase: "Night");
             GameSaveDocumentJsonCodec codec =
                 new GameSaveDocumentJsonCodec();
             GameSaveSlotStore slots =
                 new GameSaveSlotStore(rootDirectory);
-            slots.Save(
-                2,
-                codec.Write(
-                    "Factory",
-                    savedParameters.Capture(),
-                    savedParticipants.Capture()));
+            slots.Save(2, codec.Write("Factory", savedParameters.Capture()));
 
-            ParameterStore runtimeParameters = CreateParameters(score: 0);
-            PhaseParticipant runtimePhase =
-                new PhaseParticipant("Morning");
-            SaveParticipantRegistry beforeSceneParticipants =
-                new SaveParticipantRegistry();
-            beforeSceneParticipants.Register(runtimePhase);
-            PlayerParticipant runtimePlayer =
-                new PlayerParticipant(position: 0);
-            SaveParticipantRegistry sceneParticipants =
-                new SaveParticipantRegistry();
-            sceneParticipants.Register(runtimePlayer);
+            ParameterStore runtimeParameters =
+                CreateParameters(score: 0, phase: "Morning");
             CancellationTokenSource cancellation =
                 new CancellationTokenSource();
-            MemoryLoadHost host = new MemoryLoadHost(
-                runtimePhase,
-                sceneParticipants,
-                cancellation.Cancel);
+            MemoryLoadHost host = new MemoryLoadHost(cancellation.Cancel);
             GameLoadCoordinator coordinator = new GameLoadCoordinator(
                 runtimeParameters,
-                beforeSceneParticipants,
                 codec,
                 slots,
                 host);
@@ -226,55 +116,40 @@ namespace KahaGameCore.Tests
             Assert.CatchAsync<OperationCanceledException>(async () =>
                 await coordinator.LoadAsync(2, cancellation.Token));
 
-            Assert.That(runtimePlayer.Position, Is.EqualTo(0));
             cancellation.Dispose();
         }
 
         [Test]
-        public void LoadAsync_DuplicateUnknownParticipantFailsBeforeLoadingScene()
+        public void LoadAsync_MalformedSaveFailsBeforeLoadingScene()
         {
             const string malformedSave =
-                "{\"SchemaVersion\":1," +
+                "{\"SchemaVersion\":2," +
                 "\"SceneKey\":\"Factory\"," +
-                "\"Parameters\":{\"SchemaVersion\":1,\"Values\":[]}," +
-                "\"Participants\":[" +
-                "{\"SaveKey\":\"Missing\",\"Snapshot\":{\"Value\":1}}," +
-                "{\"SaveKey\":\"Missing\",\"Snapshot\":{\"Value\":2}}]}";
+                "\"Parameters\":{\"SchemaVersion\":1,\"Values\":[]}}";
             GameSaveSlotStore slots =
                 new GameSaveSlotStore(rootDirectory);
             slots.Save(2, malformedSave);
-            ParameterStore parameters = CreateParameters(score: 0);
-            PhaseParticipant phase = new PhaseParticipant("Morning");
-            MemoryLoadHost host = new MemoryLoadHost(
-                phase,
-                new SaveParticipantRegistry());
+            MemoryLoadHost host = new MemoryLoadHost();
             GameLoadCoordinator coordinator = new GameLoadCoordinator(
-                parameters,
-                new SaveParticipantRegistry(),
+                CreateParameters(score: 0, phase: "Morning"),
                 new GameSaveDocumentJsonCodec(),
                 slots,
                 host);
 
             InvalidOperationException exception =
                 Assert.ThrowsAsync<InvalidOperationException>(async () =>
-                    await coordinator.LoadAsync(
-                        2,
-                        CancellationToken.None));
+                    await coordinator.LoadAsync(2, CancellationToken.None));
 
-            Assert.That(exception.Message, Does.Contain("duplicate key"));
+            Assert.That(exception.Message, Does.Contain("schema version"));
             Assert.That(host.LoadedSceneKey, Is.Null);
         }
 
-        private static ParameterStore CreateParameters(int score)
+        private static ParameterStore CreateParameters(int score, string phase)
         {
             return new ParameterStore(new[]
             {
-                ParameterDefinition.Int(
-                    "Score",
-                    "Score",
-                    score,
-                    0,
-                    10)
+                ParameterDefinition.Int("Score", "Score", score, 0, 10),
+                ParameterDefinition.String("CurrentPhase", "Current Phase", phase)
             });
         }
     }
