@@ -2,7 +2,6 @@
     "name": "KahaGameCore.Samples.GameSaveTest",
     "rootNamespace": "KahaGameCore.Samples.GameSaveTest",
     "references": [
-        "KahaGameCore.Modules.Persistence.GameEventsIntegration",
         "KahaGameCore.Modules.Persistence",
         "KahaGameCore.Modules.GameEvents",
         "KahaGameCore.Modules.Effects",

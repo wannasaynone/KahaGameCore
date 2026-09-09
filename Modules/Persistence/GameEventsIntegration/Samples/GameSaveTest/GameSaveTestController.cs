@@ -9,7 +9,6 @@ using KahaGameCore.GameFlowSystem.DefaultImplements.Data;
 using KahaGameCore.GameFlowSystem.DefaultImplements.DataAccess;
 using KahaGameCore.Parameters;
 using KahaGameCore.Persistence;
-using KahaGameCore.Persistence.GameEventsIntegration;
 using KahaGameCore.Presentation;
 using KahaGameCore.StaticData;
 using UnityEngine;
@@ -29,7 +28,7 @@ namespace KahaGameCore.Samples.GameSaveTest
         private TimeService time;
         private GameSaveDocumentJsonCodec codec;
         private GameSaveSlotStore slots;
-        private GameSaveCoordinator saves;
+        private GameEventRunner events;
         private Transform player;
         private GameObject stateA;
         private GameObject stateB;
@@ -90,10 +89,10 @@ namespace KahaGameCore.Samples.GameSaveTest
             status = "Waiting for the Game Event queue, then saving...";
             try
             {
-                await saves.SaveAsync(
-                    TestSlot,
+                await events.WaitUntilIdleAsync(CancellationToken.None);
+                slots.Save(TestSlot, codec.Write(
                     SceneManager.GetActiveScene().name,
-                    CancellationToken.None);
+                    parameters.Capture()));
                 status = $"Saved stage {MachineStage}, phase {CurrentPhaseKey}, player X {PlayerPosition.x:0}.";
             }
             catch (Exception exception)
@@ -274,11 +273,7 @@ namespace KahaGameCore.Samples.GameSaveTest
                 Application.persistentDataPath,
                 "KahaGameCore",
                 "GameSaveTest"));
-            saves = new GameSaveCoordinator(
-                runner,
-                parameters,
-                codec,
-                slots);
+            events = runner;
         }
 
         private static GameObject CreateCube(
