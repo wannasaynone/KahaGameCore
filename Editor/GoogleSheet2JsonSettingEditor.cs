@@ -142,15 +142,15 @@ namespace KahaGameCore.EditorTool
                         continue;
                     }
 
-                    if (int.TryParse(values[j], System.Globalization.NumberStyles.None | System.Globalization.NumberStyles.AllowLeadingSign, null, out int intValue))
+                    if (int.TryParse(values[j], System.Globalization.NumberStyles.None | System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out int intValue))
                     {
                         modifier.Add(keys[j], intValue);
                     }
-                    else if (long.TryParse(values[j], System.Globalization.NumberStyles.None | System.Globalization.NumberStyles.AllowLeadingSign, null, out long longValue))
+                    else if (long.TryParse(values[j], System.Globalization.NumberStyles.None | System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out long longValue))
                     {
                         modifier.Add(keys[j], longValue);
                     }
-                    else if (float.TryParse(values[j], System.Globalization.NumberStyles.None | System.Globalization.NumberStyles.AllowLeadingSign | System.Globalization.NumberStyles.AllowDecimalPoint, null, out float floatValue))
+                    else if (float.TryParse(values[j], System.Globalization.NumberStyles.None | System.Globalization.NumberStyles.AllowLeadingSign | System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out float floatValue))
                     {
                         modifier.Add(keys[j], floatValue);
                     }
