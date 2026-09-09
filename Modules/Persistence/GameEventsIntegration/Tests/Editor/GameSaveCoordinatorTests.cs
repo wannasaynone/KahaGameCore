@@ -85,7 +85,7 @@ namespace KahaGameCore.Persistence.GameEventsIntegration.Tests
                 parameters,
                 eventCodec);
             TextAsset file = new TextAsset("{" +
-                "\"SchemaVersion\":1," +
+                "\"SchemaVersion\":2," +
                 "\"DocumentGuid\":\"40000000-0000-0000-0000-000000000001\"," +
                 "\"DisplayName\":\"Blocking Save Event\"," +
                 "\"TriggerTiming\":\"\"," +
