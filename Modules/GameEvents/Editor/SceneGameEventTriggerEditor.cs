@@ -335,4 +335,14 @@ namespace KahaGameCore.GameEvents.Editor
             serializedObject.ApplyModifiedProperties();
         }
     }
+
+    public static class GameEventSelectorGUI
+    {
+        public static void Draw(SerializedProperty gameEventFile)
+        {
+            SceneGameEventTriggerEditorBase.DrawGameEventSelector(
+                gameEventFile ?? throw new ArgumentNullException(nameof(gameEventFile)),
+                GameEventEditorProjectSettings.instance.LoadEventCatalog());
+        }
+    }
 }
