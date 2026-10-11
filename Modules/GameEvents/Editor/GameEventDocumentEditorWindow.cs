@@ -2505,12 +2505,12 @@ namespace KahaGameCore.GameEvents.Editor
             IReadOnlyList<EffectCommandArgumentOption> options;
             try
             {
-                options = provider.GetOptions(
-                              new EffectCommandArgumentOptionContext(
-                                  descriptor.Name,
-                                  argumentIndex,
-                                  draft.Arguments)) ??
-                          Array.Empty<EffectCommandArgumentOption>();
+                options = EffectCommandArgumentOptionCatalog.GetOptions(
+                    provider,
+                    new EffectCommandArgumentOptionContext(
+                        descriptor.Name,
+                        argumentIndex,
+                        draft.Arguments));
             }
             catch (Exception exception)
             {
@@ -3036,6 +3036,7 @@ namespace KahaGameCore.GameEvents.Editor
                 workspaceErrors);
             parameterUsageIndex = null;
             parameterUsageSignature = null;
+            EffectCommandArgumentOptionCatalog.InvalidateOptions();
             if (!showStatus)
             {
                 return;

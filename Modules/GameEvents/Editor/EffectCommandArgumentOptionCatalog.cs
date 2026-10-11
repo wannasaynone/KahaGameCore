@@ -8,6 +8,68 @@ namespace KahaGameCore.GameEvents.Editor
     internal static class EffectCommandArgumentOptionCatalog
     {
         private static IReadOnlyList<IEffectCommandArgumentOptionProvider> providers;
+        private static readonly Dictionary<string, IReadOnlyList<EffectCommandArgumentOption>>
+            optionCache =
+                new Dictionary<string, IReadOnlyList<EffectCommandArgumentOption>>(
+                    StringComparer.Ordinal);
+
+        static EffectCommandArgumentOptionCatalog()
+        {
+            EditorApplication.hierarchyChanged += InvalidateOptions;
+            EditorApplication.projectChanged += InvalidateOptions;
+            ObjectChangeEvents.changesPublished += OnObjectChanges;
+        }
+
+        private static void OnObjectChanges(ref ObjectChangeEventStream stream)
+        {
+            for (int index = 0; index < stream.length; index++)
+            {
+                // Asset edits (typing a dialogue line records one per keystroke) need
+                // another window; the editor invalidates when it gets focus back.
+                if (stream.GetEventType(index) !=
+                    ObjectChangeKind.ChangeAssetObjectProperties)
+                {
+                    InvalidateOptions();
+                    return;
+                }
+            }
+        }
+
+        // Providers scan the scene and the editor asks once per argument per OnGUI,
+        // so answers are kept until the scene or project changes.
+        public static IReadOnlyList<EffectCommandArgumentOption> GetOptions(
+            IEffectCommandArgumentOptionProvider provider,
+            EffectCommandArgumentOptionContext context)
+        {
+            string key = string.Join(
+                "\u001f",
+                provider.SourceKey,
+                context.CommandName,
+                context.ArgumentIndex,
+                string.Join("\u001f", context.Arguments));
+            if (optionCache.TryGetValue(
+                    key,
+                    out IReadOnlyList<EffectCommandArgumentOption> options))
+            {
+                return options;
+            }
+
+            // Typing in a free-text argument makes a new key per keystroke.
+            if (optionCache.Count >= 1024)
+            {
+                optionCache.Clear();
+            }
+
+            options = provider.GetOptions(context) ??
+                      Array.Empty<EffectCommandArgumentOption>();
+            optionCache[key] = options;
+            return options;
+        }
+
+        internal static void InvalidateOptions()
+        {
+            optionCache.Clear();
+        }
 
         public static bool TryGetProvider(
             string sourceKey,
@@ -64,6 +126,7 @@ namespace KahaGameCore.GameEvents.Editor
         {
             StopAllPreviews();
             providers = null;
+            InvalidateOptions();
         }
 
         private static IReadOnlyList<IEffectCommandArgumentOptionProvider> Providers =>

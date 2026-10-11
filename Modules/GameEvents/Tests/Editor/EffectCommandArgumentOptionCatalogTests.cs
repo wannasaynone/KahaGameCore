@@ -11,11 +11,14 @@ namespace KahaGameCore.GameEvents.Tests
         public sealed class UniqueProvider :
             IEffectCommandArgumentOptionProvider
         {
+            public static int Calls;
+
             public string SourceKey => "TestUniqueOptions";
 
             public IReadOnlyList<EffectCommandArgumentOption> GetOptions(
                 EffectCommandArgumentOptionContext context)
             {
+                Calls++;
                 return Array.Empty<EffectCommandArgumentOption>();
             }
 
@@ -128,6 +131,35 @@ namespace KahaGameCore.GameEvents.Tests
 
             Assert.That(found, Is.True, error);
             Assert.That(provider, Is.TypeOf<UniqueProvider>());
+        }
+
+        [Test]
+        public void Catalog_AsksProviderOncePerRequestUntilInvalidated()
+        {
+            EffectCommandArgumentOptionCatalog.TryGetProvider(
+                "TestUniqueOptions",
+                out IEffectCommandArgumentOptionProvider provider,
+                out _);
+            UniqueProvider.Calls = 0;
+
+            EffectCommandArgumentOptionCatalog.GetOptions(
+                provider,
+                new EffectCommandArgumentOptionContext("Cmd", 0, new[] { "actor" }));
+            EffectCommandArgumentOptionCatalog.GetOptions(
+                provider,
+                new EffectCommandArgumentOptionContext("Cmd", 0, new[] { "actor" }));
+            Assert.That(UniqueProvider.Calls, Is.EqualTo(1));
+
+            EffectCommandArgumentOptionCatalog.GetOptions(
+                provider,
+                new EffectCommandArgumentOptionContext("Cmd", 0, new[] { "other" }));
+            Assert.That(UniqueProvider.Calls, Is.EqualTo(2));
+
+            EffectCommandArgumentOptionCatalog.InvalidateOptions();
+            EffectCommandArgumentOptionCatalog.GetOptions(
+                provider,
+                new EffectCommandArgumentOptionContext("Cmd", 0, new[] { "actor" }));
+            Assert.That(UniqueProvider.Calls, Is.EqualTo(3));
         }
 
         [Test]
