@@ -1,412 +1,244 @@
 using System;
-using System.Collections.Generic;
-using DG.Tweening;
+using System.Runtime.CompilerServices;
 using UnityEngine;
+
+[assembly: InternalsVisibleTo("KahaGameCore.Audio.Tests")]
 
 namespace KahaGameCore.Audio
 {
-    public struct VolumeSnapshot
+    public enum AudioChannel
     {
-        public float MasterVolume;
-        public float BGMVolume;
-        public float SFXVolume;
+        Master,
+        Bgm,
+        Sfx
     }
 
-    public class AudioManager : MonoBehaviour
+    /// <summary>
+    /// The single entry point for playing sound. The first call creates a
+    /// persistent host object, so any Scene can play sound without setup, and
+    /// BGM carries on across Scene loads. Volumes are player settings: they are
+    /// saved to PlayerPrefs and survive <see cref="Reset"/>.
+    /// </summary>
+    public static class AudioManager
     {
-        public static AudioManager Instance { get; private set; }
+        private const string VolumePrefsKeyPrefix = "KahaGameCore.Audio.Volume.";
+        private const float DefaultVolume = 1f;
 
-        [SerializeField] private AudioSource soundEffectSourcePrefab;
-        [SerializeField] private AudioSource bgmAudioSource;
-        [SerializeField] private AudioSource whiteNoiseAudio;
-        [SerializeField] private float distanceVolumeMaxRange = 10f;
-        [SerializeField] private float distanceVolumeLerpSpeed = 5f;
+        private static AudioHost host;
+        private static float[] volumes;
 
-        private float masterVolume = 1f;
-        private float bgmVolume = 0.5f;
-        private float sfxVolume = 1f;
+        /// <summary>Fires with the channel whose own volume changed and its new value.</summary>
+        public static event Action<AudioChannel, float> VolumeChanged;
 
-        public float MasterVolume
+        /// <summary>
+        /// Distance at which positional sound starts to fade. The default
+        /// covers a 2D camera sitting 10 units in front of the scene.
+        /// </summary>
+        public static float SpatialMinDistance { get; set; } = 10f;
+
+        /// <summary>Distance at which positional sound becomes silent.</summary>
+        public static float SpatialMaxDistance { get; set; } = 25f;
+
+        internal static AudioHost Host
         {
-            get => masterVolume;
-            set
+            get
             {
-                float clamped = Mathf.Clamp01(value);
-                if (Mathf.Approximately(masterVolume, clamped)) return;
-                masterVolume = clamped;
-                ApplyVolumeChange();
-            }
-        }
-
-        public float BGMVolume
-        {
-            get => bgmVolume;
-            set
-            {
-                float clamped = Mathf.Clamp01(value);
-                if (Mathf.Approximately(bgmVolume, clamped)) return;
-                bgmVolume = clamped;
-                ApplyVolumeChange();
-            }
-        }
-
-        public float SFXVolume
-        {
-            get => sfxVolume;
-            set
-            {
-                float clamped = Mathf.Clamp01(value);
-                if (Mathf.Approximately(sfxVolume, clamped)) return;
-                sfxVolume = clamped;
-                ApplyVolumeChange();
-            }
-        }
-
-        public event Action<VolumeSnapshot> OnVolumeChanged;
-
-        private float clearPlayingSourcesInterval = 0.05f;
-        private float clearPlayingSourcesTimer = 0f;
-        private List<AudioSource> playingSources = new List<AudioSource>();
-        private List<AudioSource> allSpawnedSources = new List<AudioSource>();
-
-        private class DistanceAudioSource
-        {
-            public AudioSource source;
-            public Transform soundOrigin;
-            public Transform listener;
-            public float targetVolume;
-        }
-
-        private List<DistanceAudioSource> distanceAudioSources = new List<DistanceAudioSource>();
-
-        [Serializable]
-        private struct DistanceAudioDebugInfo
-        {
-            public string clipName;
-            public string originName;
-            public float distance;
-            public float targetVolume;
-            public float currentVolume;
-        }
-
-        [Header("Distance Audio Debug")]
-        [SerializeField] private List<DistanceAudioDebugInfo> debugDistanceAudioInfo = new List<DistanceAudioDebugInfo>();
-
-        public bool IsPlayingWhiteNoise => whiteNoiseAudio != null && whiteNoiseAudio.isPlaying;
-
-        private Tween bgmFadeTween;
-
-        private float EffectiveSFXVolume => sfxVolume * masterVolume;
-        private float EffectiveBGMVolume => bgmVolume * masterVolume;
-
-        private void Awake()
-        {
-            Instance = this;
-        }
-
-        private void Update()
-        {
-            clearPlayingSourcesTimer += Time.deltaTime;
-            if (clearPlayingSourcesTimer >= clearPlayingSourcesInterval)
-            {
-                playingSources.Clear();
-                clearPlayingSourcesTimer = 0f;
-
-                // 清理已被銷毀的 AudioSource 引用，避免 allSpawnedSources 無限增長
-                for (int i = allSpawnedSources.Count - 1; i >= 0; i--)
+                if (host == null)
                 {
-                    if (allSpawnedSources[i] == null)
+                    var hostObject = new GameObject("[AudioManager]");
+                    if (Application.isPlaying)
                     {
-                        allSpawnedSources.RemoveAt(i);
+                        UnityEngine.Object.DontDestroyOnLoad(hostObject);
                     }
-                }
-            }
 
-            UpdateDistanceAudioSources();
-        }
-
-        private void UpdateDistanceAudioSources()
-        {
-            float effectiveSfx = EffectiveSFXVolume;
-
-            debugDistanceAudioInfo.Clear();
-
-            for (int i = distanceAudioSources.Count - 1; i >= 0; i--)
-            {
-                DistanceAudioSource das = distanceAudioSources[i];
-
-                if (das.source == null || !das.source.isPlaying || das.soundOrigin == null || das.listener == null)
-                {
-                    if (das.source != null)
-                    {
-                        Destroy(das.source.gameObject);
-                    }
-                    distanceAudioSources.RemoveAt(i);
-                    continue;
+                    host = hostObject.AddComponent<AudioHost>();
+                    host.Initialize();
                 }
 
-                float distance = Vector2.Distance(das.soundOrigin.position, das.listener.position);
-                das.targetVolume = Mathf.Clamp01(1f - distance / distanceVolumeMaxRange) * effectiveSfx;
-                das.source.volume = Mathf.Lerp(das.source.volume, das.targetVolume, Time.deltaTime * distanceVolumeLerpSpeed);
-
-                debugDistanceAudioInfo.Add(new DistanceAudioDebugInfo
-                {
-                    clipName = das.source.clip != null ? das.source.clip.name : "null",
-                    originName = das.soundOrigin.name,
-                    distance = distance,
-                    targetVolume = das.targetVolume,
-                    currentVolume = das.source.volume
-                });
+                return host;
             }
         }
 
-        private void ApplyVolumeChange()
+        public static float GetVolume(AudioChannel channel)
         {
-            // Update BGM volume
-            SetBGMAudioSourceVolume(EffectiveBGMVolume);
-
-            // Update white noise volume if playing
-            if (IsPlayingWhiteNoise)
-            {
-                whiteNoiseAudio.volume = EffectiveSFXVolume;
-            }
-
-            // Update SFX volume for all currently playing sound effects
-            foreach (var source in playingSources)
-            {
-                if (source != null)
-                {
-                    source.volume = EffectiveSFXVolume;
-                }
-            }
-
-            OnVolumeChanged?.Invoke(new VolumeSnapshot
-            {
-                MasterVolume = masterVolume,
-                BGMVolume = bgmVolume,
-                SFXVolume = sfxVolume
-            });
+            LoadVolumesIfNeeded();
+            return volumes[(int)channel];
         }
 
-        public void PlaySound(AudioClip audioClip)
+        public static void SetVolume(AudioChannel channel, float volume)
         {
-            if (audioClip == null)
-            {
-                Debug.Log("AudioManager: PlaySound clip is null.");
-                return;
-            }
-
-            AudioSource clone = Instantiate(soundEffectSourcePrefab, transform.position, Quaternion.identity);
-
-            for (int i = 0; i < playingSources.Count; i++)
-            {
-                if (playingSources[i] == null)
-                {
-                    playingSources.RemoveAt(i);
-                    i--;
-                    continue;
-                }
-
-                if (playingSources[i].clip == audioClip && playingSources[i].volume >= 0.35f) // 避免爆音，當同一個clip已經有一個以上的實例在播放且音量較大時，不再播放新的實例
-                {
-                    Destroy(clone.gameObject);
-                    return;
-                }
-            }
-
-            playingSources.Add(clone);
-            allSpawnedSources.Add(clone);
-
-            clone.clip = audioClip;
-            clone.volume = EffectiveSFXVolume;
-            clone.PlayOneShot(audioClip);
-            Destroy(clone.gameObject, audioClip.length);
-        }
-
-        public void ForcePlaySound(AudioClip audioClip)
-        {
-            if (audioClip == null)
-            {
-                Debug.Log("AudioManager: ForcePlaySound clip is null.");
-                return;
-            }
-
-            AudioSource clone = Instantiate(soundEffectSourcePrefab, transform.position, Quaternion.identity);
-
-            playingSources.Add(clone);
-            allSpawnedSources.Add(clone);
-
-            clone.clip = audioClip;
-            clone.volume = EffectiveSFXVolume;
-            clone.PlayOneShot(audioClip);
-            Destroy(clone.gameObject, audioClip.length);
-        }
-
-        public void PlaySoundWithDistance(AudioClip audioClip, Transform soundOrigin, Transform listener)
-        {
-            if (audioClip == null)
-            {
-                Debug.Log("AudioManager: PlaySoundWithDistance clip is null.");
-                return;
-            }
-
-            float distance = Vector2.Distance(soundOrigin.position, listener.position);
-            float initialVolume = Mathf.Clamp01(1f - distance / distanceVolumeMaxRange) * EffectiveSFXVolume;
-
-            if (initialVolume <= 0f)
+            LoadVolumesIfNeeded();
+            float clamped = Mathf.Clamp01(volume);
+            if (Mathf.Approximately(volumes[(int)channel], clamped))
             {
                 return;
             }
 
-            AudioSource clone = Instantiate(soundEffectSourcePrefab, soundOrigin.position, Quaternion.identity);
+            volumes[(int)channel] = clamped;
+            PlayerPrefs.SetFloat(VolumePrefsKeyPrefix + channel, clamped);
 
-            for (int i = 0; i < playingSources.Count; i++)
+            if (host != null)
             {
-                if (playingSources[i] == null)
-                {
-                    playingSources.RemoveAt(i);
-                    i--;
-                    continue;
-                }
-
-                if (playingSources[i].clip == audioClip && playingSources[i].volume >= 0.35f) // 避免爆音，當同一個clip已經有一個以上的實例在播放且音量較大時，不再播放新的實例)
-                {
-                    Destroy(clone.gameObject);
-                    return;
-                }
+                host.ApplyVolumes();
             }
 
-            playingSources.Add(clone);
-            allSpawnedSources.Add(clone);
-
-            clone.clip = audioClip;
-            clone.volume = initialVolume;
-            clone.Play();
-
-            distanceAudioSources.Add(new DistanceAudioSource
-            {
-                source = clone,
-                soundOrigin = soundOrigin,
-                listener = listener,
-                targetVolume = initialVolume
-            });
+            VolumeChanged?.Invoke(channel, clamped);
         }
 
-        public void ForceStopAllSounds()
+        /// <summary>Channel volume multiplied by Master.</summary>
+        internal static float GetEffectiveVolume(AudioChannel channel)
         {
-            foreach (var source in allSpawnedSources)
-            {
-                if (source != null)
-                {
-                    source.Stop();
-                    Destroy(source.gameObject);
-                }
-            }
-
-            foreach (var das in distanceAudioSources)
-            {
-                if (das.source != null)
-                {
-                    das.source.Stop();
-                    Destroy(das.source.gameObject);
-                }
-            }
-
-            allSpawnedSources.Clear();
-            playingSources.Clear();
-            distanceAudioSources.Clear();
-            EnableWhiteNoise(false);
+            float master = GetVolume(AudioChannel.Master);
+            return channel == AudioChannel.Master ? master : GetVolume(channel) * master;
         }
 
-        public void PlayBGM(AudioClip clip)
+        /// <summary>
+        /// Crossfades to <paramref name="clip"/>. Asking for the clip that is
+        /// already playing keeps it going instead of restarting it.
+        /// </summary>
+        public static void PlayBgm(AudioClip clip, float fadeSeconds = 1f)
         {
             if (clip == null)
             {
-                Debug.Log("AudioManager: PlayBGM clip is null.");
+                Debug.LogWarning("[AudioManager] PlayBgm: clip is null.");
                 return;
             }
 
-            if (bgmAudioSource.clip == clip && bgmAudioSource.isPlaying)
-            {
-                return;
-            }
-
-            if (bgmFadeTween != null) bgmFadeTween.Kill();
-
-            if (GetBGMAudioSourceVolume() <= 0.1f || !bgmAudioSource.isPlaying)
-            {
-                ForcePlay(clip);
-                return;
-            }
-
-            bgmFadeTween = DOTween.To(GetBGMAudioSourceVolume, SetBGMAudioSourceVolume, 0f, 1f).OnComplete(delegate
-            {
-                ForcePlay(clip);
-            });
+            Host.PlayBgm(clip, fadeSeconds);
         }
 
-        private void ForcePlay(AudioClip clip)
+        public static void StopBgm(float fadeSeconds = 1f)
+        {
+            if (host != null)
+            {
+                host.StopBgm(fadeSeconds);
+            }
+        }
+
+        /// <summary>Plays a non-positional one-shot (UI, hit feedback).</summary>
+        public static void PlaySfx(AudioClip clip)
         {
             if (clip == null)
             {
-                Debug.LogError("AudioManager: ForcePlay clip is null.");
+                Debug.LogWarning("[AudioManager] PlaySfx: clip is null.");
                 return;
             }
 
-            bgmAudioSource.volume = 0f;
-            bgmAudioSource.clip = clip;
-            bgmAudioSource.Play();
-            bgmFadeTween = DOTween.To(GetBGMAudioSourceVolume, SetBGMAudioSourceVolume, EffectiveBGMVolume, 2f);
+            Host.PlaySfx(clip, spatial: false, Vector3.zero);
         }
 
-        public void StopBGM()
+        /// <summary>Plays a one-shot at a world position.</summary>
+        public static void PlaySfx(AudioClip clip, Vector3 position)
         {
-            if (bgmFadeTween != null) bgmFadeTween.Kill();
-            bgmFadeTween = DOTween.To(GetBGMAudioSourceVolume, SetBGMAudioSourceVolume, 0f, 1f).OnComplete(delegate
+            if (clip == null)
             {
-                bgmAudioSource.Stop();
-                bgmAudioSource.clip = null;
-            });
+                Debug.LogWarning("[AudioManager] PlaySfx: clip is null.");
+                return;
+            }
+
+            Host.PlaySfx(clip, spatial: true, position);
         }
 
-        private float GetBGMAudioSourceVolume()
+        /// <summary>
+        /// Loops <paramref name="clip"/> on a child of <paramref name="owner"/>.
+        /// The loop follows the owner and ends when the owner is destroyed,
+        /// so it lives and dies with the owner's Scene.
+        /// </summary>
+        public static AudioLoop PlayLoop(AudioClip clip, Transform owner, bool spatial = true)
         {
-            return bgmAudioSource.volume;
+            if (clip == null)
+            {
+                Debug.LogWarning("[AudioManager] PlayLoop: clip is null.");
+                return null;
+            }
+
+            if (owner == null)
+            {
+                Debug.LogWarning($"[AudioManager] PlayLoop: owner is null for clip '{clip.name}'.");
+                return null;
+            }
+
+            return Host.PlayLoop(clip, owner, spatial);
         }
 
-        public void SetBGMAudioSourceVolume(float volume)
+        /// <summary>Stops every one-shot and loop on the SFX channel.</summary>
+        public static void StopAllSfx()
         {
-            bgmAudioSource.volume = volume;
+            if (host != null)
+            {
+                host.StopAllSfx();
+            }
         }
 
-        public void EnableWhiteNoise(bool enable)
+        /// <summary>
+        /// Stops all sound at once. Call when starting a new game or returning
+        /// to the title. Volumes are kept.
+        /// </summary>
+        public static void Reset()
         {
-            if (whiteNoiseAudio == null)
+            if (host != null)
+            {
+                host.StopBgm(0f);
+                host.StopAllSfx();
+            }
+        }
+
+        private static void LoadVolumesIfNeeded()
+        {
+            if (volumes != null)
             {
                 return;
             }
 
-            if (enable)
+            AudioChannel[] channels = (AudioChannel[])Enum.GetValues(typeof(AudioChannel));
+            volumes = new float[channels.Length];
+            foreach (AudioChannel channel in channels)
             {
-                if (!whiteNoiseAudio.isPlaying) whiteNoiseAudio.Play();
-                whiteNoiseAudio.volume = 0;
-                DOTween.To(GetWhiteNoiseVolume, SetWhiteNoiseVolume, EffectiveSFXVolume, 1f);
-            }
-            else
-            {
-                DOTween.To(GetWhiteNoiseVolume, SetWhiteNoiseVolume, 0f, 1f);
+                volumes[(int)channel] = PlayerPrefs.GetFloat(VolumePrefsKeyPrefix + channel, DefaultVolume);
             }
         }
 
-        private float GetWhiteNoiseVolume()
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        internal static void ResetStatics()
         {
-            return whiteNoiseAudio.volume;
+            // Statics survive entering Play Mode when domain reload is disabled.
+            if (host != null)
+            {
+                if (Application.isPlaying)
+                {
+                    UnityEngine.Object.Destroy(host.gameObject);
+                }
+                else
+                {
+                    UnityEngine.Object.DestroyImmediate(host.gameObject);
+                }
+            }
+
+            host = null;
+            volumes = null;
+            VolumeChanged = null;
+        }
+    }
+
+    /// <summary>Handle to a sound started by <see cref="AudioManager.PlayLoop"/>.</summary>
+    public sealed class AudioLoop
+    {
+        internal AudioLoop(AudioSource source)
+        {
+            Source = source;
         }
 
-        private void SetWhiteNoiseVolume(float volume)
-        {
-            whiteNoiseAudio.volume = volume;
-        }
+        internal AudioSource Source { get; }
 
+        /// <summary>False once stopped or once its owner is destroyed.</summary>
+        public bool IsAlive => Source != null;
+
+        public void Stop()
+        {
+            if (Source != null)
+            {
+                UnityEngine.Object.Destroy(Source.gameObject);
+            }
+        }
     }
 }

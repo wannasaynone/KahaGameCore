@@ -2,44 +2,57 @@
 
 ## 用途
 
-Audio 提供場景型 `AudioManager`，集中控制 BGM、SFX、距離衰減音效、白噪音，以及 Master／BGM／SFX 三層音量。需要在多個 gameplay 系統共用同一套音量與播放入口時使用。
+Audio 是遊戲播放聲音的唯一入口：BGM、一次性音效、循環音效，以及 Master／BGM／SFX 三層音量。`AudioManager` 是靜態類別，第一次呼叫時自己建立一個 `DontDestroyOnLoad` 的 `[AudioManager]` 物件，所以任何場景都能直接播放，不需要在場景放任何東西、也不需要在 Inspector 指定欄位。BGM 跨場景接續播放。
+
+asmdef 為 `KahaGameCore.Audio`，不依賴其他 assembly。
 
 ## 第一次使用：播放一個音效
 
 開始前：呼叫端 asmdef 引用 `KahaGameCore.Audio`，並準備一個 `AudioClip`。
 
-1. 在啟動場景建立 `AudioManager` GameObject，加入 `AudioManager` component。
-2. 建立一個含 `AudioSource` 的 prefab，指定給 `Sound Effect Source Prefab`。
-3. 再建立一個場景內 `AudioSource`，指定給 `Bgm Audio Source`。
-4. 進入 Play Mode 後呼叫：
-
 ```csharp
 using KahaGameCore.Audio;
 
-AudioManager.Instance.PlaySound(clickClip);
+AudioManager.PlaySfx(clickClip);
 ```
 
-預期結果：`AudioManager` 以 SFX prefab 建立播放來源並播放 `clickClip`。若 `Instance` 為 null，表示場景中的 manager 尚未執行 `Awake`。
+預期結果：在 Play Mode 中聽到 `clickClip`，Hierarchy 的 DontDestroyOnLoad 底下出現 `[AudioManager]`。
 
 ## 常用操作
 
 ```csharp
-AudioManager.Instance.MasterVolume = 0.8f;
-AudioManager.Instance.BGMVolume = 0.5f;
-AudioManager.Instance.SFXVolume = 1f;
+// BGM：換歌時兩首 crossfade；要求正在播的同一首則繼續播，不重頭開始。
+AudioManager.PlayBgm(bgmClip, fadeSeconds: 1f);
+AudioManager.StopBgm(fadeSeconds: 1f);
 
-AudioManager.Instance.PlayBGM(bgmClip);
-AudioManager.Instance.PlaySoundWithDistance(impactClip, impactOrigin, listener);
+// 一次性音效：2D（UI、受擊回饋），或在世界座標播放。
+AudioManager.PlaySfx(hitClip);
+AudioManager.PlaySfx(explosionClip, transform.position);
 
-AudioManager.Instance.OnVolumeChanged += snapshot =>
-    SaveAudioSettings(snapshot);
+// 循環音效：掛在 owner 底下，跟著 owner 移動，owner 被刪除（含換場景）時一起結束。
+AudioLoop engine = AudioManager.PlayLoop(engineClip, transform);
+engine.Stop();
+
+// 開新遊戲、回標題：停掉所有聲音，音量保留。
+AudioManager.Reset();
 ```
 
-需要白噪音時才指定 `White Noise Audio`。`ForcePlaySound` 用於確定允許同一 clip 重疊的情況。
+## 音量
+
+```csharp
+AudioManager.SetVolume(AudioChannel.Bgm, 0.7f);
+float bgm = AudioManager.GetVolume(AudioChannel.Bgm);
+AudioManager.VolumeChanged += (channel, volume) => { /* 更新音量條 */ };
+```
+
+- 音量是玩家設定：自動存進 `PlayerPrefs`，下次啟動讀回來；`Reset()` 不會清掉。呼叫端不需要知道 PlayerPrefs key。
+- 實際音量 = 該 channel 音量 × Master。改音量立刻套用到正在播的 BGM、音效和循環音效，包括 BGM fade 進行中。
+- `VolumeChanged` 只帶「自己的值有變」的 channel：改 Master 只會收到 `Master`。
 
 ## 生命週期與限制
 
-- `AudioManager.Instance` 在 `Awake` 才建立；呼叫前必須先讓場景物件初始化。
-- BGM fade 使用 DOTween，assembly 必須引用專案的 DOTween runtime。
-- `PlaySound` 會抑制同 clip 的高音量重疊。
-- Manager 不會自行 `DontDestroyOnLoad`，跨場景生命週期由專案 composition root 決定。
+- 手動放在場景或 prefab 上的 `AudioSource` 不受音量設定控制。需要循環或跟隨物件的聲音請用 `PlayLoop`。
+- 同一個 clip 在 0.05 秒內重複呼叫 `PlaySfx` 會被丟棄，避免疊音爆音。
+- 位置音效使用線性衰減，距離由 `AudioManager.SpatialMinDistance`（預設 10）與 `SpatialMaxDistance`（預設 25）決定。預設值考慮 2D 攝影機在 z = -10、離場景 10 單位的情況；攝影機距離不同時請調整。
+- fade 用 unscaled time，暫停遊戲（`Time.timeScale = 0`）時仍會進行。
+- 關閉 domain reload 進入 Play Mode 時，靜態狀態會在 `SubsystemRegistration` 重置。

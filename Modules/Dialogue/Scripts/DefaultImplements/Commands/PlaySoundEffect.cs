@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using KahaGameCore.Audio;
 using UnityEngine;
 
 namespace KahaGameCore.Dialogue.DefaultImplements.Command
@@ -16,9 +17,9 @@ namespace KahaGameCore.Dialogue.DefaultImplements.Command
                 return;
             }
 
-            if (context.audioProvider == null || context.audioManager == null)
+            if (context.audioProvider == null)
             {
-                Debug.LogError($"[PlaySoundEffect] IAudioProvider or AudioManager is not set. dialogueId={context.curDialogueId}");
+                Debug.LogError($"[PlaySoundEffect] IAudioProvider is not set. dialogueId={context.curDialogueId}");
                 context.onComplete?.Invoke();
                 return;
             }
@@ -36,7 +37,7 @@ namespace KahaGameCore.Dialogue.DefaultImplements.Command
                 return;
             }
 
-            context.audioManager.PlaySE(clip);
+            AudioManager.PlaySfx(clip);
             context.onComplete?.Invoke();
         }
     }

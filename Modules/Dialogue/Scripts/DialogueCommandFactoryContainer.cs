@@ -23,6 +23,7 @@ namespace KahaGameCore.Dialogue
             container.RegisterFactory("HideDialogueBox", new HideDialogueBoxFactory());
             container.RegisterFactory("PlaySoundEffect", new PlaySoundEffectFactory());
             container.RegisterFactory("PlayBackgroundMusic", new PlayBackgroundMusicFactory());
+            container.RegisterFactory("StopBackgroundMusic", new StopBackgroundMusicFactory());
             container.RegisterFactory("ShowCharacter", new ShowCharacterFactory());
             container.RegisterFactory("HideCharacter", new HideCharacterFactory());
             container.RegisterFactory("ChangeCharacter", new ChangeCharacterFactory());

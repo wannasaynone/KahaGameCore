@@ -15,7 +15,6 @@ namespace KahaGameCore.Dialogue
         public DialogueView view;
         public ICGProvider cgProvider;
         public IAudioProvider audioProvider;
-        public AudioManager audioManager;
         public int curDialogueId;
         public System.Action onComplete;
         public System.Action onForceQuit;

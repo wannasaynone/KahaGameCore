@@ -80,7 +80,7 @@ View 被停用或新呈現取代舊呈現時，`DialogueView` 會取消工作並
 | `Arg1_en`~`Arg5_jp` | 多語系欄位（en / hans / jp） |
 
 內建指令（由 `DialogueCommandFactoryContainer.CreateDefault()` 建立，`DialogueManager` 未傳容器時也會使用）：
-`Say`、`AddOption`、`ShowOptions`、`GoToLine`、`BlackIn`、`BlackOut`、`ShowFullScreenImage`、`HideFullScreenImage`、`HideDialogueBox`、`PlaySoundEffect`、`PlayBackgroundMusic`、`ShowCharacter`、`HideCharacter`、`ChangeCharacter`、`MoveCharacterX`、`MoveCharacterY`、`CharacterJump`、`ScaleCharacter`
+`Say`、`AddOption`、`ShowOptions`、`GoToLine`、`BlackIn`、`BlackOut`、`ShowFullScreenImage`、`HideFullScreenImage`、`HideDialogueBox`、`PlaySoundEffect`、`PlayBackgroundMusic`、`StopBackgroundMusic`、`ShowCharacter`、`HideCharacter`、`ChangeCharacter`、`MoveCharacterX`、`MoveCharacterY`、`CharacterJump`、`ScaleCharacter`
 
 ## 自訂指令
 
@@ -105,6 +105,7 @@ var dialogueManager = new DialogueManager(
 - **`DialogueView.Update()` 使用 `UnityEngine.Input`**——專案 Active Input Handling 需設為 Both（ProjectSettings `activeInputHandler: 2`），改完必須重啟編輯器才生效。
 - **放進場景時錨點記得拉滿**——DialogueView 內部元件的錨點會自適應畫布大小，直接放在 Canvas 下、根節點錨點 0,0~1,1 鋪滿即可，不需要縮放包覆層。
 - **預設 CG / 音訊 Provider 走 Addressables**（`AddressablesCGProvider` / `AddressablesAudioProvider`）——專案未使用 Addressables 或資源不在其中時，需自行實作 `ICGProvider` / `IAudioProvider` 傳入建構子，否則 ShowCharacter / PlaySoundEffect 等指令會載不到資源。
+- **聲音透過 [Audio](../../Audio/README.md) 播放**——`PlaySoundEffect` / `PlayBackgroundMusic` / `StopBackgroundMusic` 呼叫 `KahaGameCore.Audio.AudioManager`，與遊戲其他部分共用同一個 BGM 與音量設定。對話結束不會自動停止 BGM；需要停止時在表中寫 `StopBackgroundMusic`（Arg1 為淡出秒數，預設 0.5）。
 - **TMP 預設字型無 CJK**——中文顯示為方塊，需自建中文 TMP Font Asset 並替換 prefab 字型。
 - **未知 command 會記錄錯誤後跳過該行**，不會中止整段對話；command 內拋出的例外不會統一轉成結構化結果。
 

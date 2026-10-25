@@ -15,7 +15,6 @@ namespace KahaGameCore.Dialogue
         private readonly DialogueCommandFactoryContainer commandFactoryContainer;
         private readonly ICGProvider cgProvider;
         private readonly IAudioProvider audioProvider;
-        private readonly AudioManager audioManager;
         private readonly List<OptionData> pendingOptions = new List<OptionData>();
 
         private class DialogueSession
@@ -70,10 +69,6 @@ namespace KahaGameCore.Dialogue
                 this.cgProvider = new DefaultImplements.AddressablesCGProvider();
                 UnityEngine.Debug.Log("[DialogueManager] CGProvider is not set. Using default AddressablesCGProvider.");
             }
-
-            UnityEngine.GameObject audioManagerObj = new UnityEngine.GameObject("[DialogueAudioManager]");
-            audioManager = audioManagerObj.AddComponent<AudioManager>();
-            audioManagerObj.transform.SetParent(dialogueView.transform); // Make it a child of dialogueView for better hierarchy organization
         }
 
         public void StartDialogue(int dialogueId, Action onDialogueComplete)
@@ -89,7 +84,6 @@ namespace KahaGameCore.Dialogue
         {
             if (dialogueQueue.Count == 0)
             {
-                audioManager.StopBGM();
                 return;
             }
 
@@ -128,7 +122,6 @@ namespace KahaGameCore.Dialogue
                         view = dialogueView,
                         cgProvider = cgProvider,
                         audioProvider = audioProvider,
-                        audioManager = audioManager,
                         curDialogueId = activeSession.DialogueId,
                         onComplete = ShowNextLine,
                         onForceQuit = ForceQuitCurrentDialogue,
