@@ -14,6 +14,14 @@ namespace KahaGameCore.Foundation.Messaging
             handlers.Clear();
         }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetOnEnterPlayMode()
+        {
+            // Statics survive entering Play Mode when domain reload is disabled,
+            // so handlers of destroyed objects would otherwise leak into the next run.
+            handlers.Clear();
+        }
+
         public static void Subscribe<T>(Action<T> handler) where T : MessageBase
         {
             Type messageType = typeof(T);
