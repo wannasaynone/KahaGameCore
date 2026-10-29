@@ -6,7 +6,8 @@
         "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Parameters",
         "KahaGameCore.Modules.Parameters.Editor",
-        "KahaGameCore.Modules.Expressions"
+        "KahaGameCore.Modules.Expressions",
+        "KahaGameCore.Modules.Interaction"
     ],
     "includePlatforms": [
         "Editor"

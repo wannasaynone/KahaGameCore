@@ -11,14 +11,14 @@ namespace KahaGameCore.GameEvents.Tests
         [Test]
         public void SceneTrigger_DefaultTriggerLayerIsNothing()
         {
-            AssertDefaultTriggerLayerIsNothing<SceneGameEventTrigger>(
+            AssertDefaultTriggerLayerIsNothing<SceneGameEventTrigger, KahaGameCore.Interaction.Interactable3D>(
                 typeof(SceneGameEventTriggerEditor));
         }
 
         [Test]
         public void SceneTrigger2D_DefaultTriggerLayerIsNothing()
         {
-            AssertDefaultTriggerLayerIsNothing<SceneGameEventTrigger2D>(
+            AssertDefaultTriggerLayerIsNothing<SceneGameEventTrigger2D, KahaGameCore.Interaction.Interactable2D>(
                 typeof(SceneGameEventTrigger2DEditor));
         }
 
@@ -29,11 +29,11 @@ namespace KahaGameCore.GameEvents.Tests
 
             try
             {
-                SceneGameEventTrigger trigger =
-                    host.AddComponent<SceneGameEventTrigger>();
-                SerializedObject serializedTrigger = new SerializedObject(trigger);
+                host.AddComponent<SceneGameEventTrigger>();
+                SerializedObject serializedInteractable = new SerializedObject(
+                    host.GetComponent<KahaGameCore.Interaction.Interactable3D>());
                 SerializedProperty layers =
-                    serializedTrigger.FindProperty("triggeringLayers");
+                    serializedInteractable.FindProperty("activatorLayers");
 
                 Assert.That(
                     SceneGameEventTriggerEditorBase
@@ -205,9 +205,10 @@ namespace KahaGameCore.GameEvents.Tests
             }
         }
 
-        private static void AssertDefaultTriggerLayerIsNothing<T>(
+        private static void AssertDefaultTriggerLayerIsNothing<T, TInteractable>(
             System.Type expectedEditorType)
             where T : MonoBehaviour
+            where TInteractable : Component
         {
             GameObject host = new GameObject(typeof(T).Name);
             UnityEditor.Editor inspector = null;
@@ -216,9 +217,10 @@ namespace KahaGameCore.GameEvents.Tests
             {
                 T trigger = host.AddComponent<T>();
                 inspector = UnityEditor.Editor.CreateEditor(trigger);
-                SerializedObject serializedTrigger = new SerializedObject(trigger);
+                SerializedObject serializedInteractable =
+                    new SerializedObject(host.GetComponent<TInteractable>());
                 SerializedProperty layers =
-                    serializedTrigger.FindProperty("triggeringLayers");
+                    serializedInteractable.FindProperty("activatorLayers");
 
                 Assert.That(inspector.GetType(), Is.EqualTo(expectedEditorType));
                 Assert.That(layers, Is.Not.Null);

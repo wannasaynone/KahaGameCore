@@ -16,7 +16,8 @@
         "KahaGameCore.Modules.Dialogue",
         "UniTask",
         "Unity.TextMeshPro",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "KahaGameCore.Modules.Interaction"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

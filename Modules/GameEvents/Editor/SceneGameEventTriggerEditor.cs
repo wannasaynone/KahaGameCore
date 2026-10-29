@@ -116,21 +116,56 @@ namespace KahaGameCore.GameEvents.Editor
                 GameEventEditorProjectSettings.instance.LoadEventCatalog();
             DrawGameEventSelector(gameEventFile, catalog);
 
-            SerializedProperty triggeringLayers =
-                serializedObject.FindProperty("triggeringLayers");
-            EditorGUILayout.PropertyField(triggeringLayers);
-            if (ShouldShowEmptyTriggerLayerError(triggeringLayers))
+            // Layers, keys and prompts live on the Interactable next to the trigger.
+            if (!serializedObject.isEditingMultipleObjects)
             {
-                EditorGUILayout.HelpBox(EmptyTriggerLayerMessage, MessageType.Error);
+                SerializedObject interactable = GetInteractableObject();
+                SerializedProperty layers = null;
+                if (interactable != null)
+                {
+                    interactable.Update();
+                    layers = interactable.FindProperty("activatorLayers");
+                }
+
+                if (ShouldShowEmptyTriggerLayerError(layers))
+                {
+                    EditorGUILayout.HelpBox(EmptyTriggerLayerMessage, MessageType.Error);
+                }
             }
 
             DrawPropertiesExcluding(
                 serializedObject,
                 "m_Script",
-                "gameEventFile",
-                "triggeringLayers");
+                "gameEventFile");
             serializedObject.ApplyModifiedProperties();
         }
+
+        private SerializedObject interactableObject;
+
+        private SerializedObject GetInteractableObject()
+        {
+            Component interactable = FindInteractable((Component)target);
+            if (interactable == null)
+            {
+                return null;
+            }
+
+            if (interactableObject == null || interactableObject.targetObject != interactable)
+            {
+                interactableObject?.Dispose();
+                interactableObject = new SerializedObject(interactable);
+            }
+
+            return interactableObject;
+        }
+
+        private void OnDisable()
+        {
+            interactableObject?.Dispose();
+            interactableObject = null;
+        }
+
+        protected abstract Component FindInteractable(Component trigger);
 
         internal static void DrawGameEventSelector(
             SerializedProperty gameEventFile,
@@ -303,6 +338,10 @@ namespace KahaGameCore.GameEvents.Editor
     internal sealed class SceneGameEventTriggerEditor :
         SceneGameEventTriggerEditorBase
     {
+        protected override Component FindInteractable(Component trigger)
+        {
+            return trigger.GetComponent<KahaGameCore.Interaction.Interactable3D>();
+        }
     }
 
     [CustomEditor(typeof(SceneGameEventTrigger2D))]
@@ -310,6 +349,10 @@ namespace KahaGameCore.GameEvents.Editor
     internal sealed class SceneGameEventTrigger2DEditor :
         SceneGameEventTriggerEditorBase
     {
+        protected override Component FindInteractable(Component trigger)
+        {
+            return trigger.GetComponent<KahaGameCore.Interaction.Interactable2D>();
+        }
     }
 
     [CustomEditor(typeof(StartGameEventTrigger))]

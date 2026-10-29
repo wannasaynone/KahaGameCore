@@ -1,204 +1,134 @@
-using System;
-using System.Reflection;
+using System.Collections.Generic;
 using System.Threading;
-using KahaGameCore.Effects;
-using KahaGameCore.GameFlowSystem.DefaultImplements;
+using KahaGameCore.Interaction;
 using KahaGameCore.Parameters;
-using KahaGameCore.Parameters.EffectsIntegration;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static KahaGameCore.GameEvents.Tests.SceneGameEventTriggerTestSupport;
 
 namespace KahaGameCore.GameEvents.Tests
 {
-    public sealed class SceneGameEventTrigger2DTests
+    public sealed class SceneGameEventTrigger2DTests : InputTestFixture
     {
-        [Test]
-        public void OnTriggerEnter2D_RunsDirectlyReferencedGameEventFile()
+        private readonly List<Object> created = new();
+        private ParameterStore parameters;
+        private GameEventRunner runner;
+
+        [SetUp]
+        public override void Setup()
         {
-            ParameterStore parameters = CreateParameters();
-            GameEventRunner runner = CreateRunner(parameters);
-            TextAsset file = CreateEvent(
-                "50000000-0000-0000-0000-000000000003",
-                "$Stage == 0");
-            GameObject host = new GameObject("SceneGameEventTrigger2D Host");
-            GameObject enteringObject = new GameObject("Entering Object");
+            base.Setup();
+            parameters = CreateParameters();
+            runner = CreateRunner(parameters);
+        }
 
-            try
+        [TearDown]
+        public override void TearDown()
+        {
+            foreach (Object item in created)
             {
-                SceneGameEventTrigger2D trigger = host.AddComponent<SceneGameEventTrigger2D>();
-                const int enteringLayer = 8;
-                enteringObject.layer = enteringLayer;
-                Collider2D enteringCollider = enteringObject.AddComponent<BoxCollider2D>();
-
-                trigger.Configure(file, 1 << enteringLayer);
-                trigger.Initialize(runner, new EventContext(CancellationToken.None));
-
-                InvokeOnTriggerEnter2D(trigger, enteringCollider);
-                runner.WaitUntilIdleAsync(CancellationToken.None).GetAwaiter().GetResult();
+                Object.DestroyImmediate(item);
             }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(host);
-                UnityEngine.Object.DestroyImmediate(enteringObject);
-                UnityEngine.Object.DestroyImmediate(file);
-            }
+
+            created.Clear();
+            base.TearDown();
+        }
+
+        [Test]
+        public void Enter_WithoutBindings_RunsTheGameEvent()
+        {
+            Interactable2D interactable = CreateTrigger(bindingInput: null);
+
+            Invoke(interactable, "OnTriggerEnter2D", CreateActivator(ActivatorLayer));
+            WaitForEvents();
 
             Assert.That(parameters.GetInt("Stage"), Is.EqualTo(1));
         }
 
         [Test]
-        public void OnTriggerEnter2D_IgnoresColliderOutsideConfiguredLayers()
+        public void Enter_FromAnotherLayer_DoesNothing()
         {
-            ParameterStore parameters = CreateParameters();
-            GameEventRunner runner = CreateRunner(parameters);
-            TextAsset file = CreateEvent(
-                "50000000-0000-0000-0000-000000000004",
-                string.Empty);
-            GameObject host = new GameObject("SceneGameEventTrigger2D Host");
-            GameObject enteringObject = new GameObject("Entering Object");
+            Interactable2D interactable = CreateTrigger(bindingInput: null);
 
-            try
-            {
-                SceneGameEventTrigger2D trigger = host.AddComponent<SceneGameEventTrigger2D>();
-                const int allowedLayer = 8;
-                const int enteringLayer = 9;
-                enteringObject.layer = enteringLayer;
-                Collider2D enteringCollider = enteringObject.AddComponent<BoxCollider2D>();
-
-                trigger.Configure(file, 1 << allowedLayer);
-                trigger.Initialize(runner, new EventContext(CancellationToken.None));
-
-                InvokeOnTriggerEnter2D(trigger, enteringCollider);
-                runner.WaitUntilIdleAsync(CancellationToken.None).GetAwaiter().GetResult();
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(host);
-                UnityEngine.Object.DestroyImmediate(enteringObject);
-                UnityEngine.Object.DestroyImmediate(file);
-            }
+            Invoke(interactable, "OnTriggerEnter2D", CreateActivator(layer: 9));
+            WaitForEvents();
 
             Assert.That(parameters.GetInt("Stage"), Is.Zero);
         }
 
         [Test]
-        public void OnTriggerEnter2D_WithTriggerInput_ShowsPromptAndWaitsForConfirmation()
+        public void WithBinding_WaitsForTheKeyBeforeRunning()
         {
-            ParameterStore parameters = CreateParameters();
-            GameEventRunner runner = CreateRunner(parameters);
-            TextAsset file = CreateEvent(
-                "50000000-0000-0000-0000-000000000005",
-                "$Stage == 0");
-            GameObject host = new GameObject("SceneGameEventTrigger2D Host");
-            GameObject enteringObject = new GameObject("Entering Object");
-            GameObject prompt = new GameObject("Input Prompt");
+            Keyboard keyboard = InputSystem.AddDevice<Keyboard>();
             InputActionAsset actions = ScriptableObject.CreateInstance<InputActionAsset>();
-            InputActionReference confirmInput = InputActionReference.Create(
-                actions.AddActionMap("Test").AddAction("Confirm", InputActionType.Button));
+            InputActionMap map = actions.AddActionMap("Test");
+            InputActionReference confirm = InputActionReference.Create(
+                map.AddAction("Confirm", InputActionType.Button, "<Keyboard>/upArrow"));
+            map.Enable();
+            created.Add(actions);
+            created.Add(confirm);
+            Interactable2D interactable = CreateTrigger(confirm);
 
-            try
-            {
-                SceneGameEventTrigger2D trigger = host.AddComponent<SceneGameEventTrigger2D>();
-                const int enteringLayer = 8;
-                enteringObject.layer = enteringLayer;
-                Collider2D enteringCollider = enteringObject.AddComponent<BoxCollider2D>();
+            Invoke(interactable, "OnTriggerEnter2D", CreateActivator(ActivatorLayer));
+            WaitForEvents();
+            Assert.That(parameters.GetInt("Stage"), Is.Zero);
 
-                trigger.Configure(file, 1 << enteringLayer);
-                trigger.Initialize(runner, new EventContext(CancellationToken.None));
-                SetPrivateField(trigger, "triggerInput", confirmInput);
-                SetPrivateField(trigger, "inputPrompt", prompt);
+            Press(keyboard.upArrowKey);
+            Invoke(interactable, "Update");
+            WaitForEvents();
+            map.Disable();
 
-                InvokeOnTriggerEnter2D(trigger, enteringCollider);
-                runner.WaitUntilIdleAsync(CancellationToken.None).GetAwaiter().GetResult();
-                Assert.That(parameters.GetInt("Stage"), Is.Zero);
-                Assert.That(prompt.activeSelf, Is.True);
-
-                InvokePrivate(trigger, "ConfirmKeyPress");
-                runner.WaitUntilIdleAsync(CancellationToken.None).GetAwaiter().GetResult();
-                Assert.That(parameters.GetInt("Stage"), Is.EqualTo(1));
-                Assert.That(prompt.activeSelf, Is.False);
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(host);
-                UnityEngine.Object.DestroyImmediate(enteringObject);
-                UnityEngine.Object.DestroyImmediate(prompt);
-                UnityEngine.Object.DestroyImmediate(confirmInput);
-                UnityEngine.Object.DestroyImmediate(actions);
-                UnityEngine.Object.DestroyImmediate(file);
-            }
+            Assert.That(parameters.GetInt("Stage"), Is.EqualTo(1));
         }
 
-        private static void SetPrivateField(object target, string fieldName, object value)
+        [Test]
+        public void DisabledTrigger_DisablesItsInteractableAndRunsNothing()
         {
-            FieldInfo field = target.GetType().GetField(
-                fieldName,
-                BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(field, Is.Not.Null);
-            field.SetValue(target, value);
+            Interactable2D interactable = CreateTrigger(bindingInput: null);
+            SceneGameEventTrigger2D trigger = interactable.GetComponent<SceneGameEventTrigger2D>();
+
+            trigger.enabled = false;
+            Invoke(trigger, "OnDisable");
+            Invoke(interactable, "OnTriggerEnter2D", CreateActivator(ActivatorLayer));
+            WaitForEvents();
+
+            Assert.That(interactable.enabled, Is.False);
+            Assert.That(parameters.GetInt("Stage"), Is.Zero);
         }
 
-        private static void InvokePrivate(object target, string methodName)
+        private Interactable2D CreateTrigger(InputActionReference bindingInput)
         {
-            MethodInfo method = target.GetType().GetMethod(
-                methodName,
-                BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(method, Is.Not.Null);
-            method.Invoke(target, Array.Empty<object>());
+            var host = new GameObject("SceneGameEventTrigger2D Host");
+            created.Add(host);
+            TextAsset file = CreateEvent("50000000-0000-0000-0000-000000000003");
+            created.Add(file);
+
+            SceneGameEventTrigger2D trigger = host.AddComponent<SceneGameEventTrigger2D>();
+            Interactable2D interactable = host.GetComponent<Interactable2D>();
+            Assert.That(interactable, Is.Not.Null, "RequireComponent adds the Interactable2D.");
+            interactable.Configure(
+                1 << ActivatorLayer,
+                bindingInput == null
+                    ? new InteractionBinding[0]
+                    : new[] { new InteractionBinding(bindingInput, prompt: null) });
+            trigger.Configure(file);
+            trigger.Initialize(runner, new EventContext(CancellationToken.None));
+            Invoke(trigger, "Awake");
+            Invoke(interactable, "OnEnable");
+            return interactable;
         }
 
-        private static ParameterStore CreateParameters()
+        private Collider2D CreateActivator(int layer)
         {
-            return new ParameterStore(new[]
-            {
-                ParameterDefinition.Int("Stage", "Stage", 0, 0, 2)
-            });
+            var activator = new GameObject("Activator") { layer = layer };
+            created.Add(activator);
+            return activator.AddComponent<BoxCollider2D>();
         }
 
-        private static GameEventRunner CreateRunner(ParameterStore parameters)
+        private void WaitForEvents()
         {
-            GameFlowExpressions expressions = new GameFlowExpressions(parameters);
-            EffectCommandRegistry registry = new EffectCommandRegistry();
-            registry.Register(new EffectCommandDefinition(
-                name: "SetParameter",
-                displayName: "Set Parameter",
-                category: "Parameters",
-                new[]
-                {
-                    new EffectCommandParameterDefinition("key", EffectCommandParameterKind.ParameterKey),
-                    new EffectCommandParameterDefinition("value", EffectCommandParameterKind.Literal)
-                },
-                new SetParameterCommand(parameters)));
-            GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
-            return new GameEventRunner(
-                new GameEventCatalog(Array.Empty<TextAsset>(), codec),
-                new EffectRuntime(registry),
-                parameters,
-                codec);
-        }
-
-        private static TextAsset CreateEvent(string documentGuid, string condition)
-        {
-            return new TextAsset($@"{{
-  ""SchemaVersion"": 2,
-  ""DocumentGuid"": ""{documentGuid}"",
-  ""DisplayName"": ""Scene Trigger 2D"",
-  ""TriggerTiming"": """",
-  ""Condition"": ""{condition}"",
-  ""Commands"": ""SetParameter(Stage,1);""
-}}");
-        }
-
-        private static void InvokeOnTriggerEnter2D(
-            SceneGameEventTrigger2D trigger,
-            Collider2D other)
-        {
-            MethodInfo method = typeof(SceneGameEventTrigger2D).GetMethod(
-                "OnTriggerEnter2D",
-                BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(method, Is.Not.Null);
-            method.Invoke(trigger, new object[] { other });
+            runner.WaitUntilIdleAsync(CancellationToken.None).GetAwaiter().GetResult();
         }
     }
 }

@@ -17,7 +17,9 @@
         "KahaGameCore.Modules.GameFlowSystem.DefaultImplements",
         "UnityEngine.UI",
         "UniTask",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "KahaGameCore.Modules.Interaction",
+        "Unity.InputSystem.TestFramework"
     ],
     "includePlatforms": [
         "Editor"
