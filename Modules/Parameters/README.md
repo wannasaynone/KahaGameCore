@@ -48,7 +48,7 @@ ExpressionResult<bool> canLeave = parameters.EvaluateCondition(
 
 `Calculate` 與 `EvaluateCondition` 直接以目前的 Parameter 值求值，caller 不需要組裝 Expression context。一般 gameplay caller 使用 typed methods，不需要依 `ParameterType` switch；`TryGetValue` 與 `ParameterValue` 主要供 Editor、Snapshot 與工具使用。
 
-若 Parameter 是由 Parameter Table Editor 建立的 `.parameters.json` 文字資產，不要在程式中重複宣告 definitions。只使用 Parameters + Effects + Game Events 時，直接把 Parameter Table 加入 `GameEventCatalogAsset`，並在場景掛上 `DefaultSimpleGameLauncher`；它會建立唯一的 live `ParameterStore`、註冊共用 Parameter Commands，並初始化 child Game Event triggers。
+若 Parameter 是由 Game Event Editor 建立的 `.parameters.json` 文字資產，不要在程式中重複宣告 definitions。只使用 Parameters + Effects + Game Events 時，直接把 Parameter Table 加入 `GameEventCatalogAsset`，並在場景掛上 `DefaultSimpleGameLauncher`；它會建立唯一的 live `ParameterStore`、註冊共用 Parameter Commands，並初始化 child Game Event triggers。
 
 ```csharp
 using KahaGameCore.Parameters;
@@ -123,15 +123,15 @@ runtimeSource.Initialize(parameters);
 
 ## 第一次建立 Parameter Table
 
-從 `KahaGameCore/Parameters/Parameter Table Editor` 開啟大表 EditorWindow。上方編輯表名，下方每列是一個 Parameter，可自行新增或刪除。欄位為 Key、Display Name、Type、Initial／Minimum／Maximum；Bool 與 String 不顯示數值界限。列搜尋同時比對 Key 與 Display Name，多個搜尋詞必須全部命中。視窗提供 New、Load、Validate、Save 與 Save As，不提供可編輯 JSON 文字區。
+在 Game Event Editor 的 `Parameter Tables` 分頁建立與編輯參數表。它是多表 workspace，每張表以 Folder 展開，可同時查看、編輯多張表並比對它們的事件引用。每張表上方編輯表名，下方每列是一個 Parameter，可自行新增或刪除。欄位為 Key、Display Name、Type、Initial／Minimum／Maximum；Bool 與 String 不顯示數值界限。列搜尋同時比對 Key 與 Display Name，多個搜尋詞必須全部命中。不提供可編輯 JSON 文字區。
 
-Load 透過 `ParameterTableJsonCodec` 把 canonical JSON 填入表格；Save 先把整張表驗證成 `ParameterTable`，再由同一 codec 寫回 JSON。Save 只接受 `Assets/` 下的 `.parameters.json`。獨立 Parameter Table Editor 每個視窗編輯一張表；Game Event Editor 內的 `Parameter Tables` 分頁則是多表 workspace，每張表以 Folder 展開，可同時查看、編輯多張表並比對它們的事件引用。
+Load 透過 `ParameterTableJsonCodec` 把 canonical JSON 填入表格；Save 先把整張表驗證成 `ParameterTable`，再由同一 codec 寫回 JSON。Save 只接受 `Assets/` 下的 `.parameters.json`。新增參數時會檢查 Key 是否已在其他表；Save All 遇到跨表重複會整批拒存。手改 JSON 或 merge 進來的跨表重複由 `CatalogParameterKeyUniquenessTests` 擋下。
 
 Parameter Table 是 authoring 分類與 ownership 邊界，例如 `Player`、`Story.Chapter01`、`World.Temp1`。Game Event Editor 的參數選擇器會依 Table 分組並提供搜尋；runtime 仍只以 Parameter Key 識別資料。跨表 Key 必須全域唯一，移動 Parameter 到另一張表不應改變 Key。
 
 Editor 不建立 ScriptableObject 副本、ScriptedImporter 或自動掃描 registry；磁碟上的 JSON 仍是唯一權威資料。
 
-同一套表格編輯介面也以 `ParameterTableEditorPanel` 提供給其他 EditorWindow 重用；Game Event Editor 會用它直接編輯已選取的 Authoring Parameter Table。獨立視窗與內嵌面板共用驗證、讀取與寫回流程，不各自維護一份格式邏輯。
+表格編輯介面是 `ParameterTableEditorPanel`，Game Event Editor 用它編輯每張表；其他 EditorWindow 也可重用，共用同一套驗證、讀取與寫回流程，不各自維護一份格式邏輯。
 
 ## Snapshot 與 Persistence
 
