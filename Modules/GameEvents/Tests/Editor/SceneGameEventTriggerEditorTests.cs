@@ -11,14 +11,14 @@ namespace KahaGameCore.GameEvents.Tests
         [Test]
         public void SceneTrigger_DefaultTriggerLayerIsNothing()
         {
-            AssertDefaultTriggerLayerIsNothing<SceneGameEventTrigger, KahaGameCore.Interaction.Interactable3D>(
+            AssertDefaultTriggerLayerIsNothing<SceneGameEventTrigger, KahaGameCore.Interaction.Interactable3D, BoxCollider>(
                 typeof(SceneGameEventTriggerEditor));
         }
 
         [Test]
         public void SceneTrigger2D_DefaultTriggerLayerIsNothing()
         {
-            AssertDefaultTriggerLayerIsNothing<SceneGameEventTrigger2D, KahaGameCore.Interaction.Interactable2D>(
+            AssertDefaultTriggerLayerIsNothing<SceneGameEventTrigger2D, KahaGameCore.Interaction.Interactable2D, BoxCollider2D>(
                 typeof(SceneGameEventTrigger2DEditor));
         }
 
@@ -29,6 +29,7 @@ namespace KahaGameCore.GameEvents.Tests
 
             try
             {
+                host.AddComponent<BoxCollider>();
                 host.AddComponent<SceneGameEventTrigger>();
                 SerializedObject serializedInteractable = new SerializedObject(
                     host.GetComponent<KahaGameCore.Interaction.Interactable3D>());
@@ -65,6 +66,7 @@ namespace KahaGameCore.GameEvents.Tests
 
             try
             {
+                host.AddComponent<BoxCollider>();
                 SceneGameEventTrigger trigger =
                     host.AddComponent<SceneGameEventTrigger>();
                 SerializedObject serializedTrigger = new SerializedObject(trigger);
@@ -205,16 +207,18 @@ namespace KahaGameCore.GameEvents.Tests
             }
         }
 
-        private static void AssertDefaultTriggerLayerIsNothing<T, TInteractable>(
+        private static void AssertDefaultTriggerLayerIsNothing<T, TInteractable, TCollider>(
             System.Type expectedEditorType)
             where T : MonoBehaviour
             where TInteractable : Component
+            where TCollider : Component
         {
             GameObject host = new GameObject(typeof(T).Name);
             UnityEditor.Editor inspector = null;
 
             try
             {
+                host.AddComponent<TCollider>();
                 T trigger = host.AddComponent<T>();
                 inspector = UnityEditor.Editor.CreateEditor(trigger);
                 SerializedObject serializedInteractable =

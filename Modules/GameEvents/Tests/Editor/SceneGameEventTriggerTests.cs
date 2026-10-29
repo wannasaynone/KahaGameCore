@@ -89,6 +89,7 @@ namespace KahaGameCore.GameEvents.Tests
             TextAsset file = CreateEvent("50000000-0000-0000-0000-000000000001");
             created.Add(file);
 
+            host.AddComponent<BoxCollider>();
             SceneGameEventTrigger trigger = host.AddComponent<SceneGameEventTrigger>();
             Interactable3D interactable = host.GetComponent<Interactable3D>();
             Assert.That(interactable, Is.Not.Null, "RequireComponent adds the Interactable3D.");

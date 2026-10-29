@@ -160,6 +160,21 @@ namespace KahaGameCore.Interaction.Tests
         }
 
         [Test]
+        public void Awake_MakesTheColliderATrigger()
+        {
+            var host = new GameObject("Volume");
+            created.Add(host);
+            BoxCollider2D volume = host.AddComponent<BoxCollider2D>();
+            volume.isTrigger = false;
+            Interactable2D interactable = host.AddComponent<Interactable2D>();
+            interactable.Configure(1 << ActivatorLayer, new InteractionBinding[0]);
+
+            Invoke(interactable, "Awake");
+
+            Assert.That(volume.isTrigger, Is.True);
+        }
+
+        [Test]
         public void Disabled_IgnoresEnter()
         {
             Interactable2D interactable = CreateInteractable("Door", x: 0f, out _);
@@ -212,6 +227,7 @@ namespace KahaGameCore.Interaction.Tests
             prompts = new[] { new GameObject(name + " Up"), new GameObject(name + " Down") };
             created.AddRange(prompts);
 
+            host.AddComponent<BoxCollider2D>();
             Interactable2D interactable = host.AddComponent<Interactable2D>();
             interactable.Configure(
                 1 << ActivatorLayer,

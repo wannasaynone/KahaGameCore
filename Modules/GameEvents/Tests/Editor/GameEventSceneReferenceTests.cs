@@ -114,6 +114,7 @@ namespace KahaGameCore.GameEvents.Tests
         {
             GameObject gameObject = new GameObject(name);
             createdObjects.Add(gameObject);
+            gameObject.AddComponent<BoxCollider>();
             SceneGameEventTrigger trigger =
                 gameObject.AddComponent<SceneGameEventTrigger>();
             trigger.Configure(document);
@@ -127,6 +128,7 @@ namespace KahaGameCore.GameEvents.Tests
         {
             GameObject gameObject = new GameObject(name);
             createdObjects.Add(gameObject);
+            gameObject.AddComponent<BoxCollider2D>();
             SceneGameEventTrigger2D trigger =
                 gameObject.AddComponent<SceneGameEventTrigger2D>();
             trigger.Configure(document);

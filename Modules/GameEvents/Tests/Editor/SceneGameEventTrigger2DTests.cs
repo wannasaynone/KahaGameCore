@@ -104,6 +104,7 @@ namespace KahaGameCore.GameEvents.Tests
             TextAsset file = CreateEvent("50000000-0000-0000-0000-000000000003");
             created.Add(file);
 
+            host.AddComponent<BoxCollider2D>();
             SceneGameEventTrigger2D trigger = host.AddComponent<SceneGameEventTrigger2D>();
             Interactable2D interactable = host.GetComponent<Interactable2D>();
             Assert.That(interactable, Is.Not.Null, "RequireComponent adds the Interactable2D.");

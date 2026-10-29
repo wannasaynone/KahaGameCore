@@ -2,8 +2,13 @@ using UnityEngine;
 
 namespace KahaGameCore.Interaction
 {
-    /// <summary>3D interactable. Needs a trigger Collider on the same GameObject.</summary>
+    /// <summary>
+    /// 3D interactable. Its Collider is the interaction volume and is made a
+    /// trigger on Awake. Add the concrete collider first: Collider is abstract,
+    /// so Unity cannot add it for you.
+    /// </summary>
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(Collider))]
     [AddComponentMenu("KahaGameCore/Interaction/Interactable3D")]
     public sealed class Interactable3D : InteractableBase<Collider>
     {
@@ -20,6 +25,13 @@ namespace KahaGameCore.Interaction
 
                 return volume != null ? volume.bounds.center : transform.position;
             }
+        }
+
+        protected override void Awake()
+        {
+            base.Awake();
+            volume = GetComponent<Collider>();
+            volume.isTrigger = true;
         }
 
         private void OnTriggerEnter(Collider other)

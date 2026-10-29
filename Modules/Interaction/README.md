@@ -4,7 +4,7 @@
 
 ## 用法
 
-1. 在有 trigger collider 的 GameObject 上加 `Interactable2D`。
+1. 先在 GameObject 上加具體的 collider（例如 `BoxCollider2D`），再加 `Interactable2D`。元件以 `RequireComponent` 要求 collider，但 `Collider2D`／`Collider` 是抽象型別，Unity 無法自動補上；Awake 時會把它設為 trigger。
 2. `activatorLayers` 指定誰能觸發（通常是主角的 layer）；留空時會在 Awake 警告。
 3. `bindings` 每一列是一個按鍵：`input`（InputActionReference）、`prompt`（可按時顯示的物件）、`enabled`。
 4. 訂閱事件：
