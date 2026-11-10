@@ -51,6 +51,39 @@ namespace KahaGameCore.Parameters.Tests
         }
 
         [Test]
+        public void MoveParameter_ReordersRowsAndMarksDirty()
+        {
+            ParameterTableEditorPanel panel = CreatePanel();
+            panel.AddBool(key: "A", displayName: "A", initialValue: false);
+            panel.AddBool(key: "B", displayName: "B", initialValue: false);
+            panel.AddBool(key: "C", displayName: "C", initialValue: false);
+            panel.MarkClean();
+
+            panel.MoveParameter(fromIndex: 0, toIndex: 2);
+            Assert.That(panel.ValidateTable().Definitions.Select(x => x.Key),
+                Is.EqualTo(new[] { "B", "C", "A" }));
+            Assert.That(panel.IsDirty, Is.True);
+
+            panel.MoveParameter(fromIndex: 2, toIndex: 0);
+            Assert.That(panel.ValidateTable().Definitions.Select(x => x.Key),
+                Is.EqualTo(new[] { "A", "B", "C" }));
+        }
+
+        [Test]
+        public void MoveParameter_SameIndexKeepsClean()
+        {
+            ParameterTableEditorPanel panel = CreatePanel();
+            panel.AddBool(key: "A", displayName: "A", initialValue: false);
+            panel.MarkClean();
+
+            panel.MoveParameter(fromIndex: 0, toIndex: 0);
+
+            Assert.That(panel.IsDirty, Is.False);
+            Assert.Throws<ArgumentOutOfRangeException>(
+                () => panel.MoveParameter(fromIndex: 0, toIndex: 1));
+        }
+
+        [Test]
         public void SaveAndLoadTable_RoundTripsMultipleRowsInOneAsset()
         {
             const string assetPath =

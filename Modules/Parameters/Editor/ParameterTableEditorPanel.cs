@@ -78,7 +78,11 @@ namespace KahaGameCore.Parameters.Editor
             }
         }
 
-        private const float INDEX_WIDTH = 28f;
+        private const float INDEX_WIDTH = 40f;
+        private const float DROP_INDICATOR_HEIGHT = 2f;
+        private static readonly int DragHandleHint = "ParameterRowDragHandle".GetHashCode();
+        private static readonly Color DropIndicatorColor = new Color(0.24f, 0.6f, 1f);
+        private static readonly Color DraggingRowColor = new Color(0.24f, 0.6f, 1f, 0.15f);
         private const float KEY_WIDTH = 160f;
         private const float DISPLAY_NAME_WIDTH = 160f;
         private const float TYPE_WIDTH = 80f;
@@ -100,6 +104,9 @@ namespace KahaGameCore.Parameters.Editor
         [SerializeField] private string searchText;
 
         [NonSerialized] private ParameterTableJsonCodec codec;
+        [NonSerialized] private int draggingIndex = -1;
+        [NonSerialized] private int dropInsertIndex = -1;
+        [NonSerialized] private List<KeyValuePair<int, Rect>> visibleRowRects;
 
         public string TableGuid => tableGuid;
         public string TableDisplayName => tableDisplayName;
@@ -293,6 +300,32 @@ namespace KahaGameCore.Parameters.Editor
             MarkDirty("已移除參數，請驗證後再儲存。");
         }
 
+        /// <summary>
+        /// 把 fromIndex 的參數移到 toIndex；toIndex 是移動後它所在的位置。
+        /// </summary>
+        public void MoveParameter(int fromIndex, int toIndex)
+        {
+            if (fromIndex < 0 || fromIndex >= Rows.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(fromIndex));
+            }
+
+            if (toIndex < 0 || toIndex >= Rows.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(toIndex));
+            }
+
+            if (fromIndex == toIndex)
+            {
+                return;
+            }
+
+            ParameterRowDraft row = Rows[fromIndex];
+            Rows.RemoveAt(fromIndex);
+            Rows.Insert(toIndex, row);
+            MarkDirty("已調整參數順序，請驗證後再儲存。");
+        }
+
         public ParameterTable ValidateTable()
         {
             ParameterDefinition[] definitions = Rows
@@ -382,6 +415,24 @@ namespace KahaGameCore.Parameters.Editor
         {
             DrawGridHeader(drawParameterSupplementalCell != null);
 
+            Event currentEvent = Event.current;
+            int dragControlId = GUIUtility.GetControlID(DragHandleHint, FocusType.Passive);
+            if (draggingIndex >= Rows.Count || GUIUtility.hotControl != dragControlId)
+            {
+                draggingIndex = -1;
+                dropInsertIndex = -1;
+            }
+
+            if (visibleRowRects == null)
+            {
+                visibleRowRects = new List<KeyValuePair<int, Rect>>();
+            }
+
+            if (currentEvent.type != EventType.Layout)
+            {
+                visibleRowRects.Clear();
+            }
+
             int deleteIndex = -1;
             int visibleCount = 0;
             bool changed = false;
@@ -400,10 +451,8 @@ namespace KahaGameCore.Parameters.Editor
                 {
                     using (new EditorGUILayout.HorizontalScope())
                     {
+                        DrawDragHandle(index, dragControlId, currentEvent);
                         EditorGUI.BeginChangeCheck();
-                        EditorGUILayout.LabelField(
-                            (index + 1).ToString(),
-                            GUILayout.Width(INDEX_WIDTH));
                         row.Key = EditorGUILayout.TextField(
                             row.Key ?? string.Empty,
                             GUILayout.Width(KEY_WIDTH));
@@ -438,7 +487,19 @@ namespace KahaGameCore.Parameters.Editor
 
                     drawParameterDetails?.Invoke(row.Key ?? string.Empty);
                 }
+
+                if (currentEvent.type != EventType.Layout)
+                {
+                    Rect rowRect = GUILayoutUtility.GetLastRect();
+                    visibleRowRects.Add(new KeyValuePair<int, Rect>(index, rowRect));
+                    if (index == draggingIndex && currentEvent.type == EventType.Repaint)
+                    {
+                        EditorGUI.DrawRect(rowRect, DraggingRowColor);
+                    }
+                }
             }
+
+            HandleRowDrag(dragControlId, currentEvent);
 
             if (visibleCount == 0 && Rows.Count > 0)
             {
@@ -453,6 +514,118 @@ namespace KahaGameCore.Parameters.Editor
             }
 
             return changed;
+        }
+
+        private void DrawDragHandle(int index, int dragControlId, Event currentEvent)
+        {
+            Rect handleRect = GUILayoutUtility.GetRect(
+                INDEX_WIDTH,
+                EditorGUIUtility.singleLineHeight,
+                GUILayout.Width(INDEX_WIDTH));
+            EditorGUIUtility.AddCursorRect(handleRect, MouseCursor.Pan);
+            GUI.Label(handleRect, $"≡ {index + 1}");
+
+            if (currentEvent.type == EventType.MouseDown &&
+                currentEvent.button == 0 &&
+                handleRect.Contains(currentEvent.mousePosition))
+            {
+                GUIUtility.hotControl = dragControlId;
+                GUI.FocusControl(null);
+                draggingIndex = index;
+                dropInsertIndex = -1;
+                currentEvent.Use();
+            }
+        }
+
+        private void HandleRowDrag(int dragControlId, Event currentEvent)
+        {
+            if (draggingIndex < 0 || GUIUtility.hotControl != dragControlId)
+            {
+                return;
+            }
+
+            switch (currentEvent.type)
+            {
+                case EventType.MouseDrag:
+                    dropInsertIndex = FindDropInsertIndex(currentEvent.mousePosition.y);
+                    currentEvent.Use();
+                    break;
+                case EventType.MouseUp:
+                    int fromIndex = draggingIndex;
+                    int insertIndex = dropInsertIndex;
+                    EndRowDrag();
+                    currentEvent.Use();
+                    if (insertIndex >= 0)
+                    {
+                        // insertIndex 是「插在哪一列之前」，移除自己後後面的列會往前一格。
+                        int toIndex = insertIndex > fromIndex ? insertIndex - 1 : insertIndex;
+                        MoveParameter(fromIndex: fromIndex, toIndex: toIndex);
+                    }
+                    break;
+                case EventType.KeyDown:
+                    if (currentEvent.keyCode == KeyCode.Escape)
+                    {
+                        EndRowDrag();
+                        currentEvent.Use();
+                    }
+                    break;
+                case EventType.Repaint:
+                    DrawDropIndicator();
+                    break;
+            }
+        }
+
+        private void EndRowDrag()
+        {
+            GUIUtility.hotControl = 0;
+            draggingIndex = -1;
+            dropInsertIndex = -1;
+        }
+
+        private int FindDropInsertIndex(float mouseY)
+        {
+            if (visibleRowRects.Count == 0)
+            {
+                return -1;
+            }
+
+            foreach (KeyValuePair<int, Rect> entry in visibleRowRects)
+            {
+                if (mouseY < entry.Value.center.y)
+                {
+                    return entry.Key;
+                }
+            }
+
+            return visibleRowRects[visibleRowRects.Count - 1].Key + 1;
+        }
+
+        private void DrawDropIndicator()
+        {
+            if (dropInsertIndex < 0 || visibleRowRects.Count == 0)
+            {
+                return;
+            }
+
+            foreach (KeyValuePair<int, Rect> entry in visibleRowRects)
+            {
+                if (entry.Key >= dropInsertIndex)
+                {
+                    EditorGUI.DrawRect(
+                        new Rect(
+                            entry.Value.x,
+                            entry.Value.yMin - DROP_INDICATOR_HEIGHT,
+                            entry.Value.width,
+                            DROP_INDICATOR_HEIGHT),
+                        DropIndicatorColor);
+                    return;
+                }
+            }
+
+            Rect lastRow = visibleRowRects[visibleRowRects.Count - 1].Value;
+            EditorGUI.DrawRect(
+                new Rect(lastRow.x, lastRow.yMax, lastRow.width, DROP_INDICATOR_HEIGHT),
+                DropIndicatorColor);
         }
 
         private void DrawSearchToolbar(Func<string, bool> includeParameter)
