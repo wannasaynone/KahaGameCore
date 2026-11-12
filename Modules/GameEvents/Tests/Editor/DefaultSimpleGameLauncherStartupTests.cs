@@ -69,6 +69,102 @@ namespace KahaGameCore.GameEvents.Tests
             }
         }
 
+        [Test]
+        public async Task StartTrigger_OutsideLauncherHierarchyAndInactive_IsInitialized()
+        {
+            GameObject host = new GameObject("Simple Launcher");
+            GameObject actor = new GameObject("Unrelated Root Actor");
+            GameEventCatalogAsset catalog =
+                ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+            TextAsset parameters = CreateParameters(actorIsAvailable: true);
+            TextAsset startEvent = CreateStartEvent();
+
+            try
+            {
+                ConfigureCatalog(catalog, parameters);
+                StartGameEventTrigger trigger =
+                    actor.AddComponent<StartGameEventTrigger>();
+                trigger.Configure(startEvent);
+                actor.SetActive(false);
+                StartupTestSimpleGameLauncher launcher =
+                    host.AddComponent<StartupTestSimpleGameLauncher>();
+                SerializedObject serializedLauncher =
+                    new SerializedObject(launcher);
+                serializedLauncher.FindProperty("catalog")
+                    .objectReferenceValue = catalog;
+                serializedLauncher.ApplyModifiedPropertiesWithoutUndo();
+
+                launcher.InitializeForTest();
+                actor.SetActive(true);
+                await launcher.TriggerStartEventsForTestAsync();
+
+                Assert.That(
+                    launcher.Parameters.GetBool("StartEventExecuted"),
+                    Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+                Object.DestroyImmediate(actor);
+                Object.DestroyImmediate(parameters);
+                Object.DestroyImmediate(startEvent);
+                Object.DestroyImmediate(catalog);
+            }
+        }
+
+        [Test]
+        public async Task StartTriggers_RunInHierarchyOrder()
+        {
+            GameObject host = new GameObject("Simple Launcher");
+            // Created in the opposite order, then reordered, so creation order
+            // cannot explain a pass.
+            GameObject second = new GameObject("Second");
+            GameObject first = new GameObject("First");
+            second.transform.SetAsLastSibling();
+            GameEventCatalogAsset catalog =
+                ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+            TextAsset parameters = CreateParameters(actorIsAvailable: false);
+            TextAsset firstEvent = CreateStartEvent(
+                documentGuid: "5d0f1c1e-6f0b-4a53-9a39-0c6f6a0f4f01",
+                commands: "SetParameter(ActorAvailable,true);SetParameter(StartEventExecuted,true);");
+            TextAsset secondEvent = CreateStartEvent(
+                documentGuid: "5d0f1c1e-6f0b-4a53-9a39-0c6f6a0f4f02",
+                commands: "SetParameter(StartEventExecuted,false);");
+
+            try
+            {
+                ConfigureCatalog(catalog, parameters);
+                first.AddComponent<StartGameEventTrigger>().Configure(firstEvent);
+                second.AddComponent<StartGameEventTrigger>().Configure(secondEvent);
+                StartupTestSimpleGameLauncher launcher =
+                    host.AddComponent<StartupTestSimpleGameLauncher>();
+                SerializedObject serializedLauncher =
+                    new SerializedObject(launcher);
+                serializedLauncher.FindProperty("catalog")
+                    .objectReferenceValue = catalog;
+                serializedLauncher.ApplyModifiedPropertiesWithoutUndo();
+
+                launcher.InitializeForTest();
+                await launcher.TriggerStartEventsForTestAsync();
+
+                // Both ran, and the lower one in the Hierarchy ran last.
+                Assert.That(launcher.Parameters.GetBool("ActorAvailable"), Is.True);
+                Assert.That(
+                    launcher.Parameters.GetBool("StartEventExecuted"),
+                    Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+                Object.DestroyImmediate(first);
+                Object.DestroyImmediate(second);
+                Object.DestroyImmediate(parameters);
+                Object.DestroyImmediate(firstEvent);
+                Object.DestroyImmediate(secondEvent);
+                Object.DestroyImmediate(catalog);
+            }
+        }
+
         private static TextAsset CreateParameters(bool actorIsAvailable)
         {
             string available = actorIsAvailable ? "true" : "false";
@@ -95,14 +191,21 @@ namespace KahaGameCore.GameEvents.Tests
 
         private static TextAsset CreateStartEvent()
         {
-            return new TextAsset(@"{
+            return CreateStartEvent(
+                documentGuid: "99a34bd8-55c1-4a91-bcaa-24a41328270e",
+                commands: "SetParameter(StartEventExecuted,true);");
+        }
+
+        private static TextAsset CreateStartEvent(string documentGuid, string commands)
+        {
+            return new TextAsset($@"{{
   ""SchemaVersion"": 2,
-  ""DocumentGuid"": ""99a34bd8-55c1-4a91-bcaa-24a41328270e"",
+  ""DocumentGuid"": ""{documentGuid}"",
   ""DisplayName"": ""Actor Start Event"",
   ""TriggerTiming"": """",
   ""Condition"": """",
-  ""Commands"": ""SetParameter(StartEventExecuted,true);""
-}");
+  ""Commands"": ""{commands}""
+}}");
         }
 
         private static void ConfigureCatalog(
