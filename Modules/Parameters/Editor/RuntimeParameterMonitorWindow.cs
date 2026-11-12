@@ -71,7 +71,7 @@ namespace KahaGameCore.Parameters.Editor
             if (!EditorApplication.isPlaying)
             {
                 EditorGUILayout.HelpBox(
-                    "Enter Play Mode to inspect the live ParameterStore exposed by this source.",
+                    "Enter Play Mode to inspect and edit the live ParameterStore exposed by this source.",
                     MessageType.Info);
                 DrawDocumentationButton();
                 return;
@@ -112,7 +112,7 @@ namespace KahaGameCore.Parameters.Editor
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             foreach (ParameterRuntimeValue item in visibleValues)
             {
-                DrawRow(item);
+                DrawRow(source, item);
             }
             EditorGUILayout.EndScrollView();
         }
@@ -166,7 +166,7 @@ namespace KahaGameCore.Parameters.Editor
             }
         }
 
-        private static void DrawRow(ParameterRuntimeValue item)
+        private static void DrawRow(ParameterRuntimeSource source, ParameterRuntimeValue item)
         {
             using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
             {
@@ -181,25 +181,34 @@ namespace KahaGameCore.Parameters.Editor
                 EditorGUILayout.LabelField(
                     item.Definition.Type.ToString(),
                     GUILayout.Width(70f));
-                EditorGUILayout.SelectableLabel(
-                    FormatValue(item.Value),
-                    EditorStyles.label,
-                    GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                ParameterValue edited = DrawValueField(item.Value);
+                if (edited != item.Value)
+                {
+                    source.SetValue(item.Definition.Key, edited);
+                }
             }
         }
 
-        internal static string FormatValue(ParameterValue value)
+        // Text fields are delayed: the window repaints with the live value
+        // every update, so the edit is applied on Enter or when focus leaves.
+        private static ParameterValue DrawValueField(ParameterValue value)
         {
             switch (value.Type)
             {
                 case ParameterType.Int:
-                    return value.AsInt().ToString(CultureInfo.InvariantCulture);
+                    return ParameterValue.FromInt(
+                        EditorGUILayout.DelayedIntField(value.AsInt()));
                 case ParameterType.Float:
-                    return value.AsFloat().ToString("0.######", CultureInfo.InvariantCulture);
+                    return ParameterValue.FromFloat(
+                        EditorGUILayout.DelayedFloatField(value.AsFloat()));
                 case ParameterType.Bool:
-                    return value.AsBool() ? "True" : "False";
+                    return ParameterValue.FromBool(
+                        EditorGUILayout.Toggle(value.AsBool()));
                 case ParameterType.String:
-                    return value.AsString() ?? string.Empty;
+                    // A null string shows as empty; only a real edit writes back.
+                    string current = value.AsString() ?? string.Empty;
+                    string edited = EditorGUILayout.DelayedTextField(current);
+                    return edited == current ? value : ParameterValue.FromString(edited);
                 default:
                     throw new ArgumentOutOfRangeException();
             }

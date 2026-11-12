@@ -36,6 +36,53 @@ namespace KahaGameCore.Parameters.Tests
         }
 
         [Test]
+        public void SetValue_WritesClampedValueAndRaisesChanged()
+        {
+            GameObject host = new GameObject("Parameter Runtime Source");
+
+            try
+            {
+                TestParameterRuntimeSource source =
+                    host.AddComponent<TestParameterRuntimeSource>();
+                ParameterStore parameters = new ParameterStore(new[]
+                {
+                    ParameterDefinition.Int("Supplies", "物資", 10, 0, 100)
+                });
+                int changedCount = 0;
+                parameters.Changed += _ => changedCount++;
+                source.Initialize(parameters);
+
+                source.SetValue("Supplies", ParameterValue.FromInt(250));
+
+                Assert.That(parameters.GetInt("Supplies"), Is.EqualTo(100));
+                Assert.That(changedCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void SetValue_BeforeInitialize_Throws()
+        {
+            GameObject host = new GameObject("Parameter Runtime Source");
+
+            try
+            {
+                TestParameterRuntimeSource source =
+                    host.AddComponent<TestParameterRuntimeSource>();
+
+                Assert.Throws<InvalidOperationException>(
+                    () => source.SetValue("Supplies", ParameterValue.FromInt(1)));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
         public void Initialize_RejectsNullStore()
         {
             GameObject host = new GameObject("Parameter Runtime Source");

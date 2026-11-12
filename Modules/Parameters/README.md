@@ -74,7 +74,7 @@ public sealed class ParametersOnlyLauncher : ParameterRuntimeSource
 
 ## 查看 Runtime Parameter
 
-Play Mode 時可開啟 `KahaGameCore/Parameters/Runtime Parameter Monitor`。視窗會尋找已載入場景中的 `ParameterRuntimeSource` 衍生元件，以唯讀表格持續顯示每個 Parameter 的 Key、Display Name、Type 與目前值，並可搜尋；它不依賴特定 Launcher，也不提供修改功能。
+Play Mode 時可開啟 `KahaGameCore/Parameters/Runtime Parameter Monitor`。視窗會尋找已載入場景中的 `ParameterRuntimeSource` 衍生元件，以表格持續顯示每個 Parameter 的 Key、Display Name、Type 與目前值，並可搜尋；它不依賴特定 Launcher。目前值可以直接修改：Bool 勾選即生效，Int／Float／String 按 Enter 或離開欄位時生效。修改經由 `ParameterRuntimeSource.SetValue` 呼叫 `ParameterStore.Set`，會依 Min／Max 夾值並發出 `Changed`；只影響這次 Play 的 Store，不寫回 `.parameters.json`。
 
 程式工具可呼叫 `ParameterStore.CaptureCurrentValues()` 取得同一份 `ParameterRuntimeValue` 唯讀快照。若現有 composition root 無法直接繼承 `ParameterRuntimeSource`，才建立可掛載的空白 adapter，並在建立唯一的 live Store 後初始化：
 
