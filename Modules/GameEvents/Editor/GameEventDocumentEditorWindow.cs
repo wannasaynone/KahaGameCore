@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using KahaGameCore.Effects;
 using KahaGameCore.Parameters;
 using KahaGameCore.Parameters.Editor;
@@ -1625,7 +1626,8 @@ namespace KahaGameCore.GameEvents.Editor
                         tableSession.Editor.Draw(
                             key => tableMatches || visibleKeys.Contains(key),
                             key => DrawParameterReferenceCell(tableSession, key),
-                            key => DrawParameterReferenceDetails(tableSession, key));
+                            key => DrawParameterReferenceDetails(tableSession, key),
+                            ShowRenameParameterPopup);
                     }
                 }
 
@@ -1659,6 +1661,158 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 tableSession.SetReferenceExpanded(parameterKey, !expanded);
             }
+        }
+
+        private void ShowRenameParameterPopup(string parameterKey, Rect anchor)
+        {
+            PopupWindow.Show(
+                anchor,
+                new RenameParameterPopupContent(
+                    parameterKey,
+                    newKey => RenameParameterKey(oldKey: parameterKey, newKey: newKey)));
+            GUIUtility.ExitGUI();
+        }
+
+        /// <returns>錯誤訊息；成功時為 null。</returns>
+        private string RenameParameterKey(string oldKey, string newKey)
+        {
+            newKey = (newKey ?? string.Empty).Trim();
+            if (string.Equals(oldKey, newKey, StringComparison.Ordinal))
+            {
+                return "新的參數鍵與原本相同。";
+            }
+
+            if (!GameEventParameterRenamer.IsValidKey(newKey))
+            {
+                return "參數鍵只能使用英文字母、數字、底線與點，且不能以數字開頭。";
+            }
+
+            if (session != null && session.IsDirty)
+            {
+                return "目前開啟的事件有未儲存的變更，請先儲存或捨棄再改名。";
+            }
+
+            ParameterTableWorkspace.Session table = ParameterWorkspace.Sessions
+                .FirstOrDefault(item => item.Editor.ContainsKey(oldKey));
+            if (table == null)
+            {
+                return $"找不到參數鍵「{oldKey}」。";
+            }
+
+            if (table.Editor.IsDirty)
+            {
+                return "參數表有未儲存的變更，請先儲存再改名。";
+            }
+
+            ParameterTableWorkspace.Session duplicate = ParameterWorkspace.Sessions
+                .FirstOrDefault(item => item.Editor.ContainsKey(newKey));
+            if (duplicate != null)
+            {
+                return $"參數鍵「{newKey}」已存在於「{duplicate.Editor.TableDisplayName}」。";
+            }
+
+            IReadOnlyList<GameEventRewrite> rewrites;
+            try
+            {
+                rewrites = GameEventParameterRenamer.Plan(
+                    selectedEventCatalog,
+                    EffectCommandAssemblyCatalog.GetDescriptors(
+                        selectedEventCatalog == null
+                            ? Array.Empty<string>()
+                            : selectedEventCatalog.CommandAssemblyNames,
+                        warnings: null),
+                    oldKey: oldKey,
+                    newKey: newKey);
+            }
+            catch (Exception exception)
+            {
+                return exception.Message;
+            }
+
+            IReadOnlyList<string> changedAssets;
+            try
+            {
+                table.Editor.RenameKey(oldKey: oldKey, newKey: newKey);
+                table.Editor.SaveTable(table.AssetPath);
+                GameEventParameterRenamer.Write(rewrites);
+                changedAssets = GameEventParameterRenamer.RenameInScenesAndPrefabs(
+                    oldKey: oldKey,
+                    newKey: newKey);
+            }
+            catch (Exception exception)
+            {
+                if (table.Editor.IsDirty)
+                {
+                    table.Editor.Reload();
+                }
+
+                RefreshCatalog(false);
+                return "改名途中失敗，可能只完成部分檔案，請檢查 git 變更：" + exception.Message;
+            }
+
+            table.SetReferenceExpanded(oldKey, false);
+            if (session != null && session.HasOpenFile &&
+                rewrites.Any(rewrite => SameAssetPath(rewrite.AssetPath, session.AssetPath)))
+            {
+                session.LoadDocument(session.AssetPath);
+                RefreshConditionDrafts();
+                RefreshCommandDrafts();
+            }
+
+            RefreshCatalog(false);
+            SyncUnsavedState();
+
+            string message = $"已將「{oldKey}」改名為「{newKey}」，並更新 {rewrites.Count} 個事件。";
+            if (changedAssets.Count > 0)
+            {
+                message += "\n已改寫場景／prefab 中的公式：\n" + string.Join("\n", changedAssets);
+            }
+
+            IReadOnlyList<string> otherAssets = FindAssetsMentioningKey(oldKey);
+            if (otherAssets.Count > 0)
+            {
+                SetStatus(
+                    message + "\n以下資產的欄位值仍是舊參數鍵（非公式，未自動改寫），需手動更新：\n" +
+                    string.Join("\n", otherAssets),
+                    MessageType.Warning);
+            }
+            else
+            {
+                SetStatus(message, MessageType.Info);
+            }
+
+            Repaint();
+            return null;
+        }
+
+        /// <summary>
+        /// Inspector 上以字串填寫的參數鍵（例如 ParameterStateBinder）不在事件裡，
+        /// 改名不會自動改寫，只找出整個欄位值等於舊鍵的資產提醒使用者。
+        /// </summary>
+        private static IReadOnlyList<string> FindAssetsMentioningKey(string key)
+        {
+            Regex fieldValue = new Regex(
+                @"^\s*-?\s*\w+:\s*" + Regex.Escape(key) + @"\s*$",
+                RegexOptions.Multiline | RegexOptions.CultureInvariant);
+            return AssetDatabase.FindAssets("t:Scene t:Prefab t:ScriptableObject", new[] { "Assets" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(path => path.EndsWith(".unity", StringComparison.OrdinalIgnoreCase) ||
+                    path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase) ||
+                    path.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
+                .Where(path =>
+                {
+                    try
+                    {
+                        return fieldValue.IsMatch(File.ReadAllText(path));
+                    }
+                    catch (IOException)
+                    {
+                        return false;
+                    }
+                })
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToArray();
         }
 
         private void DrawParameterReferenceDetails(

@@ -100,6 +100,8 @@ namespace KahaGameCore.GameEvents.Editor
 
         public IReadOnlyList<string> Warnings { get; }
 
+        public IEnumerable<string> ReferencedKeys => referencesByKey.Keys;
+
         public IReadOnlyList<GameEventParameterReference> Find(string parameterKey)
         {
             return referencesByKey.TryGetValue(

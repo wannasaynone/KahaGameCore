@@ -26,6 +26,10 @@ namespace KahaGameCore.Parameters.Editor
             public bool BoolInitial;
             public string StringInitial = string.Empty;
 
+            // 尚未存檔的新列，Key 還不在任何檔案裡，可以直接改；
+            // 已存檔的 Key 只能透過 Rename，才能同步改掉引用它的事件。
+            public bool IsUnsaved;
+
             public ParameterDefinition ToDefinition()
             {
                 switch (Type)
@@ -83,7 +87,8 @@ namespace KahaGameCore.Parameters.Editor
         private static readonly int DragHandleHint = "ParameterRowDragHandle".GetHashCode();
         private static readonly Color DropIndicatorColor = new Color(0.24f, 0.6f, 1f);
         private static readonly Color DraggingRowColor = new Color(0.24f, 0.6f, 1f, 0.15f);
-        private const float KEY_WIDTH = 160f;
+        private const float KEY_WIDTH = 240f;
+        private const float RENAME_WIDTH = 40f;
         private const float DISPLAY_NAME_WIDTH = 160f;
         private const float TYPE_WIDTH = 80f;
         private const float VALUE_WIDTH = 120f;
@@ -157,7 +162,8 @@ namespace KahaGameCore.Parameters.Editor
         public void Draw(
             Func<string, bool> includeParameter,
             Action<string> drawParameterSupplementalCell,
-            Action<string> drawParameterDetails)
+            Action<string> drawParameterDetails,
+            Action<string, Rect> renameKey = null)
         {
             InitializeIfNeeded();
 
@@ -174,7 +180,8 @@ namespace KahaGameCore.Parameters.Editor
             bool rowsChanged = DrawParameterGrid(
                 includeParameter,
                 drawParameterSupplementalCell,
-                drawParameterDetails);
+                drawParameterDetails,
+                renameKey);
 
             EditorGUILayout.Space();
             if (GUILayout.Button("＋ 新增參數", GUILayout.Width(140f), GUILayout.Height(28f)))
@@ -241,6 +248,7 @@ namespace KahaGameCore.Parameters.Editor
         {
             Rows.Add(new ParameterRowDraft
             {
+                IsUnsaved = true,
                 Key = key,
                 DisplayName = displayName,
                 Type = ParameterType.Int,
@@ -260,6 +268,7 @@ namespace KahaGameCore.Parameters.Editor
         {
             Rows.Add(new ParameterRowDraft
             {
+                IsUnsaved = true,
                 Key = key,
                 DisplayName = displayName,
                 Type = ParameterType.Float,
@@ -274,6 +283,7 @@ namespace KahaGameCore.Parameters.Editor
         {
             Rows.Add(new ParameterRowDraft
             {
+                IsUnsaved = true,
                 Key = key,
                 DisplayName = displayName,
                 Type = ParameterType.Bool,
@@ -286,6 +296,7 @@ namespace KahaGameCore.Parameters.Editor
         {
             Rows.Add(new ParameterRowDraft
             {
+                IsUnsaved = true,
                 Key = key,
                 DisplayName = displayName,
                 Type = ParameterType.String,
@@ -324,6 +335,32 @@ namespace KahaGameCore.Parameters.Editor
             Rows.RemoveAt(fromIndex);
             Rows.Insert(toIndex, row);
             MarkDirty("已調整參數順序，請驗證後再儲存。");
+        }
+
+        public bool ContainsKey(string key)
+        {
+            return Rows.Any(row => string.Equals(row.Key, key, StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// 只改這張表的草稿；引用這個 Key 的事件由呼叫端一起改寫並存檔。
+        /// </summary>
+        public void RenameKey(string oldKey, string newKey)
+        {
+            ParameterRowDraft row = Rows.FirstOrDefault(
+                item => string.Equals(item.Key, oldKey, StringComparison.Ordinal));
+            if (row == null)
+            {
+                throw new InvalidOperationException($"參數表中沒有參數鍵「{oldKey}」。");
+            }
+
+            if (ContainsKey(newKey))
+            {
+                throw new InvalidOperationException($"參數鍵「{newKey}」已存在。");
+            }
+
+            row.Key = newKey;
+            MarkDirty($"已將「{oldKey}」改名為「{newKey}」。");
         }
 
         public ParameterTable ValidateTable()
@@ -370,6 +407,10 @@ namespace KahaGameCore.Parameters.Editor
             AssetDatabase.ImportAsset(normalizedPath, ImportAssetOptions.ForceSynchronousImport);
             assetPath = normalizedPath;
             isDirty = false;
+            foreach (ParameterRowDraft row in Rows)
+            {
+                row.IsUnsaved = false;
+            }
             SetStatus(
                 $"已儲存：{table.DisplayName}（{table.Definitions.Count} 個參數）。",
                 MessageType.Info);
@@ -411,7 +452,8 @@ namespace KahaGameCore.Parameters.Editor
         private bool DrawParameterGrid(
             Func<string, bool> includeParameter,
             Action<string> drawParameterSupplementalCell,
-            Action<string> drawParameterDetails)
+            Action<string> drawParameterDetails,
+            Action<string, Rect> renameKey)
         {
             DrawGridHeader(drawParameterSupplementalCell != null);
 
@@ -453,9 +495,39 @@ namespace KahaGameCore.Parameters.Editor
                     {
                         DrawDragHandle(index, dragControlId, currentEvent);
                         EditorGUI.BeginChangeCheck();
-                        row.Key = EditorGUILayout.TextField(
-                            row.Key ?? string.Empty,
-                            GUILayout.Width(KEY_WIDTH));
+                        if (row.IsUnsaved)
+                        {
+                            row.Key = EditorGUILayout.TextField(
+                                row.Key ?? string.Empty,
+                                GUILayout.Width(KEY_WIDTH));
+                        }
+                        else
+                        {
+                            float buttonWidth = renameKey == null ? 0f : RENAME_WIDTH;
+                            EditorGUILayout.SelectableLabel(
+                                row.Key ?? string.Empty,
+                                EditorStyles.label,
+                                GUILayout.Width(KEY_WIDTH - buttonWidth),
+                                GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                            if (renameKey != null)
+                            {
+                                using (new EditorGUI.DisabledScope(isDirty))
+                                {
+                                    GUIContent renameContent = new GUIContent(
+                                        "改名",
+                                        isDirty
+                                            ? "參數表有未儲存的變更，請先儲存再改名。"
+                                            : "改名並同步更新引用它的事件。");
+                                    if (GUILayout.Button(
+                                            renameContent,
+                                            EditorStyles.miniButton,
+                                            GUILayout.Width(buttonWidth)))
+                                    {
+                                        renameKey(row.Key, GUILayoutUtility.GetLastRect());
+                                    }
+                                }
+                            }
+                        }
                         row.DisplayName = EditorGUILayout.TextField(
                             row.DisplayName ?? string.Empty,
                             GUILayout.Width(DISPLAY_NAME_WIDTH));
