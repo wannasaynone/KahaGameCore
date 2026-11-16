@@ -188,23 +188,36 @@ namespace KahaGameCore.GameEvents.Editor
                 editRect.x - orderRect.xMax - 8f,
                 rect.height);
 
+            // 快取的資產可能已被刪除；用 Unity 的 == null 判斷，避免存取已銷毀物件而在繪製中途丟例外。
+            TextAsset asset = info.Asset != null ? info.Asset : null;
             EditorGUI.LabelField(orderRect, (row + 1).ToString());
-            string label = info.Document != null
-                ? $"{info.Document.DisplayName}  ({info.Asset.name})"
-                : $"{info.Asset?.name ?? "遺失資產"} — {info.Error}";
+            string label;
+            if (asset == null)
+            {
+                label = "遺失資產 — " + (info.Error ?? "TextAsset 已被刪除");
+            }
+            else if (info.Document != null)
+            {
+                label = $"{info.Document.DisplayName}  ({asset.name})";
+            }
+            else
+            {
+                label = $"{asset.name} — {info.Error}";
+            }
+
             EditorGUI.LabelField(labelRect, label);
-            using (new EditorGUI.DisabledScope(info.Asset == null))
+            using (new EditorGUI.DisabledScope(asset == null))
             {
                 if (GUI.Button(editRect, "編輯"))
                 {
-                    openEvent?.Invoke(info.Asset);
+                    openEvent?.Invoke(asset);
                     GUIUtility.ExitGUI();
                 }
             }
 
             if (GUI.Button(removeRect, "×"))
             {
-                Remove(info.Asset);
+                Remove(asset);
                 GUIUtility.ExitGUI();
             }
         }
@@ -226,7 +239,10 @@ namespace KahaGameCore.GameEvents.Editor
         private void Remove(TextAsset asset)
         {
             List<TextAsset> files = catalog.Files.ToList();
-            int index = files.IndexOf(asset);
+            // 已刪除的資產在清單裡是 Unity 的 fake null，IndexOf(null) 比對不到，要用 Unity 的 == 找。
+            int index = asset != null
+                ? files.IndexOf(asset)
+                : files.FindIndex(file => file == null);
             if (index < 0)
             {
                 return;

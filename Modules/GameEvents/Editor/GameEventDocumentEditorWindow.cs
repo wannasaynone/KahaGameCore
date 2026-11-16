@@ -57,6 +57,7 @@ namespace KahaGameCore.GameEvents.Editor
         [SerializeField] private MessageType statusType = MessageType.Info;
         [SerializeField] private EditorTab selectedTab;
         [SerializeField] private Vector2 gameEventScrollPosition;
+        [NonSerialized] private bool projectAssetsRefreshPending;
         [SerializeField] private Vector2 eventCatalogScrollPosition;
         [SerializeField] private Vector2 parameterTableScrollPosition;
         [SerializeField] private Vector2 commandCatalogScrollPosition;
@@ -282,12 +283,21 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void OnFocus()
         {
-            RefreshProjectAssets();
+            RequestProjectAssetsRefresh();
         }
 
         private void OnProjectChange()
         {
-            RefreshProjectAssets();
+            RequestProjectAssetsRefresh();
+        }
+
+        // 專案資產變更（例如刪除目前開啟的事件檔）可能在同一輪 GUI 事件的 Layout 與
+        // Repaint 之間通知；若當下就關閉文件，兩次繪製的版面不同，會造成
+        // "Invalid GUILayout state"。改為延到下一次 Layout 開始時才套用。
+        private void RequestProjectAssetsRefresh()
+        {
+            projectAssetsRefreshPending = true;
+            Repaint();
         }
 
         private void RefreshProjectAssets()
@@ -299,6 +309,8 @@ namespace KahaGameCore.GameEvents.Editor
             LoadParameterTableSettings();
             ParameterWorkspace.Bind(selectedParameterTables);
             EventCatalogEditor.SetCatalog(GetSelectedEventCatalog());
+            // SetCatalog 在同一個目錄時不會重讀；事件檔被刪除或修改後仍要更新快取。
+            EventCatalogEditor.Refresh();
             RefreshCatalog(false);
 
             if (eventWasDeleted)
@@ -314,6 +326,12 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void OnGUI()
         {
+            if (Event.current.type == EventType.Layout && projectAssetsRefreshPending)
+            {
+                projectAssetsRefreshPending = false;
+                RefreshProjectAssets();
+            }
+
             if (selectedEventCatalog == null)
             {
                 DrawEventCatalogSetup();
