@@ -87,9 +87,9 @@ namespace KahaGameCore.Parameters.Editor
         private static readonly int DragHandleHint = "ParameterRowDragHandle".GetHashCode();
         private static readonly Color DropIndicatorColor = new Color(0.24f, 0.6f, 1f);
         private static readonly Color DraggingRowColor = new Color(0.24f, 0.6f, 1f, 0.15f);
-        private const float KEY_WIDTH = 240f;
+        private const float KEY_WIDTH = 340f;
         private const float RENAME_WIDTH = 40f;
-        private const float DISPLAY_NAME_WIDTH = 160f;
+        private const float DISPLAY_NAME_WIDTH = 220f;
         private const float TYPE_WIDTH = 80f;
         private const float VALUE_WIDTH = 120f;
         private const float SUPPLEMENTAL_WIDTH = 100f;
