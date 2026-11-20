@@ -144,12 +144,14 @@ namespace KahaGameCore.GameEvents.Editor
                 .ToArray();
             IReadOnlyList<EffectCommandDescriptor> commands = eventCatalog == null
                 ? Array.Empty<EffectCommandDescriptor>()
-                : SelectCommands(
-                    EffectCommandAssemblyCatalog.GetDescriptors(
-                        eventCatalog.CommandAssemblyNames,
-                        warnings),
-                    eventCatalog.EnabledCommandNames,
-                    warnings);
+                : GameEventControlFlow.Descriptors
+                    .Concat(SelectCommands(
+                        EffectCommandAssemblyCatalog.GetDescriptors(
+                            eventCatalog.CommandAssemblyNames,
+                            warnings),
+                        eventCatalog.EnabledCommandNames,
+                        warnings))
+                    .ToArray();
             return new GameEventProjectAuthoringCatalog(
                 parameterEntries,
                 commands,
@@ -178,6 +180,13 @@ namespace KahaGameCore.GameEvents.Editor
 
                 if (!selected.Add(commandName))
                 {
+                    continue;
+                }
+
+                if (GameEventControlFlow.IsControlFlowCommand(commandName))
+                {
+                    warnings.Add(
+                        $"事件目錄指令「{commandName}」與內建流程控制指令同名，執行時一律視為流程控制。");
                     continue;
                 }
 
@@ -270,6 +279,18 @@ namespace KahaGameCore.GameEvents.Editor
                     warnings.Add(
                         $"無法解析「{path}」中的指令：{parsed.FormatDiagnostics()}");
                     return;
+                }
+
+                GameEventCommandStructure structure = GameEventControlFlow.Analyze(
+                    parsed.Program.Blocks
+                        .SelectMany(block => block.Commands)
+                        .Select(call => call.Name)
+                        .ToArray());
+                if (!structure.IsValid)
+                {
+                    warnings.Add(
+                        $"「{path}」的第 {structure.FirstErrorIndex + 1} 筆指令：" +
+                        structure.GetError(structure.FirstErrorIndex));
                 }
             }
             catch (Exception exception)

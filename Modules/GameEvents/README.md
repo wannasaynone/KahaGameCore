@@ -61,6 +61,21 @@ Catalog inside the current runner job. The editor stores the target event's stab
 `DocumentGuid`, evaluates the target condition at runtime, and rejects recursive
 event cycles instead of queueing work behind the command that is currently waiting.
 
+Commands may contain the built-in control flow `If(condition)`, `Else()`, `EndIf()`
+and `Quit()`. They are always available (no Catalog setting) and are interpreted by
+`GameEventRunner`, not registered in `EffectRuntime`:
+
+```text
+Record(before);If($DoorOpen == false);OpenDoor();Else();Quit();EndIf();Record(after);
+```
+
+`If` evaluates its condition with the same syntax as the document `Condition`, at
+the moment the row is reached; blocks may nest, and `Else` is optional. `Quit` ends
+only the current event: an event started by `TriggerEvent` returns to its caller,
+and other events selected by the same trigger timing still run. An unmatched
+`If`／`Else`／`EndIf` fails the whole event with `InvalidControlFlow` before any
+command runs; the Game Event Editor blocks saving it and indents the rows of each block.
+
 The Scene Trigger event selector and the `TriggerEvent` argument selector group
 events by the name of their immediate containing folder. The folder name alone is
 the category key: events under `A/B/GameEvent` and `C/D/GameEvent` therefore share

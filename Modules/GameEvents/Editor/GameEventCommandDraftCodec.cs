@@ -27,6 +27,45 @@ namespace KahaGameCore.GameEvents.Editor
             drafts.Insert(index, new GameEventCommandDraft());
         }
 
+        /// <summary>
+        /// Removes one row. Removing an If also removes its Else and End If,
+        /// so the rows it enclosed stay and move out one level.
+        /// </summary>
+        public static void Remove(
+            List<GameEventCommandDraft> drafts,
+            int index)
+        {
+            if (drafts == null) throw new ArgumentNullException(nameof(drafts));
+            if (index < 0 || index >= drafts.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            List<int> removed = new List<int> { index };
+            if (drafts[index]?.Name == GameEventControlFlow.IfCommandName)
+            {
+                GameEventCommandStructure structure = GameEventControlFlow.Analyze(
+                    drafts.ConvertAll(draft => draft?.Name ?? string.Empty));
+                int target = structure.GetJumpTarget(index);
+                if (target >= 0 && drafts[target].Name == GameEventControlFlow.ElseCommandName)
+                {
+                    removed.Add(target);
+                    target = structure.GetJumpTarget(target);
+                }
+
+                if (target >= 0)
+                {
+                    removed.Add(target);
+                }
+            }
+
+            removed.Sort();
+            for (int position = removed.Count - 1; position >= 0; position--)
+            {
+                drafts.RemoveAt(removed[position]);
+            }
+        }
+
         public static void Duplicate(
             List<GameEventCommandDraft> drafts,
             int sourceIndex)

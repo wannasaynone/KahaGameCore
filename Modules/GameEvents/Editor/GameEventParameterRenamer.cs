@@ -153,8 +153,7 @@ namespace KahaGameCore.GameEvents.Editor
             string newKey)
         {
             Dictionary<string, EffectCommandDescriptor> commandsByName =
-                (commandDescriptors ?? Array.Empty<EffectCommandDescriptor>())
-                .ToDictionary(descriptor => descriptor.Name, StringComparer.Ordinal);
+                GameEventCommandDescriptorLookup.Create(commandDescriptors);
             GameEventDocumentJsonCodec codec = new GameEventDocumentJsonCodec();
             List<GameEventRewrite> rewrites = new List<GameEventRewrite>();
             List<string> errors = new List<string>();

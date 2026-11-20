@@ -98,6 +98,74 @@ namespace KahaGameCore.GameEvents.Editor
         }
     }
 
+    /// <summary>
+    /// Colors of the If／Else／End If／Quit rows in the command list. Each If
+    /// nesting level cycles through <see cref="BlockColors"/>; the level's color
+    /// is used for its If panel, End If bar and frame border.
+    /// </summary>
+    [Serializable]
+    internal sealed class ControlFlowColorSettings
+    {
+        public static readonly Color[] DefaultBlockColors =
+        {
+            new Color(0.22f, 0.50f, 0.32f),
+            new Color(0.24f, 0.42f, 0.66f),
+            new Color(0.50f, 0.32f, 0.62f)
+        };
+
+        public static readonly Color DefaultElseColor = new Color(0.62f, 0.44f, 0.12f);
+        public static readonly Color DefaultQuitColor = new Color(0.62f, 0.20f, 0.20f);
+        public const float DefaultFrameBackgroundAlpha = 0.14f;
+
+        [SerializeField] private Color[] blockColors = (Color[])DefaultBlockColors.Clone();
+        [SerializeField] private Color elseColor = DefaultElseColor;
+        [SerializeField] private Color quitColor = DefaultQuitColor;
+        [SerializeField] private float frameBackgroundAlpha = DefaultFrameBackgroundAlpha;
+
+        public ControlFlowColorSettings()
+        {
+        }
+
+        public ControlFlowColorSettings(
+            IReadOnlyList<Color> blockColors,
+            Color elseColor,
+            Color quitColor,
+            float frameBackgroundAlpha)
+        {
+            if (blockColors == null || blockColors.Count == 0)
+            {
+                throw new ArgumentException(
+                    "At least one block color is required.",
+                    nameof(blockColors));
+            }
+
+            this.blockColors = new Color[blockColors.Count];
+            for (int index = 0; index < blockColors.Count; index++)
+            {
+                this.blockColors[index] = blockColors[index];
+            }
+
+            this.elseColor = elseColor;
+            this.quitColor = quitColor;
+            this.frameBackgroundAlpha = Mathf.Clamp01(frameBackgroundAlpha);
+        }
+
+        public IReadOnlyList<Color> BlockColors =>
+            blockColors != null && blockColors.Length > 0
+                ? blockColors
+                : DefaultBlockColors;
+
+        public Color ElseColor => elseColor;
+        public Color QuitColor => quitColor;
+        public float FrameBackgroundAlpha => frameBackgroundAlpha;
+
+        public Color GetBlockColor(int depth)
+        {
+            IReadOnlyList<Color> colors = BlockColors;
+            return colors[Math.Max(0, depth) % colors.Count];
+        }
+    }
+
     [FilePath(
         "ProjectSettings/KahaGameCore.GameEventEditorSettings.asset",
         FilePathAttribute.Location.ProjectFolder)]
@@ -107,9 +175,20 @@ namespace KahaGameCore.GameEvents.Editor
         [SerializeField] private string eventCatalogGuid;
         [SerializeField] private EffectCommandCategoryColorPalette commandCategoryColors =
             new EffectCommandCategoryColorPalette();
+        [SerializeField] private ControlFlowColorSettings controlFlowColors =
+            new ControlFlowColorSettings();
 
         public IReadOnlyList<EffectCommandCategoryColorEntry> CommandCategoryColors =>
             GetCommandCategoryColors().Entries;
+
+        public ControlFlowColorSettings ControlFlowColors =>
+            controlFlowColors ?? (controlFlowColors = new ControlFlowColorSettings());
+
+        public void SetControlFlowColors(ControlFlowColorSettings colors)
+        {
+            controlFlowColors = colors ?? throw new ArgumentNullException(nameof(colors));
+            Save(true);
+        }
 
         public GameEventCatalogAsset LoadEventCatalog()
         {

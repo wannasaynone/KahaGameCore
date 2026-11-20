@@ -76,6 +76,8 @@ namespace KahaGameCore.GameEvents.Editor
         [NonSerialized] private GameEventCatalogAsset selectedEventCatalog;
         [NonSerialized] private List<TextAsset> selectedParameterTables;
         [NonSerialized] private GameEventConditionGroupDraft conditionRoot;
+        [NonSerialized] private readonly Dictionary<GameEventCommandDraft, IfConditionCache>
+            ifConditionCaches = new Dictionary<GameEventCommandDraft, IfConditionCache>();
         [NonSerialized] private GameEventCatalogEditorPanel eventCatalogEditor;
 
         private GameEventCatalogEditorPanel EventCatalogEditor
@@ -2265,7 +2267,8 @@ namespace KahaGameCore.GameEvents.Editor
             DrawSectionHeader(
                 $"執行指令（{commandDrafts.Count}）",
                 "指令會依照由上到下的順序執行；欄位中的英文 ID 是實際儲存值。");
-            if (catalog.Commands.Count == 0)
+            if (catalog.Commands.All(command =>
+                    GameEventControlFlow.IsControlFlowCommand(command.Name)))
             {
                 EditorGUILayout.HelpBox(
                     "目前的事件目錄尚未啟用任何指令。",
@@ -2282,124 +2285,260 @@ namespace KahaGameCore.GameEvents.Editor
             int moveTo = -1;
             int insertIndex = -1;
             int duplicateIndex = -1;
+            GameEventCommandStructure structure = GameEventControlFlow.Analyze(
+                commandDrafts.Select(item => item.Name ?? string.Empty).ToArray());
+            // 結構正確時，每組 If…Else…End If 包在同一個外框裡；
+            // 結構有誤時無法配對，退回只用縮排線顯示。
+            bool drawGroups = structure.IsValid;
+            Stack<bool> openGroups = new Stack<bool>();
             for (int index = 0; index < commandDrafts.Count; index++)
             {
                 GameEventCommandDraft draft = commandDrafts[index];
                 bool isKnownCommand = catalog.TryGetCommand(
                     draft.Name,
                     out EffectCommandDescriptor descriptor);
+                bool isControlFlow = GameEventControlFlow.IsControlFlowCommand(draft.Name);
                 Color categoryColor = default;
                 bool hasCategoryColor = isKnownCommand &&
                     GameEventEditorProjectSettings.instance
                         .TryGetCommandCategoryColor(
                             descriptor.Category,
                             out categoryColor);
-                using (BeginCommandCard(hasCategoryColor, categoryColor))
+                int depth = structure.GetDepth(index);
+                bool isGroupMarker = drawGroups &&
+                    (draft.Name == GameEventControlFlow.IfCommandName ||
+                     draft.Name == GameEventControlFlow.ElseCommandName ||
+                     draft.Name == GameEventControlFlow.EndIfCommandName);
+                if (drawGroups && draft.Name == GameEventControlFlow.IfCommandName)
                 {
-                    using (new EditorGUILayout.HorizontalScope())
+                    openGroups.Push(BeginControlFlowGroup(depth));
+                }
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (!drawGroups)
                     {
-                        EditorGUILayout.LabelField(
-                            $"指令 {index + 1:00}",
-                            CommandTitleStyle,
-                            GUILayout.Width(80f));
-                        if (hasCategoryColor)
+                        DrawCommandBlockGuides(depth);
+                    }
+                    else if (!isGroupMarker && depth > 0)
+                    {
+                        GUILayout.Space(ControlFlowBodyIndent);
+                    }
+
+                    // If、Else、End If 不畫成卡片，而是外框本身的標頭、分隔與結尾。
+                    using (var card = isGroupMarker
+                               ? new EditorGUILayout.VerticalScope(ControlFlowMarkerStyle)
+                               : BeginCommandCard(hasCategoryColor, categoryColor))
+                    {
+                        // If 的條件屬於標頭：整個 If 區（標題列＋條件）都塗成標頭色。
+                        if (isGroupMarker &&
+                            draft.Name == GameEventControlFlow.IfCommandName &&
+                            Event.current.type == EventType.Repaint)
                         {
+                            EditorGUI.DrawRect(
+                                card.rect,
+                                GetControlFlowHeaderColor(draft.Name, depth));
+                        }
+
+                        using (var header = isGroupMarker
+                                   ? new EditorGUILayout.HorizontalScope(ControlFlowMarkerHeaderStyle)
+                                   : new EditorGUILayout.HorizontalScope())
+                        {
+                            if (isControlFlow && Event.current.type == EventType.Repaint)
+                            {
+                                Rect headerRect = header.rect;
+                                EditorGUI.DrawRect(
+                                    isGroupMarker
+                                        ? new Rect(
+                                            headerRect.x - ControlFlowMarkerPadding,
+                                            headerRect.y,
+                                            headerRect.width + ControlFlowMarkerPadding * 2f,
+                                            headerRect.height)
+                                        : new Rect(
+                                            headerRect.x - 3f,
+                                            headerRect.y - 2f,
+                                            headerRect.width + 6f,
+                                            headerRect.height + 4f),
+                                    GetControlFlowHeaderColor(draft.Name, depth));
+                            }
+
                             EditorGUILayout.LabelField(
-                                descriptor.Category,
-                                EditorStyles.miniBoldLabel,
-                                GUILayout.Width(
-                                    Mathf.Min(
-                                        160f,
-                                        EditorStyles.miniBoldLabel.CalcSize(
-                                            new GUIContent(descriptor.Category)).x + 8f)));
-                        }
+                                $"指令 {index + 1:00}",
+                                CommandTitleStyle,
+                                GUILayout.Width(80f));
+                            if (isControlFlow)
+                            {
+                                EditorGUILayout.LabelField(
+                                    FormatControlFlowTitle(draft.Name),
+                                    ControlFlowTitleStyle,
+                                    GUILayout.Width(160f));
+                            }
+                            else if (hasCategoryColor)
+                            {
+                                EditorGUILayout.LabelField(
+                                    descriptor.Category,
+                                    EditorStyles.miniBoldLabel,
+                                    GUILayout.Width(
+                                        Mathf.Min(
+                                            160f,
+                                            EditorStyles.miniBoldLabel.CalcSize(
+                                                new GUIContent(descriptor.Category)).x + 8f)));
+                            }
 
-                        GUILayout.FlexibleSpace();
-                        using (new EditorGUI.DisabledScope(index == 0))
-                        {
+                            GUILayout.FlexibleSpace();
+                            using (new EditorGUI.DisabledScope(index == 0))
+                            {
+                                if (GUILayout.Button(
+                                        new GUIContent("上移", "將此指令往前移動"),
+                                        GUILayout.Width(52f),
+                                        GUILayout.Height(22f)))
+                                {
+                                    moveFrom = index;
+                                    moveTo = index - 1;
+                                }
+                            }
+
+                            using (new EditorGUI.DisabledScope(index == commandDrafts.Count - 1))
+                            {
+                                if (GUILayout.Button(
+                                        new GUIContent("下移", "將此指令往後移動"),
+                                        GUILayout.Width(52f),
+                                        GUILayout.Height(22f)))
+                                {
+                                    moveFrom = index;
+                                    moveTo = index + 1;
+                                }
+                            }
+
                             if (GUILayout.Button(
-                                    new GUIContent("上移", "將此指令往前移動"),
+                                    new GUIContent("插入", "在此指令前插入一個空白指令"),
                                     GUILayout.Width(52f),
                                     GUILayout.Height(22f)))
                             {
-                                moveFrom = index;
-                                moveTo = index - 1;
+                                insertIndex = index;
                             }
-                        }
 
-                        using (new EditorGUI.DisabledScope(index == commandDrafts.Count - 1))
-                        {
                             if (GUILayout.Button(
-                                    new GUIContent("下移", "將此指令往後移動"),
+                                    new GUIContent("複製", "複製此指令並插入在下一列"),
                                     GUILayout.Width(52f),
                                     GUILayout.Height(22f)))
                             {
-                                moveFrom = index;
-                                moveTo = index + 1;
+                                duplicateIndex = index;
+                            }
+
+                            if (GUILayout.Button(
+                                    new GUIContent("刪除", "移除此指令"),
+                                    GUILayout.Width(52f),
+                                    GUILayout.Height(22f)))
+                            {
+                                removeIndex = index;
                             }
                         }
 
-                        if (GUILayout.Button(
-                                new GUIContent("插入", "在此指令前插入一個空白指令"),
-                                GUILayout.Width(52f),
-                                GUILayout.Height(22f)))
+                        // 流程控制列只顯示標題列，不顯示指令類型，讓區塊邊界一眼可見。
+                        if (!isControlFlow)
                         {
-                            insertIndex = index;
+                            EditorGUILayout.Space(5f);
+                            string previousName = draft.Name;
+                            DrawCommandSelector(draft);
+                            if (draft.Name == GameEventControlFlow.IfCommandName &&
+                                previousName != GameEventControlFlow.IfCommandName)
+                            {
+                                // 這一列接著會畫出 layout 階段沒有的條件編輯器，Unity 會丟
+                                // layout 錯誤、中斷 OnGUI，迴圈後的補 End If 就不會執行。
+                                // 所以在這裡直接補上，並結束這次 GUI 事件，下一幀重畫。
+                                commandDrafts.Insert(
+                                    index + 1,
+                                    new GameEventCommandDraft
+                                    {
+                                        Name = GameEventControlFlow.EndIfCommandName
+                                    });
+                                session.Commands = GameEventCommandDraftCodec.Serialize(
+                                    commandDrafts
+                                        .Where(item => !string.IsNullOrWhiteSpace(item.Name))
+                                        .ToList());
+                                GUI.FocusControl(null);
+                                Repaint();
+                                GUIUtility.ExitGUI();
+                            }
                         }
 
-                        if (GUILayout.Button(
-                                new GUIContent("複製", "複製此指令並插入在下一列"),
-                                GUILayout.Width(52f),
-                                GUILayout.Height(22f)))
+                        GameEventControlFlowError structureError = structure.GetErrorCode(index);
+                        if (structureError != GameEventControlFlowError.None)
                         {
-                            duplicateIndex = index;
+                            EditorGUILayout.HelpBox(
+                                FormatControlFlowError(structureError),
+                                MessageType.Error);
                         }
 
-                        if (GUILayout.Button(
-                                new GUIContent("刪除", "移除此指令"),
-                                GUILayout.Width(52f),
-                                GUILayout.Height(22f)))
+                        if (draft.Name == GameEventControlFlow.IfCommandName)
                         {
-                            removeIndex = index;
+                            EnsureArgumentCount(draft, descriptor);
+                            EditorGUILayout.Space(6f);
+                            DrawIfCondition(draft);
+                            if (isGroupMarker)
+                            {
+                                EditorGUILayout.Space(8f);
+                            }
+                        }
+                        else if (draft.Name == GameEventControlFlow.QuitCommandName)
+                        {
+                            EnsureArgumentCount(draft, descriptor);
+                            EditorGUILayout.Space(3f);
+                            EditorGUILayout.LabelField(
+                                "執行到這裡就結束這個事件，後面的指令都不執行。",
+                                EditorStyles.miniLabel);
+                        }
+                        else if (isControlFlow)
+                        {
+                            EnsureArgumentCount(draft, descriptor);
+                        }
+                        else if (isKnownCommand)
+                        {
+                            EnsureArgumentCount(draft, descriptor);
+                            EditorGUILayout.Space(4f);
+                            EditorGUI.indentLevel++;
+                            for (int argumentIndex = 0;
+                                 argumentIndex < descriptor.Parameters.Count;
+                                 argumentIndex++)
+                            {
+                                DrawCommandArgument(draft, descriptor, argumentIndex);
+                            }
+                            EditorGUI.indentLevel--;
+                        }
+                        else if (string.IsNullOrWhiteSpace(draft.Name))
+                        {
+                            EditorGUILayout.HelpBox(
+                                "請先選擇指令，再設定它的參數。",
+                                MessageType.Info);
+                        }
+                        else
+                        {
+                            EditorGUILayout.HelpBox(
+                                $"指令「{draft.Name}」尚未註冊，請選擇替代指令。",
+                                MessageType.Error);
                         }
                     }
 
-                    EditorGUILayout.Space(5f);
-                    DrawCommandSelector(draft);
-
-                    if (isKnownCommand)
+                    if (drawGroups && !isGroupMarker && depth > 0)
                     {
-                        EnsureArgumentCount(draft, descriptor);
-                        EditorGUILayout.Space(4f);
-                        EditorGUI.indentLevel++;
-                        for (int argumentIndex = 0;
-                             argumentIndex < descriptor.Parameters.Count;
-                             argumentIndex++)
-                        {
-                            DrawCommandArgument(draft, descriptor, argumentIndex);
-                        }
-                        EditorGUI.indentLevel--;
-                    }
-                    else if (string.IsNullOrWhiteSpace(draft.Name))
-                    {
-                        EditorGUILayout.HelpBox(
-                            "請先選擇指令，再設定它的參數。",
-                            MessageType.Info);
-                    }
-                    else
-                    {
-                        EditorGUILayout.HelpBox(
-                            $"指令「{draft.Name}」尚未註冊，請選擇替代指令。",
-                            MessageType.Error);
+                        GUILayout.Space(ControlFlowMarkerPadding);
                     }
                 }
 
-                EditorGUILayout.Space(5f);
+                if (drawGroups && draft.Name == GameEventControlFlow.EndIfCommandName)
+                {
+                    EndControlFlowGroup(openGroups.Pop());
+                }
+                else
+                {
+                    EditorGUILayout.Space(5f);
+                }
             }
 
             if (removeIndex >= 0)
             {
-                commandDrafts.RemoveAt(removeIndex);
+                GameEventCommandDraftOperations.Remove(commandDrafts, removeIndex);
             }
             else if (moveFrom >= 0)
             {
@@ -2960,6 +3099,297 @@ namespace KahaGameCore.GameEvents.Editor
                     ResetParameterValueArguments(draft, descriptor, index, catalog);
                 }
             }
+
+            if (descriptor.Name == GameEventControlFlow.IfCommandName)
+            {
+                ParameterAuthoringEntry firstConditionParameter = catalog.ParameterEntries
+                    .FirstOrDefault(entry => GameEventConditionGui.IsSupportedParameterType(
+                        entry.Definition.Type));
+                if (firstConditionParameter != null)
+                {
+                    draft.Arguments[0] = GameEventConditionDraftCodec.Serialize(
+                        GameEventConditionGui.CreateDefaultRoot(
+                            firstConditionParameter.Definition));
+                }
+            }
+        }
+
+        private sealed class IfConditionCache
+        {
+            public string Source;
+            public GameEventConditionGroupDraft Root;
+            public string Error;
+        }
+
+        private void DrawIfCondition(GameEventCommandDraft draft)
+        {
+            string source = draft.Arguments[0] ?? string.Empty;
+            if (!ifConditionCaches.TryGetValue(draft, out IfConditionCache cache) ||
+                !string.Equals(cache.Source, source, StringComparison.Ordinal))
+            {
+                cache = new IfConditionCache { Source = source };
+                try
+                {
+                    cache.Root = GameEventConditionDraftCodec.Parse(source);
+                }
+                catch (Exception exception)
+                {
+                    cache.Error = exception.Message;
+                }
+
+                ifConditionCaches[draft] = cache;
+            }
+
+            if (cache.Error != null)
+            {
+                EditorGUILayout.HelpBox(
+                    "此條件使用了圖形介面不支援的語法，只能直接編輯公式：" + cache.Error,
+                    MessageType.Error);
+                draft.Arguments[0] = EditorGUILayout.TextField("條件公式", source);
+                return;
+            }
+
+            ParameterAuthoringEntry[] conditionParameters = catalog.ParameterEntries
+                .Where(entry => GameEventConditionGui.IsSupportedParameterType(
+                    entry.Definition.Type))
+                .ToArray();
+            if (conditionParameters.Length == 0)
+            {
+                EditorGUILayout.HelpBox(
+                    "先新增布林或數值參數，才能建立條件。",
+                    MessageType.Warning);
+                return;
+            }
+
+            bool changed = GameEventConditionGui.DrawGroup(
+                cache.Root,
+                conditionParameters,
+                () => catalog,
+                true,
+                "尚未設定條件；If 至少需要一個條件。",
+                ShowCreateParameterPopup,
+                () =>
+                {
+                    ApplyIfCondition(draft, cache);
+                    Repaint();
+                },
+                out bool _);
+            if (changed)
+            {
+                ApplyIfCondition(draft, cache);
+            }
+        }
+
+        private static void ApplyIfCondition(
+            GameEventCommandDraft draft,
+            IfConditionCache cache)
+        {
+            string serialized = GameEventConditionDraftCodec.Serialize(cache.Root);
+            draft.Arguments[0] = serialized;
+            cache.Source = serialized;
+        }
+
+        // 顏色在 Project Settings > Kaha Game Core > Game Event Editor 設定。
+        // 每一層 If 用不同顏色；If、End If 的標題列與該層的外框同色，配對一眼可見。
+        private static ControlFlowColorSettings ControlFlowColors =>
+            GameEventEditorProjectSettings.instance.ControlFlowColors;
+
+        private const float CommandBlockIndentWidth = 22f;
+        private const float CommandBlockGapHeight = 10f;
+
+        private static GUIStyle controlFlowTitleStyle;
+
+        private static GUIStyle ControlFlowTitleStyle
+        {
+            get
+            {
+                if (controlFlowTitleStyle == null)
+                {
+                    controlFlowTitleStyle = new GUIStyle(EditorStyles.boldLabel)
+                    {
+                        fontSize = 14
+                    };
+                    controlFlowTitleStyle.normal.textColor = Color.white;
+                }
+
+                return controlFlowTitleStyle;
+            }
+        }
+
+        private static Color GetControlFlowBlockColor(int depth)
+        {
+            return ControlFlowColors.GetBlockColor(depth);
+        }
+
+        private static Color GetControlFlowHeaderColor(string commandName, int depth)
+        {
+            switch (commandName)
+            {
+                case GameEventControlFlow.ElseCommandName: return ControlFlowColors.ElseColor;
+                case GameEventControlFlow.QuitCommandName: return ControlFlowColors.QuitColor;
+                default: return GetControlFlowBlockColor(depth);
+            }
+        }
+
+        /// <summary>
+        /// Indents a command card by its If depth and draws one vertical line
+        /// per enclosing block, so the rows inside If／Else read as a block.
+        /// </summary>
+        private static void DrawCommandBlockGuides(int depth)
+        {
+            for (int level = 0; level < depth; level++)
+            {
+                Rect rect = GUILayoutUtility.GetRect(
+                    CommandBlockIndentWidth,
+                    1f,
+                    GUILayout.Width(CommandBlockIndentWidth),
+                    GUILayout.ExpandHeight(true));
+                if (Event.current.type == EventType.Repaint)
+                {
+                    EditorGUI.DrawRect(
+                        new Rect(rect.x + 8f, rect.y - 3f, 4f, rect.height + 8f),
+                        GetControlFlowBlockColor(level));
+                }
+            }
+        }
+
+        private const float ControlFlowBodyIndent = 16f;
+        private const float ControlFlowMarkerPadding = 8f;
+        private static GUIStyle controlFlowMarkerStyle;
+        private static GUIStyle controlFlowMarkerHeaderStyle;
+
+        private static GUIStyle ControlFlowMarkerStyle
+        {
+            get
+            {
+                if (controlFlowMarkerStyle == null)
+                {
+                    controlFlowMarkerStyle = new GUIStyle
+                    {
+                        padding = new RectOffset(
+                            (int)ControlFlowMarkerPadding,
+                            (int)ControlFlowMarkerPadding,
+                            0,
+                            0)
+                    };
+                }
+
+                return controlFlowMarkerStyle;
+            }
+        }
+
+        private static GUIStyle ControlFlowMarkerHeaderStyle
+        {
+            get
+            {
+                if (controlFlowMarkerHeaderStyle == null)
+                {
+                    controlFlowMarkerHeaderStyle = new GUIStyle
+                    {
+                        padding = new RectOffset(0, 0, 5, 5)
+                    };
+                }
+
+                return controlFlowMarkerHeaderStyle;
+            }
+        }
+        private static GUIStyle controlFlowGroupStyle;
+
+        private static GUIStyle ControlFlowGroupStyle
+        {
+            get
+            {
+                if (controlFlowGroupStyle == null)
+                {
+                    controlFlowGroupStyle = new GUIStyle
+                    {
+                        padding = new RectOffset(0, 0, 0, 0),
+                        margin = new RectOffset(0, 0, 0, 0)
+                    };
+                }
+
+                return controlFlowGroupStyle;
+            }
+        }
+
+        /// <summary>
+        /// Opens the frame that holds one If…Else…End If group: a tinted
+        /// background with a border in the group's depth color. A nested group
+        /// is indented like the other rows of the block that contains it.
+        /// Returns whether an indenting horizontal scope was opened.
+        /// </summary>
+        private static bool BeginControlFlowGroup(int depth)
+        {
+            EditorGUILayout.Space(CommandBlockGapHeight * 0.5f);
+            bool nested = depth > 0;
+            if (nested)
+            {
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(ControlFlowBodyIndent);
+            }
+
+            Rect rect = EditorGUILayout.BeginVertical(ControlFlowGroupStyle);
+            if (Event.current.type == EventType.Repaint)
+            {
+                Color color = GetControlFlowBlockColor(depth);
+                EditorGUI.DrawRect(rect, new Color(
+                        color.r,
+                        color.g,
+                        color.b,
+                        ControlFlowColors.FrameBackgroundAlpha));
+                const float border = 2f;
+                EditorGUI.DrawRect(new Rect(rect.x, rect.y, rect.width, border), color);
+                EditorGUI.DrawRect(
+                    new Rect(rect.x, rect.yMax - border, rect.width, border),
+                    color);
+                EditorGUI.DrawRect(new Rect(rect.x, rect.y, border, rect.height), color);
+                EditorGUI.DrawRect(
+                    new Rect(rect.xMax - border, rect.y, border, rect.height),
+                    color);
+            }
+
+            return nested;
+        }
+
+        private static void EndControlFlowGroup(bool nested)
+        {
+            EditorGUILayout.EndVertical();
+            if (nested)
+            {
+                GUILayout.Space(ControlFlowMarkerPadding);
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.Space(CommandBlockGapHeight);
+        }
+
+        private static string FormatControlFlowTitle(string commandName)
+        {
+            switch (commandName)
+            {
+                case GameEventControlFlow.IfCommandName: return "如果（If）";
+                case GameEventControlFlow.ElseCommandName: return "否則（Else）";
+                case GameEventControlFlow.EndIfCommandName: return "結束如果（End If）";
+                case GameEventControlFlow.QuitCommandName: return "結束事件（Quit）";
+                default: return commandName;
+            }
+        }
+
+        internal static string FormatControlFlowError(GameEventControlFlowError error)
+        {
+            switch (error)
+            {
+                case GameEventControlFlowError.ElseWithoutIf:
+                    return "Else 前面沒有對應的 If。";
+                case GameEventControlFlowError.DuplicateElse:
+                    return "同一個 If 只能有一個 Else。";
+                case GameEventControlFlowError.EndIfWithoutIf:
+                    return "End If 前面沒有對應的 If。";
+                case GameEventControlFlowError.IfWithoutEndIf:
+                    return "這個 If 後面缺少對應的 End If。";
+                default:
+                    return string.Empty;
+            }
         }
 
         private static void EnsureArgumentCount(
@@ -3176,14 +3606,40 @@ namespace KahaGameCore.GameEvents.Editor
                 }
             }
 
+            GameEventCommandStructure structure = GameEventControlFlow.Analyze(
+                commandDrafts.Select(draft => draft.Name).ToArray());
+            if (!structure.IsValid)
+            {
+                throw new InvalidOperationException(
+                    $"第 {structure.FirstErrorIndex + 1} 筆指令：" +
+                    FormatControlFlowError(
+                        structure.GetErrorCode(structure.FirstErrorIndex)));
+            }
+
             if (catalog.Parameters.Count > 0)
             {
-                var conditionResult = new ParameterStore(catalog.Parameters)
-                    .EvaluateCondition(session.Condition);
+                ParameterStore conditionStore = new ParameterStore(catalog.Parameters);
+                var conditionResult = conditionStore.EvaluateCondition(session.Condition);
                 if (!conditionResult.IsSuccess)
                 {
                     throw new InvalidOperationException(
                         "執行條件無效：" + conditionResult.Error);
+                }
+
+                for (int index = 0; index < commandDrafts.Count; index++)
+                {
+                    GameEventCommandDraft draft = commandDrafts[index];
+                    if (draft.Name != GameEventControlFlow.IfCommandName)
+                    {
+                        continue;
+                    }
+
+                    var ifResult = conditionStore.EvaluateCondition(draft.Arguments[0]);
+                    if (!ifResult.IsSuccess)
+                    {
+                        throw new InvalidOperationException(
+                            $"第 {index + 1} 筆指令的 If 條件無效：" + ifResult.Error);
+                    }
                 }
             }
 
@@ -3237,6 +3693,7 @@ namespace KahaGameCore.GameEvents.Editor
 
         private void RefreshCommandDrafts()
         {
+            ifConditionCaches.Clear();
             try
             {
                 commandDrafts = GameEventCommandDraftCodec.Parse(session.Commands);

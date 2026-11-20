@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using KahaGameCore.Effects;
 using UnityEditor;
@@ -106,6 +107,18 @@ namespace KahaGameCore.GameEvents.Editor
             {
                 throw new InvalidOperationException(
                     "Commands are invalid: " + commandParse.FormatDiagnostics());
+            }
+
+            GameEventCommandStructure structure = GameEventControlFlow.Analyze(
+                commandParse.Program.Blocks
+                    .SelectMany(block => block.Commands)
+                    .Select(call => call.Name)
+                    .ToArray());
+            if (!structure.IsValid)
+            {
+                throw new InvalidOperationException(
+                    $"Command {structure.FirstErrorIndex + 1}: " +
+                    structure.GetError(structure.FirstErrorIndex));
             }
 
             ValidateUniqueDocumentGuid(

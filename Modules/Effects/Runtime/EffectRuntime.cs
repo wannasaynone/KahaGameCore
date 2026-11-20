@@ -67,57 +67,80 @@ namespace KahaGameCore.Effects
 
             for (int index = 0; index < block.Commands.Count; index++)
             {
-                EffectCommandCall call = block.Commands[index];
-                if (cancellationToken.IsCancellationRequested)
+                EffectExecutionResult result = await ExecuteCommandAsync(
+                    block.Commands[index],
+                    context,
+                    cancellationToken);
+                if (!result.IsSuccess)
                 {
-                    return EffectExecutionResult.Cancelled(new EffectDiagnostic(
-                        "Cancelled",
-                        "Effect execution was cancelled.",
-                        call.Position,
-                        call.Length));
+                    return result;
                 }
+            }
 
-                if (!registry.TryGetDefinition(call.Name, out EffectCommandDefinition definition))
-                {
-                    return EffectExecutionResult.Failed(new EffectDiagnostic(
-                        "UnknownCommand",
-                        $"Effect command '{call.Name}' is not registered.",
-                        call.Position,
-                        call.Name.Length));
-                }
+            return EffectExecutionResult.Succeeded();
+        }
 
-                if (definition.Parameters.Count != call.Arguments.Count)
-                {
-                    return EffectExecutionResult.Failed(new EffectDiagnostic(
-                        "InvalidArgumentCount",
-                        $"Effect command '{call.Name}' expects {definition.Parameters.Count} arguments but received {call.Arguments.Count}.",
-                        call.Position,
-                        call.Length));
-                }
+        /// <summary>
+        /// Runs one parsed call. A caller that walks the command list itself
+        /// (for example to interpret control flow) reuses the same lookup,
+        /// argument-count check and failure reporting.
+        /// </summary>
+        public async UniTask<EffectExecutionResult> ExecuteCommandAsync(
+            EffectCommandCall call,
+            EffectExecutionContext context,
+            CancellationToken cancellationToken)
+        {
+            if (call == null) throw new ArgumentNullException(nameof(call));
 
-                try
-                {
-                    await definition.Command.ExecuteAsync(
-                        context ?? new EffectExecutionContext(),
-                        call.Arguments,
-                        cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    return EffectExecutionResult.Cancelled(new EffectDiagnostic(
-                        "Cancelled",
-                        $"Effect command '{call.Name}' was cancelled.",
-                        call.Position,
-                        call.Length));
-                }
-                catch (Exception exception)
-                {
-                    return EffectExecutionResult.Failed(new EffectDiagnostic(
-                        "CommandFailed",
-                        $"Effect command '{call.Name}' failed: {exception.Message}",
-                        call.Position,
-                        call.Length));
-                }
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return EffectExecutionResult.Cancelled(new EffectDiagnostic(
+                    "Cancelled",
+                    "Effect execution was cancelled.",
+                    call.Position,
+                    call.Length));
+            }
+
+            if (!registry.TryGetDefinition(call.Name, out EffectCommandDefinition definition))
+            {
+                return EffectExecutionResult.Failed(new EffectDiagnostic(
+                    "UnknownCommand",
+                    $"Effect command '{call.Name}' is not registered.",
+                    call.Position,
+                    call.Name.Length));
+            }
+
+            if (definition.Parameters.Count != call.Arguments.Count)
+            {
+                return EffectExecutionResult.Failed(new EffectDiagnostic(
+                    "InvalidArgumentCount",
+                    $"Effect command '{call.Name}' expects {definition.Parameters.Count} arguments but received {call.Arguments.Count}.",
+                    call.Position,
+                    call.Length));
+            }
+
+            try
+            {
+                await definition.Command.ExecuteAsync(
+                    context ?? new EffectExecutionContext(),
+                    call.Arguments,
+                    cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return EffectExecutionResult.Cancelled(new EffectDiagnostic(
+                    "Cancelled",
+                    $"Effect command '{call.Name}' was cancelled.",
+                    call.Position,
+                    call.Length));
+            }
+            catch (Exception exception)
+            {
+                return EffectExecutionResult.Failed(new EffectDiagnostic(
+                    "CommandFailed",
+                    $"Effect command '{call.Name}' failed: {exception.Message}",
+                    call.Position,
+                    call.Length));
             }
 
             return EffectExecutionResult.Succeeded();

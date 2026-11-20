@@ -157,6 +157,85 @@ namespace KahaGameCore.GameEvents.Editor
                 EditorGUILayout.Space(6f);
                 EditorGUILayout.HelpBox(validationError, MessageType.Warning);
             }
+
+            EditorGUILayout.Space(16f);
+            DrawControlFlowColors();
+        }
+
+        private static readonly string[] BlockColorLabels =
+        {
+            "第 1 層 If／End If",
+            "第 2 層 If／End If",
+            "第 3 層 If／End If"
+        };
+
+        private static void DrawControlFlowColors()
+        {
+            EditorGUILayout.LabelField("流程控制顏色", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(
+                "If、Else、End If、Quit 在指令清單中的顏色。巢狀的 If 依層數輪流使用三種顏色；" +
+                "If 標頭、End If 與外框邊線同色。",
+                EditorStyles.wordWrappedLabel);
+            EditorGUILayout.Space(4f);
+
+            ControlFlowColorSettings current =
+                GameEventEditorProjectSettings.instance.ControlFlowColors;
+            Color[] blockColors = new Color[BlockColorLabels.Length];
+            EditorGUI.BeginChangeCheck();
+            for (int index = 0; index < blockColors.Length; index++)
+            {
+                blockColors[index] = EditorGUILayout.ColorField(
+                    new GUIContent(BlockColorLabels[index]),
+                    current.GetBlockColor(index),
+                    true,
+                    false,
+                    false);
+            }
+
+            Color elseColor = EditorGUILayout.ColorField(
+                new GUIContent("Else"),
+                current.ElseColor,
+                true,
+                false,
+                false);
+            Color quitColor = EditorGUILayout.ColorField(
+                new GUIContent("Quit"),
+                current.QuitColor,
+                true,
+                false,
+                false);
+            float frameBackgroundAlpha = EditorGUILayout.Slider(
+                new GUIContent("外框底色濃度", "If 外框內淡底色的不透明度"),
+                current.FrameBackgroundAlpha,
+                0f,
+                1f);
+            if (EditorGUI.EndChangeCheck())
+            {
+                GameEventEditorProjectSettings.instance.SetControlFlowColors(
+                    new ControlFlowColorSettings(
+                        blockColors: blockColors,
+                        elseColor: elseColor,
+                        quitColor: quitColor,
+                        frameBackgroundAlpha: frameBackgroundAlpha));
+                RepaintGameEventEditors();
+            }
+
+            EditorGUILayout.Space(4f);
+            if (GUILayout.Button("恢復預設顏色", GUILayout.Width(112f)))
+            {
+                GameEventEditorProjectSettings.instance.SetControlFlowColors(
+                    new ControlFlowColorSettings());
+                RepaintGameEventEditors();
+            }
+        }
+
+        private static void RepaintGameEventEditors()
+        {
+            foreach (GameEventDocumentEditorWindow window in
+                     Resources.FindObjectsOfTypeAll<GameEventDocumentEditorWindow>())
+            {
+                window.Repaint();
+            }
         }
 
         private void DrawCategoryPopup(CategoryColorDraft draft)

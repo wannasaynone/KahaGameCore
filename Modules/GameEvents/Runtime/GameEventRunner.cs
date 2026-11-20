@@ -267,20 +267,129 @@ namespace KahaGameCore.GameEvents
         {
             context.CancellationToken.ThrowIfCancellationRequested();
             EnsureQueueActivityStarted();
+            IReadOnlyList<EffectCommandCall> calls = ParseCommands(document);
+            GameEventCommandStructure structure = AnalyzeStructure(document, calls);
+
             bool previousIsExecutingCommands = isExecutingCommands;
             isExecutingCommands = true;
-            EffectExecutionResult result;
             try
             {
-                result = await effects.ExecuteAsync(
-                    document.Commands,
-                    context.EffectContext,
-                    context.CancellationToken);
+                int index = 0;
+                while (index < calls.Count)
+                {
+                    EffectCommandCall call = calls[index];
+                    switch (call.Name)
+                    {
+                        case GameEventControlFlow.IfCommandName:
+                            index = EvaluateIfCondition(document, call)
+                                ? index + 1
+                                : structure.GetJumpTarget(index) + 1;
+                            break;
+                        case GameEventControlFlow.ElseCommandName:
+                            // Reaching Else means the If branch ran; skip to EndIf.
+                            index = structure.GetJumpTarget(index) + 1;
+                            break;
+                        case GameEventControlFlow.EndIfCommandName:
+                            index++;
+                            break;
+                        case GameEventControlFlow.QuitCommandName:
+                            return;
+                        default:
+                            EffectExecutionResult result = await effects.ExecuteCommandAsync(
+                                call,
+                                context.EffectContext,
+                                context.CancellationToken);
+                            ThrowIfUnsuccessful(document, context, result);
+                            index++;
+                            break;
+                    }
+                }
             }
             finally
             {
                 isExecutingCommands = previousIsExecutingCommands;
             }
+        }
+
+        private IReadOnlyList<EffectCommandCall> ParseCommands(GameEventDocument document)
+        {
+            EffectParseResult parsed = effects.Parse(document.Commands);
+            if (!parsed.IsSuccess)
+            {
+                throw new GameEventException(
+                    "EffectFailed",
+                    $"Game Event '{document.DisplayName}' failed: {parsed.Diagnostics[0]}");
+            }
+
+            for (int index = 0; index < parsed.Program.Blocks.Count; index++)
+            {
+                EffectTimingBlock block = parsed.Program.Blocks[index];
+                if (string.Equals(block.Name, EffectRuntime.DefaultTiming, StringComparison.Ordinal))
+                {
+                    return block.Commands;
+                }
+            }
+
+            throw new GameEventException(
+                "EffectFailed",
+                $"Game Event '{document.DisplayName}' failed: Effect timing " +
+                $"'{EffectRuntime.DefaultTiming}' does not exist.");
+        }
+
+        private static GameEventCommandStructure AnalyzeStructure(
+            GameEventDocument document,
+            IReadOnlyList<EffectCommandCall> calls)
+        {
+            string[] names = new string[calls.Count];
+            for (int index = 0; index < calls.Count; index++)
+            {
+                EffectCommandCall call = calls[index];
+                names[index] = call.Name;
+                if (GameEventControlFlow.TryGetDescriptor(
+                        call.Name,
+                        out EffectCommandDescriptor descriptor) &&
+                    descriptor.Parameters.Count != call.Arguments.Count)
+                {
+                    throw new GameEventException(
+                        "InvalidControlFlow",
+                        $"Game Event '{document.DisplayName}' command {index + 1} " +
+                        $"'{call.Name}' expects {descriptor.Parameters.Count} arguments " +
+                        $"but received {call.Arguments.Count}.");
+                }
+            }
+
+            GameEventCommandStructure structure = GameEventControlFlow.Analyze(names);
+            if (!structure.IsValid)
+            {
+                throw new GameEventException(
+                    "InvalidControlFlow",
+                    $"Game Event '{document.DisplayName}' command " +
+                    $"{structure.FirstErrorIndex + 1}: " +
+                    structure.GetError(structure.FirstErrorIndex));
+            }
+
+            return structure;
+        }
+
+        private bool EvaluateIfCondition(GameEventDocument document, EffectCommandCall call)
+        {
+            ExpressionResult<bool> condition = parameters.EvaluateCondition(call.Arguments[0]);
+            if (!condition.IsSuccess)
+            {
+                throw new GameEventException(
+                    "ConditionFailed",
+                    $"Game Event '{document.DisplayName}' If condition " +
+                    $"'{call.Arguments[0]}' failed: {condition.Error}");
+            }
+
+            return condition.Value;
+        }
+
+        private static void ThrowIfUnsuccessful(
+            GameEventDocument document,
+            EventContext context,
+            EffectExecutionResult result)
+        {
             if (result.Status == EffectExecutionStatus.Cancelled)
             {
                 throw new OperationCanceledException(

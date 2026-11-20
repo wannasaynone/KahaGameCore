@@ -117,8 +117,7 @@ namespace KahaGameCore.GameEvents.Editor
             OpenGameEventUsageDocument openDocument = null)
         {
             Dictionary<string, EffectCommandDescriptor> commandsByName =
-                (commandDescriptors ?? Array.Empty<EffectCommandDescriptor>())
-                .ToDictionary(descriptor => descriptor.Name, StringComparer.Ordinal);
+                GameEventCommandDescriptorLookup.Create(commandDescriptors);
             Dictionary<string, List<ReferenceBuilder>> buildersByKey =
                 new Dictionary<string, List<ReferenceBuilder>>(StringComparer.Ordinal);
             List<string> warnings = new List<string>();
