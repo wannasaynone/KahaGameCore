@@ -73,6 +73,12 @@ namespace KahaGameCore.GameEvents.Editor
         [NonSerialized] private GameEventProjectAuthoringCatalog catalog;
         [NonSerialized] private GameEventParameterUsageIndex parameterUsageIndex;
         [NonSerialized] private string parameterUsageSignature;
+        [NonSerialized] private IReadOnlyList<GameEventCommandReference> commandReferences;
+        [NonSerialized] private IReadOnlyList<string> commandReferenceWarnings;
+        [NonSerialized] private string commandReferenceSignature;
+        [NonSerialized] private GameEventProjectReferences projectReferences;
+        [NonSerialized] private string projectReferencesAssetPath;
+        [NonSerialized] private DateTime projectReferencesSearchedAt;
         [NonSerialized] private GameEventCatalogAsset selectedEventCatalog;
         [NonSerialized] private List<TextAsset> selectedParameterTables;
         [NonSerialized] private GameEventConditionGroupDraft conditionRoot;
@@ -565,7 +571,7 @@ namespace KahaGameCore.GameEvents.Editor
 
             using (new EditorGUILayout.VerticalScope(CardStyle))
             {
-                DrawSceneTriggerReferences(documentAsset);
+                DrawEventReferences(documentAsset);
             }
 
             using (new EditorGUILayout.VerticalScope(CardStyle))
@@ -643,44 +649,203 @@ namespace KahaGameCore.GameEvents.Editor
             return documentAsset;
         }
 
-        private static void DrawSceneTriggerReferences(TextAsset documentAsset)
+        private void DrawEventReferences(TextAsset documentAsset)
         {
-            Scene activeScene = SceneManager.GetActiveScene();
-            IReadOnlyList<Component> references =
-                FindSceneTriggersReferencing(documentAsset, activeScene);
-
             DrawSectionHeader(
-                $"場景觸發器引用（{references.Count}）",
-                "列出本場景中引用目前事件的 Trigger。");
-            EditorGUILayout.LabelField(
-                activeScene.IsValid()
-                    ? $"目前場景：{activeScene.name}"
-                    : "目前沒有開啟場景。",
-                EditorStyles.miniLabel);
+                "引用",
+                "列出以指令引用目前事件的其他事件，以及引用它的場景物件、Prefab 與資產。");
+            DrawCommandReferences();
+            EditorGUILayout.Space(8f);
+            DrawObjectReferences(documentAsset);
+        }
 
-            if (references.Count == 0)
+        private void DrawCommandReferences()
+        {
+            EnsureCommandReferences();
+            EditorGUILayout.LabelField(
+                $"被其他事件引用（{commandReferences.Count}）",
+                EditorStyles.boldLabel);
+            foreach (string warning in commandReferenceWarnings)
+            {
+                EditorGUILayout.HelpBox(warning, MessageType.Warning);
+            }
+
+            if (commandReferences.Count == 0)
+            {
+                EditorGUILayout.LabelField(
+                    "目前事件目錄中沒有事件以指令引用此事件。",
+                    EditorStyles.miniLabel);
+                return;
+            }
+
+            foreach (GameEventCommandReference reference in commandReferences)
+            {
+                bool isCurrentEvent = SameAssetPath(reference.AssetPath, session.AssetPath);
+                using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    using (new EditorGUILayout.VerticalScope())
+                    {
+                        GUILayout.Label(reference.EventDisplayName, EditorStyles.boldLabel);
+                        GUILayout.Label(reference.AssetPath, EditorStyles.miniLabel);
+                    }
+
+                    GUILayout.FlexibleSpace();
+                    GUILayout.Label(
+                        "指令：" + string.Join("、", reference.CommandNames),
+                        EditorStyles.miniLabel);
+                    using (new EditorGUI.DisabledScope(
+                               isCurrentEvent || reference.EventAsset == null))
+                    {
+                        if (GUILayout.Button(
+                                isCurrentEvent ? "目前" : "前往",
+                                GUILayout.Width(48f)))
+                        {
+                            OpenCatalogEvent(reference.EventAsset);
+                            GUIUtility.ExitGUI();
+                        }
+                    }
+                }
+            }
+        }
+
+        private void DrawObjectReferences(TextAsset documentAsset)
+        {
+            bool hasResults = projectReferences != null &&
+                SameAssetPath(projectReferencesAssetPath, session.AssetPath);
+            bool isPlaying = EditorApplication.isPlayingOrWillChangePlaymode;
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField(
+                    hasResults
+                        ? $"場景、Prefab 與資產引用（{projectReferences.References.Count}）"
+                        : "場景、Prefab 與資產引用",
+                    EditorStyles.boldLabel);
+                using (new EditorGUI.DisabledScope(documentAsset == null || isPlaying))
+                {
+                    if (GUILayout.Button(
+                            new GUIContent(
+                                hasResults ? "重新搜尋" : "搜尋專案",
+                                isPlaying
+                                    ? "Play 模式中無法搜尋。"
+                                    : "搜尋所有場景、Prefab 與資產；未開啟的場景會暫時載入，搜尋完就關閉。"),
+                            GUILayout.Width(96f)))
+                    {
+                        EditorApplication.delayCall += () => SearchProjectReferences(documentAsset);
+                    }
+                }
+            }
+
+            if (!hasResults)
             {
                 EditorGUILayout.HelpBox(
-                    "本場景中沒有 Trigger 引用目前事件。",
+                    documentAsset == null
+                        ? "事件存檔後才能搜尋場景、Prefab 與資產。"
+                        : "按「搜尋專案」找出引用此事件的場景物件、Prefab 與資產。" +
+                          "未開啟的場景會暫時載入，搜尋完就關閉。",
                     MessageType.Info);
                 return;
             }
 
-            foreach (Component trigger in references)
+            EditorGUILayout.LabelField(
+                $"搜尋時間：{projectReferencesSearchedAt:HH:mm:ss}",
+                EditorStyles.miniLabel);
+            foreach (string warning in projectReferences.Warnings)
             {
-                using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+                EditorGUILayout.HelpBox(warning, MessageType.Warning);
+            }
+
+            if (projectReferences.References.Count == 0)
+            {
+                EditorGUILayout.LabelField(
+                    "沒有場景、Prefab 或資產引用此事件。",
+                    EditorStyles.miniLabel);
+                return;
+            }
+
+            foreach (IGrouping<string, GameEventObjectReference> group in
+                     projectReferences.References.GroupBy(reference => reference.AssetPath))
+            {
+                EditorGUILayout.LabelField(
+                    $"{FormatReferenceSource(group.First().Source)}：{group.Key}",
+                    EditorStyles.miniBoldLabel);
+                foreach (GameEventObjectReference reference in group)
                 {
-                    GUILayout.Label(GetSceneObjectPath(trigger), EditorStyles.boldLabel);
-                    GUILayout.FlexibleSpace();
-                    GUILayout.Label(
-                        GetSceneTriggerKind(trigger),
-                        EditorStyles.miniLabel,
-                        GUILayout.Width(40f));
-                    if (GUILayout.Button("定位", GUILayout.Width(48f)))
+                    using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
                     {
-                        LocateSceneTrigger(trigger);
+                        GUILayout.Label(
+                            new GUIContent(reference.ObjectPath, reference.ObjectPath),
+                            EditorStyles.boldLabel);
+                        GUILayout.FlexibleSpace();
+                        GUILayout.Label(
+                            new GUIContent(
+                                reference.ComponentTypeName,
+                                "欄位：" + reference.PropertyPath),
+                            EditorStyles.miniLabel);
+                        if (GUILayout.Button("定位", GUILayout.Width(48f)))
+                        {
+                            EditorApplication.delayCall += () => LocateObjectReference(reference);
+                        }
                     }
                 }
+            }
+        }
+
+        private void SearchProjectReferences(TextAsset documentAsset)
+        {
+            if (this == null || session == null)
+            {
+                return;
+            }
+
+            try
+            {
+                projectReferences = GameEventReferenceFinder.FindInProject(documentAsset);
+                projectReferencesAssetPath = AssetDatabase.GetAssetPath(documentAsset);
+                projectReferencesSearchedAt = DateTime.Now;
+            }
+            catch (Exception exception)
+            {
+                SetStatus(exception.Message, MessageType.Error);
+            }
+
+            Repaint();
+        }
+
+        private void LocateObjectReference(GameEventObjectReference reference)
+        {
+            if (this == null)
+            {
+                return;
+            }
+
+            try
+            {
+                string error = GameEventReferenceFinder.Locate(reference);
+                if (error != null)
+                {
+                    SetStatus(error, MessageType.Warning);
+                }
+            }
+            catch (Exception exception)
+            {
+                SetStatus(exception.Message, MessageType.Error);
+            }
+
+            Repaint();
+        }
+
+        private static string FormatReferenceSource(GameEventObjectReferenceSource source)
+        {
+            switch (source)
+            {
+                case GameEventObjectReferenceSource.Scene:
+                    return "場景";
+                case GameEventObjectReferenceSource.Prefab:
+                    return "Prefab";
+                case GameEventObjectReferenceSource.Asset:
+                    return "資產";
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(source));
             }
         }
 
@@ -763,21 +928,6 @@ namespace KahaGameCore.GameEvents.Editor
                 .Where(trigger => trigger.gameObject.scene == scene)
                 .OrderBy(GetSceneObjectPath, StringComparer.Ordinal)
                 .ThenBy(GetSceneTriggerKind, StringComparer.Ordinal)
-                .ToList();
-        }
-
-        internal static IReadOnlyList<Component> FindSceneTriggersReferencing(
-            TextAsset documentAsset,
-            Scene scene)
-        {
-            if (documentAsset == null || !scene.IsValid() || !scene.isLoaded)
-            {
-                return Array.Empty<Component>();
-            }
-
-            return FindSceneTriggers(scene)
-                .Where(trigger =>
-                    GetSceneTriggerEventFile(trigger) == documentAsset)
                 .ToList();
         }
 
@@ -3664,6 +3814,8 @@ namespace KahaGameCore.GameEvents.Editor
                 workspaceErrors);
             parameterUsageIndex = null;
             parameterUsageSignature = null;
+            commandReferences = null;
+            commandReferenceSignature = null;
             EffectCommandArgumentOptionCatalog.InvalidateOptions();
             if (!showStatus)
             {
@@ -3733,7 +3885,54 @@ namespace KahaGameCore.GameEvents.Editor
         private void EnsureParameterUsageIndex()
         {
             EnsureCatalog();
-            string signature = string.Join(
+            string signature = BuildCatalogUsageSignature();
+            if (parameterUsageIndex != null &&
+                string.Equals(
+                    parameterUsageSignature,
+                    signature,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            parameterUsageIndex = GameEventParameterUsageIndex.Build(
+                selectedEventCatalog,
+                catalog.Commands,
+                CreateOpenUsageDocument());
+            parameterUsageSignature = signature;
+        }
+
+        private void EnsureCommandReferences()
+        {
+            EnsureCatalog();
+            string signature = BuildCatalogUsageSignature() + "\u001f" +
+                (session?.DocumentGuid ?? string.Empty);
+            if (commandReferences != null &&
+                string.Equals(
+                    commandReferenceSignature,
+                    signature,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            List<string> warnings = new List<string>();
+            commandReferences = GameEventReferenceFinder.FindCommandReferences(
+                session?.DocumentGuid,
+                GameEventReferenceFinder.LoadCatalogDocuments(
+                    selectedEventCatalog,
+                    CreateOpenUsageDocument(),
+                    warnings),
+                catalog.Commands,
+                warnings);
+            commandReferenceWarnings = warnings;
+            commandReferenceSignature = signature;
+        }
+
+        /// <summary>事件目錄與開啟中事件的內容；改變時需要重建引用索引。</summary>
+        private string BuildCatalogUsageSignature()
+        {
+            return string.Join(
                 "\u001f",
                 selectedEventCatalog == null
                     ? string.Empty
@@ -3752,31 +3951,21 @@ namespace KahaGameCore.GameEvents.Editor
                                 ? "missing"
                                 : asset.GetInstanceID().ToString(
                                     CultureInfo.InvariantCulture))));
-            if (parameterUsageIndex != null &&
-                string.Equals(
-                    parameterUsageSignature,
-                    signature,
-                    StringComparison.Ordinal))
+        }
+
+        private OpenGameEventUsageDocument CreateOpenUsageDocument()
+        {
+            if (session == null || (!session.HasOpenFile && !session.IsDirty))
             {
-                return;
+                return null;
             }
 
-            OpenGameEventUsageDocument openDocument = null;
-            if (session != null && (session.HasOpenFile || session.IsDirty))
-            {
-                openDocument = new OpenGameEventUsageDocument(
-                    AssetDatabase.LoadAssetAtPath<TextAsset>(session.AssetPath),
-                    session.AssetPath,
-                    session.DisplayName,
-                    session.Condition,
-                    session.Commands);
-            }
-
-            parameterUsageIndex = GameEventParameterUsageIndex.Build(
-                selectedEventCatalog,
-                catalog.Commands,
-                openDocument);
-            parameterUsageSignature = signature;
+            return new OpenGameEventUsageDocument(
+                eventAsset: AssetDatabase.LoadAssetAtPath<TextAsset>(session.AssetPath),
+                assetPath: session.AssetPath,
+                displayName: session.DisplayName,
+                condition: session.Condition,
+                commands: session.Commands);
         }
 
         private bool MatchesParameterSearch(

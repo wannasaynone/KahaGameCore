@@ -63,50 +63,6 @@ namespace KahaGameCore.GameEvents.Tests
             }
         }
 
-        [Test]
-        public void FindSceneTriggersReferencing_ReturnsOnlyTriggersUsingCurrentEvent()
-        {
-            Scene activeScene = SceneManager.GetActiveScene();
-            TextAsset currentEvent = new TextAsset("current");
-            TextAsset otherEvent = new TextAsset("other");
-            List<GameObject> createdObjects = new List<GameObject>();
-
-            try
-            {
-                SceneGameEventTrigger matching3D =
-                    CreateTrigger3D("Matching 3D", currentEvent, createdObjects);
-                SceneGameEventTrigger2D matching2D =
-                    CreateTrigger2D("Matching 2D", currentEvent, createdObjects);
-                StartGameEventTrigger matchingStart =
-                    CreateStartTrigger("Matching Start", currentEvent, createdObjects);
-                CreateTrigger3D("Other Event", otherEvent, createdObjects);
-                CreateTrigger2D("Unassigned", null, createdObjects);
-
-                IReadOnlyList<Component> references =
-                    GameEventDocumentEditorWindow.FindSceneTriggersReferencing(
-                        currentEvent,
-                        activeScene);
-
-                Assert.That(references, Has.Count.EqualTo(3));
-                Assert.That(references, Does.Contain(matching3D));
-                Assert.That(references, Does.Contain(matching2D));
-                Assert.That(references, Does.Contain(matchingStart));
-            }
-            finally
-            {
-                for (int index = 0; index < createdObjects.Count; index++)
-                {
-                    if (createdObjects[index] != null)
-                    {
-                        Object.DestroyImmediate(createdObjects[index]);
-                    }
-                }
-
-                Object.DestroyImmediate(currentEvent);
-                Object.DestroyImmediate(otherEvent);
-            }
-        }
-
         private static SceneGameEventTrigger CreateTrigger3D(
             string name,
             TextAsset document,
