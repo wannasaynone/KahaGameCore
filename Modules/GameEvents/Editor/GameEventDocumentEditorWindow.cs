@@ -2181,6 +2181,7 @@ namespace KahaGameCore.GameEvents.Editor
             }
             catch (Exception exception)
             {
+                Debug.LogError($"參數表儲存失敗：\n{exception.Message}");
                 SetStatus(exception.Message, MessageType.Error);
                 SyncUnsavedState();
                 return false;

@@ -51,6 +51,25 @@ namespace KahaGameCore.Parameters.Tests
         }
 
         [Test]
+        public void ValidateTable_ListsEveryOutOfRangeRow()
+        {
+            ParameterTableEditorPanel panel = CreatePanel();
+            panel.AddInt(key: "Debt", displayName: "欠款", initialValue: -5, minValue: 0, maxValue: 100);
+            panel.AddInt(key: "Ok", displayName: "正常", initialValue: -5, minValue: -10, maxValue: 100);
+            panel.AddFloat(key: "Speed", displayName: "速度", initialValue: 1f, minValue: 2f, maxValue: 1.5f);
+
+            Assert.That(panel.CollectRangeErrors(), Is.EqualTo(new[]
+            {
+                "參數「Debt」：初始值 -5 不在最小值 0 到最大值 100 之間。",
+                "參數「Speed」：最小值 2 大於最大值 1.5。"
+            }));
+            InvalidOperationException error =
+                Assert.Throws<InvalidOperationException>(() => panel.ValidateTable());
+            StringAssert.Contains("Debt", error.Message);
+            StringAssert.Contains("Speed", error.Message);
+        }
+
+        [Test]
         public void MoveParameter_ReordersRowsAndMarksDirty()
         {
             ParameterTableEditorPanel panel = CreatePanel();

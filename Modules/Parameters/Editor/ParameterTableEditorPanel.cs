@@ -30,6 +30,42 @@ namespace KahaGameCore.Parameters.Editor
             // 已存檔的 Key 只能透過 Rename，才能同步改掉引用它的事件。
             public bool IsUnsaved;
 
+            // 上次編輯時已記錄過的範圍錯誤，避免同一個錯誤每次重繪都重複記錄。
+            [NonSerialized] public string LastLoggedRangeError;
+
+            public string GetRangeError()
+            {
+                switch (Type)
+                {
+                    case ParameterType.Int:
+                        if (IntMin > IntMax)
+                        {
+                            return $"最小值 {IntMin} 大於最大值 {IntMax}。";
+                        }
+
+                        if (IntInitial < IntMin || IntInitial > IntMax)
+                        {
+                            return $"初始值 {IntInitial} 不在最小值 {IntMin} 到最大值 {IntMax} 之間。";
+                        }
+
+                        return null;
+                    case ParameterType.Float:
+                        if (FloatMin > FloatMax)
+                        {
+                            return $"最小值 {FloatMin} 大於最大值 {FloatMax}。";
+                        }
+
+                        if (FloatInitial < FloatMin || FloatInitial > FloatMax)
+                        {
+                            return $"初始值 {FloatInitial} 不在最小值 {FloatMin} 到最大值 {FloatMax} 之間。";
+                        }
+
+                        return null;
+                    default:
+                        return null;
+                }
+            }
+
             public ParameterDefinition ToDefinition()
             {
                 switch (Type)
@@ -363,8 +399,29 @@ namespace KahaGameCore.Parameters.Editor
             MarkDirty($"已將「{oldKey}」改名為「{newKey}」。");
         }
 
+        public IReadOnlyList<string> CollectRangeErrors()
+        {
+            List<string> errors = new List<string>();
+            foreach (ParameterRowDraft row in Rows)
+            {
+                string error = row.GetRangeError();
+                if (error != null)
+                {
+                    errors.Add($"參數「{row.Key}」：{error}");
+                }
+            }
+
+            return errors;
+        }
+
         public ParameterTable ValidateTable()
         {
+            IReadOnlyList<string> rangeErrors = CollectRangeErrors();
+            if (rangeErrors.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join("\n", rangeErrors));
+            }
+
             ParameterDefinition[] definitions = Rows
                 .Select(row => row.ToDefinition())
                 .ToArray();
@@ -540,7 +597,11 @@ namespace KahaGameCore.Parameters.Editor
                         DrawInitialValue(row);
                         DrawMinimumValue(row);
                         DrawMaximumValue(row);
-                        changed |= EditorGUI.EndChangeCheck();
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            changed = true;
+                            LogRangeErrorIfNew(row);
+                        }
 
                         if (drawParameterSupplementalCell != null)
                         {
@@ -555,6 +616,12 @@ namespace KahaGameCore.Parameters.Editor
                         {
                             deleteIndex = index;
                         }
+                    }
+
+                    string rangeError = row.GetRangeError();
+                    if (rangeError != null)
+                    {
+                        EditorGUILayout.HelpBox(rangeError, MessageType.Error);
                     }
 
                     drawParameterDetails?.Invoke(row.Key ?? string.Empty);
@@ -586,6 +653,17 @@ namespace KahaGameCore.Parameters.Editor
             }
 
             return changed;
+        }
+
+        private void LogRangeErrorIfNew(ParameterRowDraft row)
+        {
+            string error = row.GetRangeError();
+            if (error != null && error != row.LastLoggedRangeError)
+            {
+                Debug.LogWarning($"參數表「{tableDisplayName}」的參數「{row.Key}」：{error}");
+            }
+
+            row.LastLoggedRangeError = error;
         }
 
         private void DrawDragHandle(int index, int dragControlId, Event currentEvent)
