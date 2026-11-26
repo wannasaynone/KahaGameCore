@@ -28,6 +28,40 @@ namespace KahaGameCore.GameEvents.Editor
         }
 
         /// <summary>
+        /// Moves one row so it lands before the row that was at
+        /// <paramref name="insertBefore"/> (Count moves it to the end).
+        /// Only that row moves; If, Else and End If can each be dragged on
+        /// their own to change which rows a block encloses.
+        /// Returns false when the row would stay where it is.
+        /// </summary>
+        public static bool Move(
+            List<GameEventCommandDraft> drafts,
+            int fromIndex,
+            int insertBefore)
+        {
+            if (drafts == null) throw new ArgumentNullException(nameof(drafts));
+            if (fromIndex < 0 || fromIndex >= drafts.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(fromIndex));
+            }
+
+            if (insertBefore < 0 || insertBefore > drafts.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(insertBefore));
+            }
+
+            if (insertBefore == fromIndex || insertBefore == fromIndex + 1)
+            {
+                return false;
+            }
+
+            GameEventCommandDraft moving = drafts[fromIndex];
+            drafts.RemoveAt(fromIndex);
+            drafts.Insert(insertBefore > fromIndex ? insertBefore - 1 : insertBefore, moving);
+            return true;
+        }
+
+        /// <summary>
         /// Removes one row. Removing an If also removes its Else and End If,
         /// so the rows it enclosed stay and move out one level.
         /// </summary>

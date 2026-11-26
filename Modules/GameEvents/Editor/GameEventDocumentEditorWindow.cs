@@ -2432,10 +2432,15 @@ namespace KahaGameCore.GameEvents.Editor
             }
 
             int removeIndex = -1;
-            int moveFrom = -1;
-            int moveTo = -1;
             int insertIndex = -1;
             int duplicateIndex = -1;
+            // 拖曳用的 control ID 必須在每個 GUI 事件中以相同順序取得，所以在迴圈前取一次。
+            int dragControlId = GUIUtility.GetControlID(CommandDragHint, FocusType.Passive);
+            if (Event.current.type == EventType.Repaint)
+            {
+                commandRowRects.Clear();
+            }
+
             GameEventCommandStructure structure = GameEventControlFlow.Analyze(
                 commandDrafts.Select(item => item.Name ?? string.Empty).ToArray());
             // 結構正確時，每組 If…Else…End If 包在同一個外框裡；
@@ -2465,8 +2470,13 @@ namespace KahaGameCore.GameEvents.Editor
                     openGroups.Push(BeginControlFlowGroup(depth));
                 }
 
-                using (new EditorGUILayout.HorizontalScope())
+                using (var row = new EditorGUILayout.HorizontalScope())
                 {
+                    if (Event.current.type == EventType.Repaint)
+                    {
+                        commandRowRects.Add(row.rect);
+                    }
+
                     if (!drawGroups)
                     {
                         DrawCommandBlockGuides(depth);
@@ -2513,6 +2523,7 @@ namespace KahaGameCore.GameEvents.Editor
                                     GetControlFlowHeaderColor(draft.Name, depth));
                             }
 
+                            DrawCommandDragHandle(index, dragControlId);
                             EditorGUILayout.LabelField(
                                 $"指令 {index + 1:00}",
                                 CommandTitleStyle,
@@ -2537,36 +2548,20 @@ namespace KahaGameCore.GameEvents.Editor
                             }
 
                             GUILayout.FlexibleSpace();
-                            using (new EditorGUI.DisabledScope(index == 0))
-                            {
-                                if (GUILayout.Button(
-                                        new GUIContent("上移", "將此指令往前移動"),
-                                        GUILayout.Width(52f),
-                                        GUILayout.Height(22f)))
-                                {
-                                    moveFrom = index;
-                                    moveTo = index - 1;
-                                }
-                            }
-
-                            using (new EditorGUI.DisabledScope(index == commandDrafts.Count - 1))
-                            {
-                                if (GUILayout.Button(
-                                        new GUIContent("下移", "將此指令往後移動"),
-                                        GUILayout.Width(52f),
-                                        GUILayout.Height(22f)))
-                                {
-                                    moveFrom = index;
-                                    moveTo = index + 1;
-                                }
-                            }
-
                             if (GUILayout.Button(
-                                    new GUIContent("插入", "在此指令前插入一個空白指令"),
-                                    GUILayout.Width(52f),
+                                    new GUIContent("向上插入", "在此指令前插入一個空白指令"),
+                                    GUILayout.Width(68f),
                                     GUILayout.Height(22f)))
                             {
                                 insertIndex = index;
+                            }
+
+                            if (GUILayout.Button(
+                                    new GUIContent("向下插入", "在此指令後插入一個空白指令"),
+                                    GUILayout.Width(68f),
+                                    GUILayout.Height(22f)))
+                            {
+                                insertIndex = index + 1;
                             }
 
                             if (GUILayout.Button(
@@ -2687,15 +2682,11 @@ namespace KahaGameCore.GameEvents.Editor
                 }
             }
 
+            HandleCommandDrag(dragControlId);
+
             if (removeIndex >= 0)
             {
                 GameEventCommandDraftOperations.Remove(commandDrafts, removeIndex);
-            }
-            else if (moveFrom >= 0)
-            {
-                GameEventCommandDraft moving = commandDrafts[moveFrom];
-                commandDrafts.RemoveAt(moveFrom);
-                commandDrafts.Insert(moveTo, moving);
             }
             else if (insertIndex >= 0)
             {
@@ -3380,6 +3371,182 @@ namespace KahaGameCore.GameEvents.Editor
                 case GameEventControlFlow.QuitCommandName: return ControlFlowColors.QuitColor;
                 default: return GetControlFlowBlockColor(depth);
             }
+        }
+
+        private static readonly int CommandDragHint = "GameEventCommandDrag".GetHashCode();
+        private static readonly Color CommandDropLineColor = new Color(0.25f, 0.6f, 1f, 1f);
+        private static readonly Color CommandDraggingOverlayColor = new Color(0.25f, 0.6f, 1f, 0.18f);
+        private const float CommandDragHandleWidth = 18f;
+
+        // 每次 Repaint 記錄每一列的範圍，拖曳時以上一次 Repaint 的範圍判斷放下位置。
+        private readonly List<Rect> commandRowRects = new List<Rect>();
+        private int draggingCommandIndex = -1;
+        private int commandDropIndex = -1;
+
+        /// <summary>
+        /// Draws the grip at the left of a command's title row. Pressing it
+        /// starts dragging that row; <see cref="HandleCommandDrag"/> finishes it.
+        /// </summary>
+        private void DrawCommandDragHandle(int index, int dragControlId)
+        {
+            Rect rect = GUILayoutUtility.GetRect(
+                CommandDragHandleWidth,
+                22f,
+                GUILayout.Width(CommandDragHandleWidth),
+                GUILayout.Height(22f));
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.Pan);
+            Event current = Event.current;
+            if (current.type == EventType.Repaint)
+            {
+                Color color = EditorGUIUtility.isProSkin
+                    ? new Color(1f, 1f, 1f, 0.45f)
+                    : new Color(0f, 0f, 0f, 0.45f);
+                float lineWidth = 10f;
+                float x = rect.x + (rect.width - lineWidth) * 0.5f;
+                float y = rect.center.y - 4f;
+                for (int line = 0; line < 3; line++)
+                {
+                    EditorGUI.DrawRect(new Rect(x, y + line * 4f, lineWidth, 2f), color);
+                }
+            }
+            else if (current.type == EventType.MouseDown &&
+                     current.button == 0 &&
+                     rect.Contains(current.mousePosition))
+            {
+                // IMGUI 的文字欄位以 control ID 保留編輯中的文字，列移動後會套到別的指令上，
+                // 所以開始拖曳前先結束編輯。
+                GUI.FocusControl(null);
+                EditorGUIUtility.editingTextField = false;
+                GUIUtility.hotControl = dragControlId;
+                draggingCommandIndex = index;
+                commandDropIndex = index;
+                current.Use();
+            }
+        }
+
+        /// <summary>
+        /// Tracks the dragged row, draws where it will land and moves it on
+        /// mouse up. Runs after every row is drawn, so the row rects are known.
+        /// </summary>
+        private void HandleCommandDrag(int dragControlId)
+        {
+            if (draggingCommandIndex < 0)
+            {
+                return;
+            }
+
+            Event current = Event.current;
+            if (draggingCommandIndex >= commandDrafts.Count)
+            {
+                CancelCommandDrag();
+                return;
+            }
+
+            switch (current.GetTypeForControl(dragControlId))
+            {
+                case EventType.MouseDrag:
+                    if (GUIUtility.hotControl == dragControlId)
+                    {
+                        commandDropIndex = FindCommandDropIndex(current.mousePosition.y);
+                        current.Use();
+                        Repaint();
+                    }
+                    break;
+                case EventType.MouseUp:
+                    if (GUIUtility.hotControl == dragControlId)
+                    {
+                        GUIUtility.hotControl = 0;
+                        int from = draggingCommandIndex;
+                        int to = FindCommandDropIndex(current.mousePosition.y);
+                        draggingCommandIndex = -1;
+                        commandDropIndex = -1;
+                        GameEventCommandDraftOperations.Move(
+                            commandDrafts,
+                            fromIndex: from,
+                            insertBefore: to);
+                        current.Use();
+                        Repaint();
+                    }
+                    break;
+                case EventType.KeyDown:
+                    if (current.keyCode == KeyCode.Escape)
+                    {
+                        GUIUtility.hotControl = 0;
+                        CancelCommandDrag();
+                        current.Use();
+                        Repaint();
+                    }
+                    break;
+                case EventType.Repaint:
+                    if (GUIUtility.hotControl != dragControlId)
+                    {
+                        // 拖曳中途失去控制（例如視窗失焦），放棄這次拖曳。
+                        CancelCommandDrag();
+                        break;
+                    }
+
+                    DrawCommandDragFeedback();
+                    break;
+            }
+        }
+
+        private void CancelCommandDrag()
+        {
+            draggingCommandIndex = -1;
+            commandDropIndex = -1;
+        }
+
+        private int FindCommandDropIndex(float mouseY)
+        {
+            if (commandRowRects.Count != commandDrafts.Count)
+            {
+                return draggingCommandIndex;
+            }
+
+            for (int index = 0; index < commandRowRects.Count; index++)
+            {
+                if (mouseY < commandRowRects[index].center.y)
+                {
+                    return index;
+                }
+            }
+
+            return commandRowRects.Count;
+        }
+
+        private void DrawCommandDragFeedback()
+        {
+            if (commandRowRects.Count != commandDrafts.Count ||
+                draggingCommandIndex >= commandRowRects.Count)
+            {
+                return;
+            }
+
+            EditorGUI.DrawRect(commandRowRects[draggingCommandIndex], CommandDraggingOverlayColor);
+            if (commandDropIndex < 0 ||
+                commandDropIndex == draggingCommandIndex ||
+                commandDropIndex == draggingCommandIndex + 1)
+            {
+                return;
+            }
+
+            // 放下位置畫在兩列之間的空隙中央。
+            Rect reference;
+            float y;
+            if (commandDropIndex >= commandRowRects.Count)
+            {
+                reference = commandRowRects[commandRowRects.Count - 1];
+                y = reference.yMax + 2f;
+            }
+            else
+            {
+                reference = commandRowRects[commandDropIndex];
+                y = commandDropIndex == 0
+                    ? reference.y - 2f
+                    : (commandRowRects[commandDropIndex - 1].yMax + reference.y) * 0.5f;
+            }
+
+            EditorGUI.DrawRect(new Rect(reference.x, y - 1.5f, reference.width, 3f), CommandDropLineColor);
         }
 
         /// <summary>

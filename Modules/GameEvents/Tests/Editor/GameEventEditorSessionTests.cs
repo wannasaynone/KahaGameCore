@@ -254,6 +254,47 @@ namespace KahaGameCore.GameEvents.Tests
             Assert.That(drafts[2].Name, Is.EqualTo("CloseDoor"));
         }
 
+        [TestCase(0, 3, new[] { "B", "C", "A" })]
+        [TestCase(2, 0, new[] { "C", "A", "B" })]
+        [TestCase(0, 2, new[] { "B", "A", "C" })]
+        [TestCase(2, 1, new[] { "A", "C", "B" })]
+        public void CommandDraftOperations_Move_PlacesRowBeforeTarget(
+            int fromIndex,
+            int insertBefore,
+            string[] expected)
+        {
+            List<GameEventCommandDraft> drafts = new[] { "A", "B", "C" }
+                .Select(name => new GameEventCommandDraft { Name = name })
+                .ToList();
+
+            bool moved = GameEventCommandDraftOperations.Move(
+                drafts,
+                fromIndex: fromIndex,
+                insertBefore: insertBefore);
+
+            Assert.That(moved, Is.True);
+            CollectionAssert.AreEqual(expected, drafts.Select(draft => draft.Name));
+        }
+
+        [TestCase(1, 1)]
+        [TestCase(1, 2)]
+        public void CommandDraftOperations_Move_ToOwnPositionDoesNothing(
+            int fromIndex,
+            int insertBefore)
+        {
+            List<GameEventCommandDraft> drafts = new[] { "A", "B", "C" }
+                .Select(name => new GameEventCommandDraft { Name = name })
+                .ToList();
+
+            bool moved = GameEventCommandDraftOperations.Move(
+                drafts,
+                fromIndex: fromIndex,
+                insertBefore: insertBefore);
+
+            Assert.That(moved, Is.False);
+            CollectionAssert.AreEqual(new[] { "A", "B", "C" }, drafts.Select(draft => draft.Name));
+        }
+
         [Test]
         public void CommandDraftOperations_Duplicate_InsertsIndependentCopyAfterSource()
         {
