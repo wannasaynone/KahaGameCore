@@ -548,6 +548,39 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
+        public void ForceRunAsync_IgnoresFalseCondition()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Int("Gate", "Gate", 0, 0, 1)
+            });
+            List<string> records = new List<string>();
+            EffectCommandRegistry registry = CreateRecordingRegistry(records);
+            TextAsset file = CreateEvent(
+                "30000000-0000-0000-0000-000000000003",
+                "Forced",
+                "",
+                "$Gate == 1",
+                "Record(forced);");
+
+            try
+            {
+                GameEventDocument document = new GameEventDocumentJsonCodec().Read(file.text);
+                CreateRunner(parameters, registry).ForceRunAsync(
+                        document,
+                        new EventContext(CancellationToken.None))
+                    .GetAwaiter()
+                    .GetResult();
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(file);
+            }
+
+            CollectionAssert.AreEqual(new[] { "forced" }, records);
+        }
+
+        [Test]
         public void RunAsync_ConditionFalseDoesNotReportQueueActivity()
         {
             ParameterStore parameters = new ParameterStore(new[]

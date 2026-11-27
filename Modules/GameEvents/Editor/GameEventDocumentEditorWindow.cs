@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Cysharp.Threading.Tasks;
 using KahaGameCore.Effects;
 using KahaGameCore.Parameters;
 using KahaGameCore.Parameters.Editor;
@@ -59,6 +60,7 @@ namespace KahaGameCore.GameEvents.Editor
         [SerializeField] private EditorTab selectedTab;
         [SerializeField] private Vector2 gameEventScrollPosition;
         [NonSerialized] private bool projectAssetsRefreshPending;
+        [NonSerialized] private bool allCachesRefreshPending;
         [SerializeField] private Vector2 eventCatalogScrollPosition;
         [SerializeField] private Vector2 parameterTableScrollPosition;
         [SerializeField] private Vector2 commandCatalogScrollPosition;
@@ -333,12 +335,52 @@ namespace KahaGameCore.GameEvents.Editor
             Repaint();
         }
 
+        private void RefreshAllCaches()
+        {
+            AssetDatabase.Refresh();
+            EffectCommandArgumentOptionCatalog.Reset();
+            EffectCommandArgumentEditorCatalog.Reset();
+            ifConditionCaches.Clear();
+            projectReferences = null;
+            projectReferencesAssetPath = null;
+
+            RefreshProjectAssets();
+
+            bool parameterTablesKept = ParameterWorkspace.HasUnsavedChanges;
+            if (!parameterTablesKept)
+            {
+                try
+                {
+                    ParameterWorkspace.ReloadAll();
+                }
+                catch (Exception exception)
+                {
+                    SetStatus("無法重新讀取參數表：" + exception.Message, MessageType.Error);
+                    return;
+                }
+            }
+
+            RefreshCatalog(true);
+            if (parameterTablesKept)
+            {
+                SetStatus(
+                    statusMessage + "\n參數表有尚未儲存的變更，保留目前內容、未重新讀取。",
+                    statusType == MessageType.Error ? MessageType.Error : MessageType.Warning);
+            }
+        }
+
         private void OnGUI()
         {
             if (Event.current.type == EventType.Layout && projectAssetsRefreshPending)
             {
                 projectAssetsRefreshPending = false;
                 RefreshProjectAssets();
+            }
+
+            if (Event.current.type == EventType.Layout && allCachesRefreshPending)
+            {
+                allCachesRefreshPending = false;
+                RefreshAllCaches();
             }
 
             if (selectedEventCatalog == null)
@@ -510,16 +552,6 @@ namespace KahaGameCore.GameEvents.Editor
 
                     if (GUILayout.Button(
                             new GUIContent(
-                                "重新整理選項",
-                                "重新讀取事件目錄、參數與可用指令。"),
-                            EventToolbarButtonStyle,
-                            GUILayout.MinWidth(132f)))
-                    {
-                        RefreshCatalog(true);
-                    }
-
-                    if (GUILayout.Button(
-                            new GUIContent(
                                 "驗證事件",
                                 "檢查目前事件的結構、指令語法與 GUID。"),
                             EventToolbarButtonStyle,
@@ -530,6 +562,22 @@ namespace KahaGameCore.GameEvents.Editor
                             document =>
                                 $"結構、指令語法與 GUID 均正確：" +
                                 $"{document.DisplayName}（{document.DocumentGuid:D}）。");
+                    }
+
+                    using (new EditorGUI.DisabledScope(!EditorApplication.isPlaying))
+                    {
+                        if (GUILayout.Button(
+                                new GUIContent(
+                                    "強制觸發",
+                                    EditorApplication.isPlaying
+                                        ? "忽略執行條件，立即在執行中的遊戲裡執行目前編輯內容（含未儲存的變更）。" +
+                                          "有其他事件執行中時，排在它們之後。"
+                                        : "進入 Play 模式後才能強制觸發。"),
+                                EventToolbarButtonStyle,
+                                GUILayout.MinWidth(108f)))
+                        {
+                            ForceTriggerEditorDocument();
+                        }
                     }
 
                     GUILayout.FlexibleSpace();
@@ -1413,6 +1461,19 @@ namespace KahaGameCore.GameEvents.Editor
                     {
                         EditorGUIUtility.PingObject(selectedEventCatalog);
                     }
+                }
+
+                if (GUILayout.Button(
+                        new GUIContent(
+                            "重新整理快取",
+                            "匯入磁碟上的變更，重新讀取事件目錄、參數表、指令與選項來源，" +
+                            "並清除專案引用的搜尋結果。未儲存的參數表不會被重新讀取。"),
+                        GUILayout.Width(100f)))
+                {
+                    // 重新整理可能關閉已被刪除的事件；延到下一次 Layout 才套用，理由同
+                    // RequestProjectAssetsRefresh。
+                    allCachesRefreshPending = true;
+                    Repaint();
                 }
 
                 if (GUILayout.Button("偏好設定…", GUILayout.Width(88f)))
@@ -3850,6 +3911,71 @@ namespace KahaGameCore.GameEvents.Editor
                 "要捨棄目前尚未儲存的變更嗎？",
                 "捨棄變更",
                 "取消");
+        }
+
+        private void ForceTriggerEditorDocument()
+        {
+            if (!EditorApplication.isPlaying)
+            {
+                SetStatus("進入 Play 模式後才能強制觸發。", MessageType.Warning);
+                return;
+            }
+
+            DefaultSimpleGameLauncher launcher =
+                FindFirstObjectByType<DefaultSimpleGameLauncher>();
+            if (launcher == null || !launcher.IsReady || launcher.Context == null)
+            {
+                SetStatus(
+                    "目前場景沒有已初始化的 DefaultSimpleGameLauncher，無法強制觸發。",
+                    MessageType.Error);
+                return;
+            }
+
+            GameEventDocument document;
+            try
+            {
+                document = ValidateEditorDocument();
+            }
+            catch (Exception exception)
+            {
+                SetStatus("無法強制觸發：" + exception.Message, MessageType.Error);
+                return;
+            }
+
+            SetStatus($"已強制觸發：{document.DisplayName}。", MessageType.Info);
+            ForceTriggerAsync(launcher.Events, launcher.Context, document).Forget();
+        }
+
+        private async UniTaskVoid ForceTriggerAsync(
+            GameEventRunner runner,
+            EventContext context,
+            GameEventDocument document)
+        {
+            string message;
+            MessageType messageType;
+            try
+            {
+                await runner.ForceRunAsync(document, context);
+                message = $"強制觸發完成：{document.DisplayName}。";
+                messageType = MessageType.Info;
+            }
+            catch (OperationCanceledException)
+            {
+                message = $"強制觸發已取消：{document.DisplayName}。";
+                messageType = MessageType.Warning;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                message = "強制觸發失敗：" + exception.Message;
+                messageType = MessageType.Error;
+            }
+
+            // The window may have been closed while the event was running.
+            if (this != null)
+            {
+                SetStatus(message, messageType);
+            }
         }
 
         private bool RunCommand(

@@ -3,11 +3,13 @@
     "rootNamespace": "KahaGameCore.GameEvents.Editor",
     "references": [
         "KahaGameCore.Modules.GameEvents",
+        "KahaGameCore.Modules.GameEvents.SimpleLauncher",
         "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Parameters",
         "KahaGameCore.Modules.Parameters.Editor",
         "KahaGameCore.Modules.Expressions",
-        "KahaGameCore.Modules.Interaction"
+        "KahaGameCore.Modules.Interaction",
+        "UniTask"
     ],
     "includePlatforms": [
         "Editor"

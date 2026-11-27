@@ -63,6 +63,21 @@ namespace KahaGameCore.GameEvents
                 context.CancellationToken);
         }
 
+        /// <summary>
+        /// Runs the document without evaluating its Condition, for debugging
+        /// tools such as the Game Event Editor's force trigger. It still waits
+        /// in the shared queue behind earlier events.
+        /// </summary>
+        public UniTask ForceRunAsync(GameEventDocument document, EventContext context)
+        {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (context == null) throw new ArgumentNullException(nameof(context));
+
+            return Enqueue(
+                () => ExecuteDocumentAsync(document, context),
+                context.CancellationToken);
+        }
+
         public UniTask TriggerAsync(string triggerTiming, EventContext context)
         {
             if (triggerTiming == null) throw new ArgumentNullException(nameof(triggerTiming));

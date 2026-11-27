@@ -153,9 +153,21 @@ namespace KahaGameCore.Presentation.Editor
             }
         }
 
+        private static void DrawSeparator()
+        {
+            EditorGUILayout.Space(6f);
+            Rect rect = EditorGUILayout.GetControlRect(false, 2f);
+            EditorGUI.DrawRect(
+                rect,
+                EditorGUIUtility.isProSkin
+                    ? new Color(0.45f, 0.45f, 0.45f)
+                    : new Color(0.55f, 0.55f, 0.55f));
+            EditorGUILayout.Space(6f);
+        }
+
         private void DrawBindings()
         {
-            EditorGUILayout.Space(4f);
+            DrawSeparator();
             EditorGUILayout.LabelField(
                 $"子物件狀態綁定（{bindings.arraySize}）",
                 EditorStyles.boldLabel);
@@ -163,6 +175,11 @@ namespace KahaGameCore.Presentation.Editor
             int removeIndex = -1;
             for (int index = 0; index < bindings.arraySize; index++)
             {
+                if (index > 0)
+                {
+                    DrawSeparator();
+                }
+
                 SerializedProperty binding = bindings.GetArrayElementAtIndex(index);
                 using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
                 {
