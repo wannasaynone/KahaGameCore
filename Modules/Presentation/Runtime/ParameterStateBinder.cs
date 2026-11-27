@@ -46,6 +46,22 @@ namespace KahaGameCore.Presentation
         public IReadOnlyList<Behaviour> BehaviourTargets => behaviourTargets;
         public string BehaviourCondition => behaviourCondition;
         public bool BehaviourTargetsManaged => behaviourTargetsManaged;
+        public bool IsInitialized => parameters != null;
+
+        /// <summary>
+        /// Reads the live value from the store this binder was initialized
+        /// with; false before Initialize or when the key does not exist.
+        /// </summary>
+        public bool TryGetParameterValue(string key, out ParameterValue value)
+        {
+            if (parameters == null)
+            {
+                value = default;
+                return false;
+            }
+
+            return parameters.TryGetValue(key, out value);
+        }
 
         public void Configure(
             IEnumerable<ParameterChildConditionBinding> conditionBindings)

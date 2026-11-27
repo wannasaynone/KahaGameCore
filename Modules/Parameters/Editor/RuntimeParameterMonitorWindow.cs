@@ -16,6 +16,16 @@ namespace KahaGameCore.Parameters.Editor
         [SerializeField] private string searchText = string.Empty;
         [SerializeField] private Vector2 scrollPosition;
 
+        private const double HighlightDuration = 1.2;
+        private const int HighlightPulses = 2;
+
+        private string highlightKey;
+        private double highlightStartTime;
+        private bool scrollToHighlightPending;
+        // Row rects are known only after layout, so the scroll target is
+        // recorded while repainting the row and applied after the scroll view.
+        private Rect highlightRowRect;
+
         [MenuItem("KahaGameCore/Parameters/Runtime Parameter Monitor")]
         public static void OpenWindow()
         {
@@ -24,6 +34,35 @@ namespace KahaGameCore.Parameters.Editor
             window.titleContent = new GUIContent("Runtime Parameters");
             window.minSize = new Vector2(560f, 320f);
             window.Show();
+        }
+
+        /// <summary>
+        /// Opens the monitor, scrolls to the row of <paramref name="key"/> and
+        /// flashes it. Clears the search filter when it would hide the row.
+        /// </summary>
+        public static void Locate(string key)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentException("Key is required.", nameof(key));
+            }
+
+            OpenWindow();
+            RuntimeParameterMonitorWindow window =
+                GetWindow<RuntimeParameterMonitorWindow>();
+            if (!string.IsNullOrWhiteSpace(window.searchText) &&
+                !ContainsIgnoreCase(key, window.searchText))
+            {
+                window.searchText = string.Empty;
+                GUI.FocusControl(null);
+            }
+
+            window.highlightKey = key;
+            window.highlightRowRect = default;
+            window.highlightStartTime = EditorApplication.timeSinceStartup;
+            window.scrollToHighlightPending = true;
+            window.Focus();
+            window.Repaint();
         }
 
         private void OnEnable()
@@ -113,8 +152,49 @@ namespace KahaGameCore.Parameters.Editor
             foreach (ParameterRuntimeValue item in visibleValues)
             {
                 DrawRow(source, item);
+                Rect rowRect = GUILayoutUtility.GetLastRect();
+                if (Event.current.type == EventType.Repaint &&
+                    string.Equals(item.Definition.Key, highlightKey, StringComparison.Ordinal))
+                {
+                    DrawHighlight(rowRect);
+                }
             }
             EditorGUILayout.EndScrollView();
+            Rect viewRect = GUILayoutUtility.GetLastRect();
+            if (Event.current.type == EventType.Repaint)
+            {
+                ApplyPendingScroll(viewRect);
+            }
+        }
+
+        private void DrawHighlight(Rect rowRect)
+        {
+            highlightRowRect = rowRect;
+            double elapsed = EditorApplication.timeSinceStartup - highlightStartTime;
+            if (elapsed >= HighlightDuration)
+            {
+                return;
+            }
+
+            float progress = (float)(elapsed / HighlightDuration);
+            float pulse = Mathf.Abs(Mathf.Sin(progress * Mathf.PI * HighlightPulses));
+            Color color = new Color(1f, 0.8f, 0.2f, 0.55f * pulse * (1f - progress * 0.5f));
+            EditorGUI.DrawRect(rowRect, color);
+            Repaint();
+        }
+
+        private void ApplyPendingScroll(Rect viewRect)
+        {
+            if (!scrollToHighlightPending || highlightRowRect.height <= 0f)
+            {
+                return;
+            }
+
+            scrollToHighlightPending = false;
+            float target = highlightRowRect.y - (viewRect.height - highlightRowRect.height) * 0.5f;
+            scrollPosition.y = Mathf.Max(0f, target);
+            highlightStartTime = EditorApplication.timeSinceStartup;
+            Repaint();
         }
 
         private static void DrawMissingSourceHelp()

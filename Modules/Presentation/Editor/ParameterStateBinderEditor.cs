@@ -4,6 +4,7 @@ using System.Linq;
 using KahaGameCore.GameEvents;
 using KahaGameCore.GameEvents.Editor;
 using KahaGameCore.Parameters;
+using KahaGameCore.Parameters.Editor;
 using UnityEditor;
 using UnityEngine;
 
@@ -65,7 +66,13 @@ namespace KahaGameCore.Presentation.Editor
 
             DrawBehaviourBinding();
             DrawBindings();
+            DrawRuntimeValues();
             serializedObject.ApplyModifiedProperties();
+        }
+
+        public override bool RequiresConstantRepaint()
+        {
+            return EditorApplication.isPlaying;
         }
 
         internal static SetupState GetSetupState(
@@ -350,6 +357,139 @@ namespace KahaGameCore.Presentation.Editor
             {
                 conditionProperty.stringValue =
                     GameEventConditionDraftCodec.Serialize(root);
+            }
+        }
+
+        private void DrawRuntimeValues()
+        {
+            if (!EditorApplication.isPlaying)
+            {
+                return;
+            }
+
+            DrawSeparator();
+            IReadOnlyList<string> keys = CollectReferencedKeys();
+            EditorGUILayout.LabelField(
+                $"執行期參數值（{keys.Count}）",
+                EditorStyles.boldLabel);
+
+            ParameterStateBinder binder = (ParameterStateBinder)target;
+            if (!binder.IsInitialized)
+            {
+                EditorGUILayout.HelpBox(
+                    "此 Binder 尚未由 Launcher 初始化，無法讀取參數值。",
+                    MessageType.Warning);
+                return;
+            }
+
+            if (keys.Count == 0)
+            {
+                EditorGUILayout.HelpBox("條件中沒有引用任何參數。", MessageType.Info);
+                return;
+            }
+
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                foreach (string key in keys)
+                {
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.LabelField(
+                            new GUIContent(DescribeParameter(key), key));
+                        bool found = binder.TryGetParameterValue(key, out ParameterValue value);
+                        EditorGUILayout.LabelField(
+                            found ? FormatValue(value) : "（不存在）",
+                            EditorStyles.boldLabel,
+                            GUILayout.Width(90f));
+                        using (new EditorGUI.DisabledScope(!found))
+                        {
+                            if (GUILayout.Button("定位", GUILayout.Width(52f)))
+                            {
+                                RuntimeParameterMonitorWindow.Locate(key);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private IReadOnlyList<string> CollectReferencedKeys()
+        {
+            List<string> keys = new List<string>();
+            CollectKeys(behaviourCondition.stringValue, keys);
+            for (int index = 0; index < bindings.arraySize; index++)
+            {
+                CollectKeys(
+                    bindings.GetArrayElementAtIndex(index)
+                        .FindPropertyRelative("condition").stringValue,
+                    keys);
+            }
+
+            return keys;
+        }
+
+        private static void CollectKeys(string condition, List<string> keys)
+        {
+            GameEventConditionGroupDraft root;
+            try
+            {
+                root = GameEventConditionDraftCodec.Parse(condition);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+
+            CollectKeys(root, keys);
+        }
+
+        private static void CollectKeys(GameEventConditionDraft draft, List<string> keys)
+        {
+            switch (draft)
+            {
+                case GameEventConditionClauseDraft clause:
+                    if (!string.IsNullOrEmpty(clause.ParameterKey) &&
+                        !keys.Contains(clause.ParameterKey))
+                    {
+                        keys.Add(clause.ParameterKey);
+                    }
+                    break;
+                case GameEventConditionGroupDraft group:
+                    foreach (GameEventConditionDraft child in group.Children)
+                    {
+                        CollectKeys(child, keys);
+                    }
+                    break;
+            }
+        }
+
+        private string DescribeParameter(string key)
+        {
+            ParameterAuthoringEntry entry = conditionParameters.FirstOrDefault(
+                candidate => string.Equals(
+                    candidate.Definition.Key,
+                    key,
+                    StringComparison.Ordinal));
+            string displayName = entry?.Definition.DisplayName;
+            return string.IsNullOrEmpty(displayName) || displayName == key
+                ? key
+                : $"{displayName}（{key}）";
+        }
+
+        private static string FormatValue(ParameterValue value)
+        {
+            switch (value.Type)
+            {
+                case ParameterType.Int:
+                    return value.AsInt().ToString(System.Globalization.CultureInfo.InvariantCulture);
+                case ParameterType.Float:
+                    return value.AsFloat().ToString(System.Globalization.CultureInfo.InvariantCulture);
+                case ParameterType.Bool:
+                    return value.AsBool() ? "TRUE" : "FALSE";
+                case ParameterType.String:
+                    return value.AsString() ?? string.Empty;
+                default:
+                    return value.Type.ToString();
             }
         }
 
