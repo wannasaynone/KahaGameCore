@@ -63,6 +63,27 @@ namespace KahaGameCore.GameEvents
         }
 
         /// <summary>
+        /// Runs a catalog event by its DocumentGuid, the same way
+        /// <see cref="RunAsync(TextAsset, EventContext)"/> runs a file: it waits
+        /// in the shared queue and is skipped when its Condition is false. For
+        /// data that references events by DocumentGuid instead of a TextAsset.
+        /// </summary>
+        public UniTask RunAsync(Guid documentGuid, EventContext context)
+        {
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (!catalog.TryGetDocument(documentGuid, out GameEventDocument document))
+            {
+                throw new GameEventException(
+                    "MissingDocument",
+                    $"Game Event '{documentGuid:D}' is not in the current catalog.");
+            }
+
+            return Enqueue(
+                () => RunDocumentAsync(document, context),
+                context.CancellationToken);
+        }
+
+        /// <summary>
         /// Runs the document without evaluating its Condition, for debugging
         /// tools such as the Game Event Editor's force trigger. It still waits
         /// in the shared queue behind earlier events.

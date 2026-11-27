@@ -548,6 +548,55 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
+        public void RunAsyncByGuid_RunsCatalogEventAndHonorsCondition()
+        {
+            ParameterStore parameters = new ParameterStore(new[]
+            {
+                ParameterDefinition.Int("Gate", "Gate", 0, 0, 1)
+            });
+            List<string> records = new List<string>();
+            TextAsset open = CreateEvent(
+                "30000000-0000-0000-0000-000000000020",
+                "Open",
+                "",
+                "",
+                "Record(open);");
+            TextAsset gated = CreateEvent(
+                "30000000-0000-0000-0000-000000000021",
+                "Gated",
+                "",
+                "$Gate == 1",
+                "Record(gated);");
+
+            try
+            {
+                var codec = new GameEventDocumentJsonCodec();
+                var runner = new GameEventRunner(
+                    new GameEventCatalog(new[] { open, gated }, codec),
+                    new EffectRuntime(CreateRecordingRegistry(records)),
+                    parameters,
+                    codec);
+                var context = new EventContext(CancellationToken.None);
+
+                runner.RunAsync(new Guid("30000000-0000-0000-0000-000000000020"), context)
+                    .GetAwaiter()
+                    .GetResult();
+                runner.RunAsync(new Guid("30000000-0000-0000-0000-000000000021"), context)
+                    .GetAwaiter()
+                    .GetResult();
+                Assert.Throws<GameEventException>(() =>
+                    runner.RunAsync(new Guid("30000000-0000-0000-0000-000000000099"), context));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(open);
+                UnityEngine.Object.DestroyImmediate(gated);
+            }
+
+            CollectionAssert.AreEqual(new[] { "open" }, records);
+        }
+
+        [Test]
         public void ForceRunAsync_IgnoresFalseCondition()
         {
             ParameterStore parameters = new ParameterStore(new[]
