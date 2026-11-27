@@ -102,6 +102,18 @@ namespace KahaGameCore.GameEvents.Editor
             }
         }
 
+        [NonSerialized] private ParameterReferenceCheckPanel referenceCheckPanel;
+
+        private ParameterReferenceCheckPanel ReferenceCheckPanel =>
+            referenceCheckPanel ??= new ParameterReferenceCheckPanel(
+                search: key =>
+                {
+                    ParameterWorkspace.OverviewSearchText = key;
+                    GUI.FocusControl(null);
+                    Repaint();
+                },
+                repaint: Repaint);
+
         private ParameterTableWorkspace ParameterWorkspace
         {
             get
@@ -1759,6 +1771,7 @@ namespace KahaGameCore.GameEvents.Editor
                 "參數表",
                 "展開 Folder 可查看參數在目前事件目錄中的引用，" +
                 "也能同時展開多張表編輯。");
+            ReferenceCheckPanel.Draw();
             using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
             {
                 ParameterWorkspace.OverviewSearchText =

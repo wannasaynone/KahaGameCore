@@ -84,6 +84,70 @@ namespace KahaGameCore.GameEvents.Tests
         }
 
         [Test]
+        public void Awake_BrokenBinderIsLoggedAndOthersStillInitialize()
+        {
+            GameObject host = new GameObject("Simple Launcher");
+            GameEventCatalogAsset catalog =
+                ScriptableObject.CreateInstance<GameEventCatalogAsset>();
+            TextAsset parameters = new TextAsset(@"{
+  ""SchemaVersion"": 1,
+  ""TableGuid"": ""5b0c1f8e-2f61-4d3a-9a57-1c2d3e4f5a60"",
+  ""DisplayName"": ""Test Parameters"",
+  ""Parameters"": [
+    {
+      ""Key"": ""Shown"",
+      ""DisplayName"": ""Shown"",
+      ""Type"": ""Bool"",
+      ""InitialValue"": ""false""
+    }
+  ]
+}");
+
+            try
+            {
+                catalog.SetParameterTables(new[] { parameters });
+                TestSimpleGameLauncher launcher =
+                    host.AddComponent<TestSimpleGameLauncher>();
+                SerializedObject serializedLauncher =
+                    new SerializedObject(launcher);
+                serializedLauncher.FindProperty("catalog")
+                    .objectReferenceValue = catalog;
+                serializedLauncher.ApplyModifiedPropertiesWithoutUndo();
+
+                GameObject broken = new GameObject("Broken");
+                broken.transform.SetParent(host.transform);
+                GameObject brokenChild = new GameObject("BrokenChild");
+                brokenChild.transform.SetParent(broken.transform);
+                broken.AddComponent<ParameterStateBinder>().Configure(new[]
+                {
+                    new ParameterChildConditionBinding(brokenChild, "$Missing")
+                });
+
+                GameObject working = new GameObject("Working");
+                working.transform.SetParent(host.transform);
+                GameObject workingChild = new GameObject("WorkingChild");
+                workingChild.transform.SetParent(working.transform);
+                working.AddComponent<ParameterStateBinder>().Configure(new[]
+                {
+                    new ParameterChildConditionBinding(workingChild, "$Shown")
+                });
+
+                UnityEngine.TestTools.LogAssert.Expect(
+                    LogType.Exception,
+                    new System.Text.RegularExpressions.Regex("BrokenChild.*Missing"));
+                launcher.InitializeForTest();
+
+                Assert.That(workingChild.activeSelf, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(host);
+                Object.DestroyImmediate(parameters);
+                Object.DestroyImmediate(catalog);
+            }
+        }
+
+        [Test]
         public async Task Awake_RegistersStandardWaitCommand()
         {
             GameObject host = new GameObject("Simple Launcher");

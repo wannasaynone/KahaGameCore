@@ -437,25 +437,32 @@ namespace KahaGameCore.GameEvents.Editor
             TextAsset eventAsset,
             string scenePath)
         {
+            return ScanScene(
+                scenePath,
+                roots => FindInHierarchy(
+                    eventAsset,
+                    roots,
+                    GameEventObjectReferenceSource.Scene,
+                    scenePath));
+        }
+
+        /// <summary>
+        /// 以場景的根物件執行 scan。未開啟的場景暫時以 additive 載入、執行完關閉
+        /// （原本就在 Hierarchy 但未載入的場景，關閉後保留在 Hierarchy）。
+        /// </summary>
+        internal static T ScanScene<T>(string scenePath, Func<GameObject[], T> scan)
+        {
             Scene scene = SceneManager.GetSceneByPath(scenePath);
             if (scene.IsValid() && scene.isLoaded)
             {
-                return FindInHierarchy(
-                    eventAsset,
-                    scene.GetRootGameObjects(),
-                    GameEventObjectReferenceSource.Scene,
-                    scenePath);
+                return scan(scene.GetRootGameObjects());
             }
 
             bool keepInHierarchy = scene.IsValid();
             Scene opened = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
             try
             {
-                return FindInHierarchy(
-                    eventAsset,
-                    opened.GetRootGameObjects(),
-                    GameEventObjectReferenceSource.Scene,
-                    scenePath);
+                return scan(opened.GetRootGameObjects());
             }
             finally
             {
@@ -615,7 +622,7 @@ namespace KahaGameCore.GameEvents.Editor
             return null;
         }
 
-        private static void Select(UnityEngine.Object target)
+        internal static void Select(UnityEngine.Object target)
         {
             if (target == null)
             {
@@ -630,7 +637,7 @@ namespace KahaGameCore.GameEvents.Editor
             }
         }
 
-        private static string GetHierarchyPath(Transform transform)
+        internal static string GetHierarchyPath(Transform transform)
         {
             List<string> names = new List<string>();
             for (Transform current = transform; current != null; current = current.parent)
@@ -642,7 +649,7 @@ namespace KahaGameCore.GameEvents.Editor
             return string.Join("/", names);
         }
 
-        private static IReadOnlyList<int> GetSiblingPath(Transform transform, Transform root)
+        internal static IReadOnlyList<int> GetSiblingPath(Transform transform, Transform root)
         {
             List<int> indices = new List<int>();
             for (Transform current = transform;

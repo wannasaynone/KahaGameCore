@@ -8,12 +8,14 @@ namespace KahaGameCore.GameEvents
     {
         internal sealed class Entry
         {
-            public Entry(GameEventDocument document)
+            public Entry(GameEventDocument document, TextAsset file)
             {
                 Document = document;
+                File = file;
             }
 
             public GameEventDocument Document { get; }
+            public TextAsset File { get; }
         }
 
         private readonly List<Entry> entries = new List<Entry>();
@@ -54,13 +56,20 @@ namespace KahaGameCore.GameEvents
                         $"Duplicate Game Event DocumentGuid '{document.DocumentGuid:D}'.");
                 }
 
-                Entry entry = new Entry(document);
+                Entry entry = new Entry(document, file);
                 entries.Add(entry);
                 entriesByDocumentGuid.Add(document.DocumentGuid, entry);
             }
         }
 
         internal IReadOnlyList<Entry> Entries => entries;
+
+        internal TextAsset FindFile(Guid documentGuid)
+        {
+            return entriesByDocumentGuid.TryGetValue(documentGuid, out Entry entry)
+                ? entry.File
+                : null;
+        }
 
         internal bool TryGetDocument(Guid documentGuid, out GameEventDocument document)
         {

@@ -39,7 +39,7 @@ namespace KahaGameCore.GameEvents
         public void Trigger()
         {
             UnityEngine.Debug.Log("trigger " + gameObject.name);
-            TriggerAsync().Forget();
+            TriggerAsync().ForgetAndLog(this);
         }
 
         public UniTask TriggerAsync()

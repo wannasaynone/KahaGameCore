@@ -142,8 +142,8 @@ namespace KahaGameCore.Presentation
                 if (!result.IsSuccess)
                 {
                     throw new InvalidOperationException(
-                        $"ParameterStateBinder condition for '{binding.Target.name}' failed: " +
-                        result.Error);
+                        $"ParameterStateBinder condition for '{binding.Target.name}' " +
+                        $"({DescribeLocation()}) failed: {result.Error}");
                 }
 
                 activeStates[index] = result.Value;
@@ -164,8 +164,8 @@ namespace KahaGameCore.Presentation
             if (!result.IsSuccess)
             {
                 throw new InvalidOperationException(
-                    "ParameterStateBinder behaviour condition failed: " +
-                    result.Error);
+                    $"ParameterStateBinder behaviour condition ({DescribeLocation()}) " +
+                    $"failed: {result.Error}");
             }
 
             return result.Value;
@@ -261,6 +261,20 @@ namespace KahaGameCore.Presentation
                     throw new InvalidOperationException(
                         $"Parameter behaviour target '{target.name}' is bound more than once.");
             }
+        }
+
+        // Scene and hierarchy path, so a failure can be traced without the
+        // console's context object (e.g. in a player log).
+        private string DescribeLocation()
+        {
+            List<string> names = new List<string>();
+            for (Transform current = transform; current != null; current = current.parent)
+            {
+                names.Add(current.name);
+            }
+
+            names.Reverse();
+            return $"{gameObject.scene.name}: {string.Join("/", names)}";
         }
 
         private void Unsubscribe()

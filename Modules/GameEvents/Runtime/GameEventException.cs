@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace KahaGameCore.GameEvents
 {
@@ -17,5 +18,12 @@ namespace KahaGameCore.GameEvents
         }
 
         public string Code { get; }
+
+        /// <summary>
+        /// The event file whose document failed, when known. A nested event
+        /// (TriggerEvent) keeps the innermost file. Used as the Console context
+        /// so clicking the log pings the event.
+        /// </summary>
+        public TextAsset EventFile { get; internal set; }
     }
 }

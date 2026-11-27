@@ -57,9 +57,8 @@ namespace KahaGameCore.GameEvents
             if (gameEventFile == null) throw new ArgumentNullException(nameof(gameEventFile));
             if (context == null) throw new ArgumentNullException(nameof(context));
 
-            string json = gameEventFile.text;
             return Enqueue(
-                () => RunDirectAsync(json, context),
+                () => RunDirectAsync(gameEventFile, context),
                 context.CancellationToken);
         }
 
@@ -128,10 +127,18 @@ namespace KahaGameCore.GameEvents
             }
         }
 
-        private UniTask RunDirectAsync(string json, EventContext context)
+        private async UniTask RunDirectAsync(TextAsset gameEventFile, EventContext context)
         {
-            GameEventDocument document = codec.Read(json);
-            return RunDocumentAsync(document, context);
+            try
+            {
+                GameEventDocument document = codec.Read(gameEventFile.text);
+                await RunDocumentAsync(document, context);
+            }
+            catch (GameEventException exception)
+            {
+                exception.EventFile ??= gameEventFile;
+                throw;
+            }
         }
 
         internal UniTask TriggerDocumentAsync(
@@ -259,6 +266,11 @@ namespace KahaGameCore.GameEvents
             {
                 await RunCommandsAsync(document, context);
             }
+            catch (GameEventException exception)
+            {
+                exception.EventFile ??= catalog.FindFile(document.DocumentGuid);
+                throw;
+            }
             finally
             {
                 activeDocuments.Remove(document.DocumentGuid);
@@ -272,7 +284,10 @@ namespace KahaGameCore.GameEvents
             {
                 throw new GameEventException(
                     "ConditionFailed",
-                    $"Game Event '{document.DisplayName}' condition failed: {condition.Error}");
+                    $"Game Event '{document.DisplayName}' condition failed: {condition.Error}")
+                {
+                    EventFile = catalog.FindFile(document.DocumentGuid)
+                };
             }
 
             return condition.Value;

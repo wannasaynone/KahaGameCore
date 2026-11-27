@@ -52,7 +52,7 @@ namespace KahaGameCore.GameEvents
 
         protected virtual void Start()
         {
-            TriggerActiveStartEventsAsync().Forget();
+            TriggerActiveStartEventsAsync().ForgetAndLog(this);
         }
 
         protected virtual void OnDestroy()
@@ -147,9 +147,19 @@ namespace KahaGameCore.GameEvents
 
         private void InitializeParameterStateBinders()
         {
+            // One broken condition must not leave every later binder
+            // uninitialized. The binder is the log's context, so clicking the
+            // Console entry selects it in the Hierarchy.
             foreach (ParameterStateBinder binder in FindIncludingInactive<ParameterStateBinder>())
             {
-                binder.Initialize(Parameters);
+                try
+                {
+                    binder.Initialize(Parameters);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception, binder);
+                }
             }
         }
     }

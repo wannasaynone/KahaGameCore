@@ -754,6 +754,7 @@ namespace KahaGameCore.GameEvents.Tests
                         .GetResult());
 
                 Assert.That(exception.Code, Is.EqualTo("ConditionFailed"));
+                Assert.That(exception.EventFile, Is.SameAs(file));
             }
             finally
             {
