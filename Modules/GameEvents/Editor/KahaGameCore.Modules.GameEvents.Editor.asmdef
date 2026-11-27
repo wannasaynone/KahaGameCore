@@ -7,6 +7,7 @@
         "KahaGameCore.Modules.Effects",
         "KahaGameCore.Modules.Parameters",
         "KahaGameCore.Modules.Parameters.Editor",
+        "KahaGameCore.Modules.Parameters.Unity",
         "KahaGameCore.Modules.Expressions",
         "KahaGameCore.Modules.Interaction",
         "UniTask"
